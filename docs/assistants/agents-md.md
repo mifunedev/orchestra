@@ -113,7 +113,7 @@ Pass the `AGENTS.md` content in the `files` dictionary when creating an assistan
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/assistant' \
+  'https://chat.mifune.dev/api/assistant' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -134,7 +134,7 @@ You can also inject AGENTS.md at the thread level for conversations without a de
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread' \
+  'https://chat.mifune.dev/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -154,7 +154,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'PATCH' \
-  'https://chat.ruska.ai/api/assistant/asst_abc123' \
+  'https://chat.mifune.dev/api/assistant/asst_abc123' \
   -H 'Content-Type: application/json' \
   -d '{
   "files": {

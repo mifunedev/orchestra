@@ -1,6 +1,6 @@
 .PHONY: dev claude build run tag seeds seeds.memory test format lint
 
-ENV_FILE ?= $(HOME)/.config/orchestra/.env.backend
+ENV_FILE ?= ./.env
 
 dev:
 	uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000 --log-level debug --env-file $(ENV_FILE)

@@ -27,7 +27,7 @@ router = APIRouter(tags=["Tool"], prefix="/tools")
             "content": {"application/json": {"example": {"tools": []}}},
         }
     },
-    operation_id="ruska_list_tools",
+    operation_id="orchestra_list_tools",
 )
 @cache(expire=30)
 async def list_tools(
@@ -46,7 +46,7 @@ async def list_tools(
     "",
     name="Create Tool",
     status_code=status.HTTP_201_CREATED,
-    operation_id="ruska_create_tool",
+    operation_id="orchestra_create_tool",
 )
 async def create_tool(
     tool: SavedTool = Body(..., openapi_examples=Examples.TOOL_CREATE_EXAMPLES),
@@ -73,7 +73,7 @@ async def create_tool(
     "/{tool_name}",
     name="Delete Tool",
     status_code=status.HTTP_204_NO_CONTENT,
-    operation_id="ruska_delete_tool",
+    operation_id="orchestra_delete_tool",
 )
 async def delete_tool(
     tool_name: str,

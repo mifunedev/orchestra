@@ -22,7 +22,7 @@ router = APIRouter(tags=["Project"], prefix="/projects")
 ################################################################################
 ### Search Projects
 ################################################################################
-@router.post("/search", name="Query Projects", operation_id="ruska_search_projects", tags=["mcp"])
+@router.post("/search", name="Query Projects", operation_id="orchestra_search_projects", tags=["mcp"])
 async def search_projects(
     project_search: SearchFilter = Body(...),
     user: ProtectedUser = Depends(verify_credentials),
@@ -68,7 +68,7 @@ async def search_projects(
 ################################################################################
 ### Create Project
 ################################################################################
-@router.post("", name="Create Project", operation_id="ruska_create_project", tags=["mcp"])
+@router.post("", name="Create Project", operation_id="orchestra_create_project", tags=["mcp"])
 async def create_project(
     project: Project = Body(openapi_examples=Examples.PROJECT_EXAMPLES),
     user: ProtectedUser = Depends(verify_credentials),
@@ -85,7 +85,7 @@ async def create_project(
 @router.get(
     "/{project_id}",
     name="Get Project",
-    operation_id="ruska_get_project",
+    operation_id="orchestra_get_project",
     tags=["mcp"],
 )
 @cache(expire=30)
@@ -108,7 +108,7 @@ async def get_project(
 @router.put(
     "/{project_id}",
     name="Update Project",
-    operation_id="ruska_update_project",
+    operation_id="orchestra_update_project",
     tags=["mcp"],
 )
 async def update_project(
@@ -142,7 +142,7 @@ async def update_project(
 @router.delete(
     "/{project_id}",
     name="Delete Project",
-    operation_id="ruska_delete_project",
+    operation_id="orchestra_delete_project",
     tags=["mcp"],
 )
 async def delete_project(
@@ -161,7 +161,7 @@ async def delete_project(
 @router.get(
     "/{project_id}/sources",
     name="Get Project Sources",
-    operation_id="ruska_get_project_sources",
+    operation_id="orchestra_get_project_sources",
     tags=["mcp"],
 )
 @cache(expire=30)
@@ -185,7 +185,7 @@ async def get_project_sources(
 @router.post(
     "/{project_id}/sources",
     name="Add Project Sources",
-    operation_id="ruska_add_project_sources",
+    operation_id="orchestra_add_project_sources",
     tags=["mcp"],
 )
 async def add_project_sources(
@@ -209,7 +209,7 @@ async def add_project_sources(
 @router.delete(
     "/{project_id}/sources/{source_id}",
     name="Delete Project Source",
-    operation_id="ruska_delete_project_source",
+    operation_id="orchestra_delete_project_source",
     tags=["mcp"],
 )
 async def delete_project_source(

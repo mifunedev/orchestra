@@ -7,7 +7,7 @@ from src.utils.logger import logger
 
 DefaultSystemPromptSource = Literal["file", "langsmith"]
 
-DEFAULT_SYSTEM_PROMPT_LANGSMITH_NAME = "ruska-default"
+DEFAULT_SYSTEM_PROMPT_LANGSMITH_NAME = "orchestra-default"
 _DEFAULT_SYSTEM_PROMPT_FILE_PATH = Path(__file__).resolve().parents[2] / "static" / "prompts" / "md" / "default.md"
 _FILE_CACHE: dict[tuple[str, str, int], str] = {}
 

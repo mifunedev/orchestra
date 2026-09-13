@@ -67,7 +67,7 @@ Attach `AGENTS.md` as a file when creating an assistant:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/assistant' \
+  'https://chat.mifune.dev/api/assistant' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -87,7 +87,7 @@ Update the file content to change behavior:
 
 ```bash
 curl -X 'PATCH' \
-  'https://chat.ruska.ai/api/assistant/asst_abc123' \
+  'https://chat.mifune.dev/api/assistant/asst_abc123' \
   -H 'Content-Type: application/json' \
   -d '{
   "files": {
@@ -102,7 +102,7 @@ Include `AGENTS.md` in the thread input files for per-conversation instructions:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread' \
+  'https://chat.mifune.dev/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{

@@ -166,7 +166,7 @@ def create_api_tool(
 # tool = create_api_tool(
 #     name="get_threads",
 #     description="Use this to get threads",
-#     base_url="https://chat.ruska.ai/api",
+#     base_url="https://chat.mifune.dev/api",
 #     method="POST",
 #     endpoint="/threads/search",
 #     headers={'Authorization': f'Bearer {AUTH_TOKEN}'},

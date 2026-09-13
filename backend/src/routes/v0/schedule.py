@@ -21,7 +21,7 @@ router = APIRouter(tags=["Schedule"])
 @router.get(
     "/schedules",
     responses={200: {"content": {"application/json": {"example": Examples.SCHEDULE_LIST_EXAMPLE}}}},
-    operation_id="ruska_list_schedules",
+    operation_id="orchestra_list_schedules",
     tags=["mcp"],
 )
 @cache(expire=30)
@@ -39,7 +39,7 @@ async def get_jobs(
 @router.get(
     "/schedules/{job_id}",
     responses={200: {"content": {"application/json": {"example": Examples.SCHEDULE_FIND_EXAMPLE}}}},
-    operation_id="ruska_get_schedule",
+    operation_id="orchestra_get_schedule",
     tags=["mcp"],
 )
 async def get_job(
@@ -58,7 +58,7 @@ async def get_job(
     "/schedules",
     status_code=201,
     responses={201: {"content": {"application/json": {"example": Examples.SCHEDULE_CREATED_RESPONSE_EXAMPLE}}}},
-    operation_id="ruska_create_schedule",
+    operation_id="orchestra_create_schedule",
     tags=["mcp"],
 )
 async def create_job(
@@ -84,7 +84,7 @@ async def create_job(
 @router.put(
     "/schedules/{job_id}",
     responses={200: {"model": JobUpdated}},
-    operation_id="ruska_update_schedule",
+    operation_id="orchestra_update_schedule",
     tags=["mcp"],
 )
 async def update_job(
@@ -108,7 +108,7 @@ async def update_job(
 ################################################################################
 ### Delete Schedule
 ################################################################################
-@router.delete("/schedules/{job_id}", operation_id="ruska_delete_schedule", tags=["mcp"])
+@router.delete("/schedules/{job_id}", operation_id="orchestra_delete_schedule", tags=["mcp"])
 async def delete_job(
     job_id: str,
     user: ProtectedUser = Depends(verify_credentials),

@@ -111,10 +111,9 @@ export default defineConfig({
 	},
 	server: {
 		allowedHosts: [
-			"chat.ruska.ai",
-			"orchestra.ruska.ai",
-			"frontend.enso.sh",
-			"frontend.ruska.dev",
+			"chat.mifune.dev",
+			"orchestra.mifune.dev",
+			"frontend.mifune.dev",
 		],
 		proxy: {
 			"/api": {

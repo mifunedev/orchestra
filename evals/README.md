@@ -68,7 +68,7 @@ A probe that cannot determine the result MUST exit `2`, never `0`.
 **Primary (deterministic, always runs)**:
 
 ```bash
-cd backend && ENV_FILE=~/.config/orchestra/.env.test \
+cd backend && ENV_FILE=./.env.test \
   PYTHONPATH=./src:. uv run pytest -m resiliency \
   tests/resiliency/test_<track>.py -q
 ```

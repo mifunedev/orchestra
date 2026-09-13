@@ -1,6 +1,15 @@
 import type { ActiveStreamRecoveryRecord } from "@/lib/entities/stream";
+import { migrateStorageKey } from "@/lib/utils/storageMigrations";
 
-export const ACTIVE_STREAM_STORAGE_KEY = "ruska.active_streams.v1";
+export const LEGACY_ACTIVE_STREAM_STORAGE_KEY = "ruska.active_streams.v1";
+export const ACTIVE_STREAM_STORAGE_KEY = "orchestra.active_streams.v1";
+
+// Runs at module-evaluation time, before any exported reader below can be
+// called. A caller cannot skip it, and a second evaluation is a no-op.
+migrateStorageKey(
+	LEGACY_ACTIVE_STREAM_STORAGE_KEY,
+	ACTIVE_STREAM_STORAGE_KEY,
+);
 
 type ActiveStreamRecoveryStore = Record<string, ActiveStreamRecoveryRecord>;
 

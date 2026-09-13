@@ -6,8 +6,8 @@ slug: /tools/mcp
 # Model Context Protocol [(MCP)](https://modelcontextprotocol.io/introduction)
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.ruska.ai/api)
-[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://ruska.ai/socials)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 :::info Actively Evolving
 MCP integration is actively being enhanced with new features and capabilities. This documentation reflects the current implementation and is updated regularly.
@@ -17,9 +17,9 @@ MCP integration is actively being enhanced with new features and capabilities. T
 
 ## Introduction
 
-Ruska Labs MCP support is based on the [Langchain MCP Adapter](https://github.com/langchain-ai/langchain-mcp-adapters) repository. A sample MCP server can be found at [Ruska Labs - MCP SSE Server](https://github.com/ruska-ai/mcp-sse).
+Mifune MCP support is based on the [Langchain MCP Adapter](https://github.com/langchain-ai/langchain-mcp-adapters) repository. A sample MCP server can be found at [Mifune - MCP SSE Server](https://github.com/mifunedev/mcp-sse).
 
-See this [permalink](https://github.com/ruska-ai/mcp-sse/blob/caa79bee4af4914d729ef1989156b66966121d80/main.py#L22-L27) for an example for how to include `x-mcp-key` authentication.
+See this [permalink](https://github.com/mifunedev/mcp-sse/blob/caa79bee4af4914d729ef1989156b66966121d80/main.py#L22-L27) for an example for how to include `x-mcp-key` authentication.
 
 ## Quick Start (UI)
 
@@ -54,7 +54,7 @@ The form includes the following fields:
 
 | Field | Description |
 |-------|-------------|
-| **Template** | Choose a preset (Custom, Ruska MCP, GitHub MCP) or configure manually |
+| **Template** | Choose a preset (Custom, Mifune MCP, GitHub MCP) or configure manually |
 | **Server Name** | A unique identifier for your server (e.g., `my_mcp_server`) |
 | **Transport** | Protocol type: **SSE**, **Streamable HTTP**, or **STDIO** |
 | **URL** | The MCP server endpoint URL |
@@ -117,7 +117,7 @@ The `mcp` property accepts a **dictionary of server names** mapped to their conf
 }
 ```
 
-Each key in the `mcp` dictionary is a unique server name you choose (e.g., `"weather_server"`, `"database_server"`, `"ruska_mcp"`).
+Each key in the `mcp` dictionary is a unique server name you choose (e.g., `"weather_server"`, `"database_server"`, `"orchestra_mcp"`).
 
 ### Configuration Fields
 
@@ -176,7 +176,7 @@ Once MCP servers are configured, you can selectively enable specific tools from 
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/assistant' \
+  'https://chat.mifune.dev/api/assistant' \
   -H 'Content-Type: application/json' \
   -d '{
   "name": "Weather Assistant",
@@ -194,23 +194,23 @@ curl -X 'POST' \
 
 This assistant has access to the `get_weather` tool from the MCP server and the built-in `search` tool, but NOT other tools the weather server might expose.
 
-## Example [API Usage](https://chat.ruska.ai/api#/Thread/Create_New_Thread_api_threads_post):
+## Example [API Usage](https://chat.mifune.dev/api#/Thread/Create_New_Thread_api_threads_post):
 
 #### GET MCP server information
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/tools/mcp/info' \
+  'https://chat.mifune.dev/api/tools/mcp/info' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
   "mcp": {
-    "ruska_mcp": {
+    "orchestra_mcp": {
       "headers": {
         "x-api-key": "your_api_key"
       },
       "transport": "streamable_http",
-      "url": "https://mcp.ruska.ai/sse"
+      "url": "https://mcp.mifune.dev/sse"
     }
   }
 }'
@@ -220,18 +220,18 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/llm/thread' \
+  'https://chat.mifune.dev/api/llm/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
   "images": [],
   "mcp": {
-    "ruska_mcp": {
+    "orchestra_mcp": {
       "headers": {
         "x-api-key": "your_api_key"
       },
       "transport": "http",
-      "url": "https://chat.ruska.ai/mcp"
+      "url": "https://chat.mifune.dev/mcp"
     }
   },
   "model": "openai-gpt-4o",

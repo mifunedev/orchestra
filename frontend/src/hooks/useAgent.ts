@@ -37,7 +37,7 @@ export function useAgent() {
 	const [isLoadingAgents, setIsLoadingAgents] = useState(false);
 	const [isLoadingPublicAgents, setIsLoadingPublicAgents] = useState(false);
 	const [webSearchCheck, setWebSearchCheck] = useState<Checked>(() => {
-		const saved = localStorage.getItem("enso:tool:search");
+		const saved = localStorage.getItem("orchestra:tool:search");
 		return saved !== null ? JSON.parse(saved) : true;
 	});
 

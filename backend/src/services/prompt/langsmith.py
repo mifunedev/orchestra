@@ -2,7 +2,7 @@ import os
 from typing import Any
 
 
-def fetch_prompt(name: str = "ruska-default") -> Any:
+def fetch_prompt(name: str = "orchestra-default") -> Any:
     from langsmith import Client
 
     client = Client(api_key=os.getenv("LANGSMITH_API_KEY"))

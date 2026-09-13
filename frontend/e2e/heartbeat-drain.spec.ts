@@ -4,7 +4,7 @@
  * Scenario:
  *   1. Start a streaming run (send a message that triggers a long response).
  *   2. Confirm the app itself wrote an active-stream recovery record to
- *      localStorage (`ruska.active_streams.v1`) with the REAL thread id, run id,
+ *      localStorage (`orchestra.active_streams.v1`) with the REAL thread id, run id,
  *      and a live `lastEventId` cursor — this is the wiring that makes
  *      worker-loss recovery possible (useChat.ts → persistDistributedRecovery).
  *   3. Simulate worker loss mid-stream by aborting the real distributed stream
@@ -33,7 +33,13 @@ const SUBMIT_BUTTON = '[data-tour="chat-submit-button"]';
 const ASSISTANT_BUBBLE = "div.rounded-bl-sm";
 
 // localStorage key used by the active-stream recovery subsystem
-const ACTIVE_STREAMS_KEY = "ruska.active_streams.v1";
+const ACTIVE_STREAMS_KEY = "orchestra.active_streams.v1";
+
+// Pre-rename key. Retained deliberately: the one-release migration in
+// activeStreamRecovery.ts reads it, writes the value forward to
+// ACTIVE_STREAMS_KEY, and deletes it. D16 permits the legacy literal inside
+// the migration and its test.
+const LEGACY_ACTIVE_STREAMS_KEY = "ruska.active_streams.v1";
 
 // Text that the recovery subsystem surfaces when reconnection is needed
 const LOST_CONNECTION_TEXT = "Lost connection";
@@ -128,5 +134,102 @@ test.describe("Heartbeat / stream drain recovery", () => {
       `[heartbeat-drain] ${ACTIVE_STREAMS_KEY} after reload:`,
       storageValue,
     );
+  });
+});
+
+test.describe("Active-stream recovery key migration", () => {
+  // A user who last used the app before the rename has state under the legacy
+  // key only. Booting the app must move that state forward without loss, so
+  // the recovery subsystem keeps working across the rename.
+  const LEGACY_STORE = {
+    "thread-legacy-0001": {
+      threadId: "thread-legacy-0001",
+      runId: "run-legacy-0001",
+      lastEventId: "42",
+      startedAt: 1739000000000,
+    },
+  };
+
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
+  });
+
+  test("fallback: legacy-only state is moved to the new key and the legacy key is dropped", async ({
+    page,
+  }) => {
+    // Seed the PRE-rename key only, exactly as an existing user's browser
+    // would have it, and make sure the new key is genuinely absent.
+    await page.evaluate(
+      ([legacyKey, newKey, store]) => {
+        localStorage.removeItem(newKey as string);
+        localStorage.setItem(legacyKey as string, JSON.stringify(store));
+      },
+      [LEGACY_ACTIVE_STREAMS_KEY, ACTIVE_STREAMS_KEY, LEGACY_STORE] as const,
+    );
+
+    // Boot the app. The migration runs at module-evaluation time.
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const afterBoot = await page.evaluate(
+      ([legacyKey, newKey]) => ({
+        legacy: localStorage.getItem(legacyKey),
+        current: localStorage.getItem(newKey),
+      }),
+      [LEGACY_ACTIVE_STREAMS_KEY, ACTIVE_STREAMS_KEY],
+    );
+
+    expect(
+      afterBoot.legacy,
+      "legacy active-stream key should be deleted after migration",
+    ).toBeNull();
+    expect(
+      afterBoot.current,
+      "migrated active-stream state should be readable under the new key",
+    ).not.toBeNull();
+    expect(
+      JSON.parse(afterBoot.current as string),
+      "no recovery state may be lost in the migration",
+    ).toEqual(LEGACY_STORE);
+
+    // Idempotence: a second boot must not clobber or resurrect anything.
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const afterSecondBoot = await page.evaluate(
+      ([legacyKey, newKey]) => ({
+        legacy: localStorage.getItem(legacyKey),
+        current: localStorage.getItem(newKey),
+      }),
+      [LEGACY_ACTIVE_STREAMS_KEY, ACTIVE_STREAMS_KEY],
+    );
+
+    expect(afterSecondBoot.legacy).toBeNull();
+    expect(JSON.parse(afterSecondBoot.current as string)).toEqual(LEGACY_STORE);
+  });
+
+  test("normal path: new-key state is used as-is and no legacy key is created", async ({
+    page,
+  }) => {
+    await page.evaluate(
+      ([legacyKey, newKey, store]) => {
+        localStorage.removeItem(legacyKey as string);
+        localStorage.setItem(newKey as string, JSON.stringify(store));
+      },
+      [LEGACY_ACTIVE_STREAMS_KEY, ACTIVE_STREAMS_KEY, LEGACY_STORE] as const,
+    );
+
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const afterBoot = await page.evaluate(
+      ([legacyKey, newKey]) => ({
+        legacy: localStorage.getItem(legacyKey),
+        current: localStorage.getItem(newKey),
+      }),
+      [LEGACY_ACTIVE_STREAMS_KEY, ACTIVE_STREAMS_KEY],
+    );
+
+    expect(
+      afterBoot.legacy,
+      "migration must never write back to the legacy key",
+    ).toBeNull();
+    expect(JSON.parse(afterBoot.current as string)).toEqual(LEGACY_STORE);
   });
 });

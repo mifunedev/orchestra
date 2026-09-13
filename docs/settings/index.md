@@ -28,11 +28,11 @@ send only the fields you want to change.
 
 ```bash
 # Read current settings + provider-key statuses
-curl -X 'GET' 'https://chat.ruska.ai/api/settings' \
+curl -X 'GET' 'https://chat.mifune.dev/api/settings' \
   -H 'Authorization: Bearer <token>'
 
 # Update one or more defaults (partial)
-curl -X 'PATCH' 'https://chat.ruska.ai/api/settings/default' \
+curl -X 'PATCH' 'https://chat.mifune.dev/api/settings/default' \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{ "model": "claude-opus-4-8", "timezone": "America/Denver" }'
@@ -49,7 +49,7 @@ answering. The accepted values are **model-specific**, so read them from the `re
 map on `GET /api/llm/models` rather than assuming a fixed list:
 
 ```bash
-curl -X 'GET' 'https://chat.ruska.ai/api/llm/models' \
+curl -X 'GET' 'https://chat.mifune.dev/api/llm/models' \
   -H 'Authorization: Bearer <token>'
 ```
 
@@ -68,7 +68,7 @@ A model absent from `reasoning` does not take an effort. Set a default that appl
 every new conversation:
 
 ```bash
-curl -X 'PATCH' 'https://chat.ruska.ai/api/settings/default' \
+curl -X 'PATCH' 'https://chat.mifune.dev/api/settings/default' \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{ "reasoning_effort": "high" }'
@@ -88,13 +88,13 @@ back — `GET /api/settings` returns only a per-provider **status** (set / not s
 
 ```bash
 # Add or replace a provider key
-curl -X 'PUT' 'https://chat.ruska.ai/api/settings/provider-keys' \
+curl -X 'PUT' 'https://chat.mifune.dev/api/settings/provider-keys' \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{ "provider": "openai", "api_key": "sk-…" }'
 
 # Remove a provider key
-curl -X 'DELETE' 'https://chat.ruska.ai/api/settings/provider-keys/openai' \
+curl -X 'DELETE' 'https://chat.mifune.dev/api/settings/provider-keys/openai' \
   -H 'Authorization: Bearer <token>'
 ```
 

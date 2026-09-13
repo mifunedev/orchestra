@@ -18,7 +18,7 @@ router = APIRouter(tags=["Prompt"], prefix="/prompts")
 ################################################################################
 ### Search Prompts
 ################################################################################
-@router.post("/search", name="Query Prompts", operation_id="ruska_search_prompts", tags=["mcp"])
+@router.post("/search", name="Query Prompts", operation_id="orchestra_search_prompts", tags=["mcp"])
 async def search_prompts(
     prompt_search: PromptSearch = Body(...),
     user: ProtectedUser = Depends(verify_credentials),
@@ -41,7 +41,7 @@ async def search_prompts(
 ################################################################################
 ### Create Prompt
 ################################################################################
-@router.post("", name="Create Prompt", operation_id="ruska_create_prompt", tags=["mcp"])
+@router.post("", name="Create Prompt", operation_id="orchestra_create_prompt", tags=["mcp"])
 async def create_prompt(
     prompt: Prompt = Body(..., examples=PROMPT_EXAMPLES["default_prompt"]),
     user: ProtectedUser = Depends(verify_credentials),

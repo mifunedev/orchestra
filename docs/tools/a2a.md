@@ -3,11 +3,11 @@ title: A2A
 slug: /tools/a2a
 ---
 
-# Agent-to-Agent [(A2A)](https://github.com/ruska-ai/a2a-langgraph)
+# Agent-to-Agent [(A2A)](https://github.com/mifunedev/a2a-langgraph)
 
 [![Join Slack](https://img.shields.io/badge/Join-Slack-4A154B?logo=slack&logoColor=white)](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.ruska.ai/docs)
-[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://ruska.ai/socials)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 :::warning Under Development
 The A2A (Agent-to-Agent) protocol integration is currently under active development. Features and APIs may change. This documentation is provided for reference and early adopters. Check back soon for updates!
@@ -19,7 +19,7 @@ The A2A (Agent-to-Agent) protocol integration is currently under active developm
 
 ## Introduction
 
-Ruska Labs A2A support is based on the [LangGraph Currency Agent w/ A2A Protocol](https://github.com/google/A2A/tree/main/samples/python/agents/langgraph#langgraph-currency-agent-with-a2a-protocol) code sample. A sample A2A server can be found at [Ruska Labs - A2A Server](https://github.com/ruska-ai/a2a-langgraph).
+Mifune A2A support is based on the [LangGraph Currency Agent w/ A2A Protocol](https://github.com/google/A2A/tree/main/samples/python/agents/langgraph#langgraph-currency-agent-with-a2a-protocol) code sample. A sample A2A server can be found at [Mifune - A2A Server](https://github.com/mifunedev/a2a-langgraph).
 
 ## Quick Start
 
@@ -43,20 +43,20 @@ Ruska Labs A2A support is based on the [LangGraph Currency Agent w/ A2A Protocol
 
     ![A2A Tool Execution](https://github.com/ryaneggz/static/blob/main/enso/a2a-tool.png?raw=true)
 
-## Example [API Usage](https://chat.ruska.ai/api#/Thread/Create_New_Thread_api_threads_post):
+## Example [API Usage](https://chat.mifune.dev/api#/Thread/Create_New_Thread_api_threads_post):
 
 #### Fetch A2A Server Information
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/tools/a2a/info' \
+  'https://chat.mifune.dev/api/tools/a2a/info' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
   "a2a": {
-    "enso_a2a": {
+    "orchestra_a2a": {
       "agent_card_path": "/.well-known/agent.json",
-      "base_url": "https://a2a.ruska.ai"
+      "base_url": "https://a2a.mifune.dev"
     }
   }
 }'
@@ -66,14 +66,14 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread' \
+  'https://chat.mifune.dev/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
   "a2a": {
     "currency_agent": {
       "agent_card_path": "/.well-known/agent.json",
-      "base_url": "https://a2a.ruska.ai"
+      "base_url": "https://a2a.mifune.dev"
     }
   },
   "images": [],

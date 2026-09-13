@@ -41,7 +41,7 @@ All endpoints require a Bearer token in the `Authorization` header unless noted.
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/prompts' \
+  'https://chat.mifune.dev/api/prompts' \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -60,7 +60,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/prompts/search' \
+  'https://chat.mifune.dev/api/prompts/search' \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{ "query": "", "limit": 10, "offset": 0, "filter": {} }'
@@ -72,7 +72,7 @@ Pass `"filter": { "id": "<prompt_id>" }` to fetch a single prompt, or add `"v": 
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/prompts/{prompt_id}/v' \
+  'https://chat.mifune.dev/api/prompts/{prompt_id}/v' \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -91,7 +91,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'GET' \
-  'https://chat.ruska.ai/api/prompts/{prompt_id}/v' \
+  'https://chat.mifune.dev/api/prompts/{prompt_id}/v' \
   -H 'Authorization: Bearer <token>'
 ```
 
@@ -99,7 +99,7 @@ curl -X 'GET' \
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.ruska.ai/api/prompts/{prompt_id}/v/{v}' \
+  'https://chat.mifune.dev/api/prompts/{prompt_id}/v/{v}' \
   -H 'Authorization: Bearer <token>'
 ```
 
@@ -109,7 +109,7 @@ Returns `204 No Content`.
 
 ```bash
 curl -X 'PUT' \
-  'https://chat.ruska.ai/api/prompts/{prompt_id}/public' \
+  'https://chat.mifune.dev/api/prompts/{prompt_id}/public' \
   -H 'Authorization: Bearer <token>'
 ```
 
@@ -122,7 +122,7 @@ curl -X 'PUT' \
 ### View Raw Prompt (No Auth)
 
 ```bash
-curl 'https://chat.ruska.ai/api/prompts/{prompt_id}/raw'
+curl 'https://chat.mifune.dev/api/prompts/{prompt_id}/raw'
 ```
 
 Returns the latest public revision as `text/plain`. Returns `404` if the prompt is not public.

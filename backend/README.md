@@ -8,7 +8,7 @@
         width="60"
         height="60"
         style="border-radius: 50%; display: block;"
-        alt="Ruska Logo"
+        alt="Mifune Logo"
       />
     </td>
     <td style="padding: 0 0 0 2px; vertical-align: middle;">
@@ -23,8 +23,8 @@
 Steerable Harnesses for [DeepAgents](https://docs.langchain.com/oss/python/deepagents/overview)
 
 <a href="https://discord.com/invite/QRfjg4YNzU"><img src="https://img.shields.io/badge/Join-Discord-purple"></a>
-<a href="https://chat.ruska.ai/api"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
-<a href="https://ruska.ai/socials"><img src="https://img.shields.io/badge/Follow-Social-black"></a>
+<a href="https://chat.mifune.dev/api"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
+<a href="https://mifune.dev/socials"><img src="https://img.shields.io/badge/Follow-Social-black"></a>
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![DCO](https://img.shields.io/badge/DCO-1.1-yellow)](DCO)
 
@@ -42,9 +42,9 @@ Self-host for free or let us deploy it for you. Your agents, your data, your inf
 
 | Option | Best For | Get Started |
 |--------|----------|-------------|
-| **Community (Free)** | Developers, self-hosting | `docker pull ghcr.io/ruska-ai/orchestra:latest` |
-| **Managed Cloud** | Teams wanting convenience | [chat.ruska.ai](https://chat.ruska.ai) |
-| **Enterprise** | Organizations needing SSO, compliance, SLA | [Contact Us](https://ruska.ai/enterprise) |
+| **Community (Free)** | Developers, self-hosting | `docker pull ghcr.io/mifunedev/orchestra:latest` |
+| **Managed Cloud** | Teams wanting convenience | [chat.mifune.dev](https://chat.mifune.dev) |
+| **Enterprise** | Organizations needing SSO, compliance, SLA | [Contact Us](https://mifune.dev/enterprise) |
 
 ---
 
@@ -60,7 +60,7 @@ This project includes tools for running shell commands and Docker container oper
 We publish the backend image to GitHub Container Registry (GHCR). For the full Docker/Docker Compose deployment guide (env setup, services, migrations, troubleshooting), jump to [Docker Deployment details](#-docker-deployment-ghcr--docker-compose).
 
 ```bash
-docker pull ghcr.io/ruska-ai/orchestra:latest
+docker pull ghcr.io/mifunedev/orchestra:latest
 ```
 
 ## 📋 Prerequisites
@@ -212,7 +212,7 @@ For organizations needing managed deployment, compliance, or dedicated support:
 | **Priority Support** | SLA-backed response times |
 | **Custom Integrations** | Connect to your internal tools |
 
-We partner with you to deploy Orchestra inside your infrastructure. [Contact us](https://ruska.ai/enterprise) to discuss your requirements.
+We partner with you to deploy Orchestra inside your infrastructure. [Contact us](https://mifune.dev/enterprise) to discuss your requirements.
 
 ---
 
@@ -233,7 +233,7 @@ This section covers deploying the Orchestra backend using Docker. For local deve
 Pull the latest image from GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/ruska-ai/orchestra:latest
+docker pull ghcr.io/mifunedev/orchestra:latest
 ```
 
 #### 1. Environment Setup
@@ -273,7 +273,7 @@ docker compose up
 
 The API will be available at `http://localhost:8000`
 
--   API Docs: `http://localhost:8000/docs`
+-   API Docs: `http://localhost:8000/api`
 -   Health Check: `http://localhost:8000/health`
 
 ### 🧩 Docker Compose Services
@@ -303,7 +303,7 @@ services:
 
     # Server (use pre-built image or build locally)
     orchestra:
-        image: ghcr.io/ruska-ai/orchestra:latest
+        image: ghcr.io/mifunedev/orchestra:latest
         container_name: orchestra
         env_file: .env.docker
         ports:
@@ -352,7 +352,7 @@ See the [canonical environment-variable guide](../docs/environment-variables.md)
 | `APP_LOG_LEVEL`  | Logging level                        | `DEBUG`       |
 | `APP_SECRET_KEY` | Application secret key               | -             |
 | `JWT_SECRET_KEY` | JWT signing key                      | -             |
-| `USER_AGENT`     | User agent string for requests       | `ruska-dev`   |
+| `USER_AGENT`     | User agent string for requests       | `orchestra-dev`   |
 | `TEST_USER_ID`   | Test user UUID                       | -             |
 
 #### Context Compaction
@@ -403,7 +403,7 @@ The middleware automatically summarizes older messages when context exceeds the 
 | `S3_REGION`         | S3 region         | -          |
 | `ACCESS_KEY_ID`     | S3 access key     | -          |
 | `ACCESS_SECRET_KEY` | S3 secret key     | -          |
-| `BUCKET`            | S3 bucket name    | `enso_dev` |
+| `BUCKET`            | S3 bucket name    | `orchestra_dev` |
 
 ### 🗄️ Database Migrations
 

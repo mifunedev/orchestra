@@ -10,7 +10,7 @@ This tutorial walks you through adding memories via the Settings UI and verifyin
 
 ## Prerequisites
 
--   An Orchestra account at [chat.ruska.ai](https://chat.ruska.ai)
+-   An Orchestra account at [chat.mifune.dev](https://chat.mifune.dev)
 
 ## Step 1: Navigate to Settings
 

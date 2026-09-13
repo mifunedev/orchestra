@@ -1,7 +1,7 @@
 import { Page } from "@playwright/test";
 
 const API_URL = "http://localhost:8000";
-const TOKEN_KEY = "enso:auth:token";
+const TOKEN_KEY = "orchestra:auth:token";
 
 /**
  * Log in as the seeded admin user and inject the token into localStorage so

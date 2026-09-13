@@ -10,10 +10,10 @@ The root project folder contains the following application:
 backend:
     stack: python, uv, fastapi, langchain, read pyproject.toml for more information.
     description: This is the REST API for the ./frontend and ./cli clients.
-    deployment: https://chat.ruska.ai/docs
+    deployment: https://chat.mifune.dev/api
     commands:
-        - `make test` Run ALL test cases (uses ENV_FILE=~/.config/orchestra/.env).
-        - `make test ENV_FILE=~/.config/orchestra/.env.test` Run tests with test env.
+        - `make test` Run ALL test cases (uses ENV_FILE=./.env).
+        - `make test ENV_FILE=./.env.test` Run tests with test env.
         - `make format` Format project files with ruff. Use after making changes.
         - `make lint` Lint check with ruff (no auto-fix).
         - `make dev` Run dev server.
@@ -21,25 +21,25 @@ backend:
 frontend:
     stack: typescript, vite, react, shadcn, tailwind, read package.json for more details.
     description: This is built during CI and bundled into the backend during `.github/build.yml`
-    deployment: https://chat.ruska.ai
+    deployment: https://chat.mifune.dev
     commands: See package.json
 website:
     stack: typescript, nextjs, shadcn
     description: Our main landing page
-    url: https://ruska.ai
+    url: https://mifune.dev
     commands: See package.json
 docs:
     stack: markdown
     description: User and API documentation for the frontend interface and backend API. Plain markdown in this repo — edit it in the same PR as the change it documents.
-    url: https://docs.ruska.ai
-    note: The published site is built by the Docusaurus app in the separate `mifunedev/wiki` repo, which keeps its own copy of this markdown. Until that repo is retired, docs changes that must reach docs.ruska.ai have to be applied there too.
+    url: https://github.com/mifunedev/orchestra/tree/development/docs
+    note: The published site is retired. The Docusaurus app in the separate `mifunedev/wiki` repo keeps its own copy of this markdown. Until that repo is retired, docs changes that must reach the wiki have to be applied there too.
 cli:
     stack: typescript, react-ink
     description: New server-side client we are working on for perform actions against the API
     commands: See package.json
 ```
 
-The main way external AI Agents find out information about RUSKA will be from the `./website/public/llm.txt` that should ALWAYS reflect the current public documentation for LLM search engines. If something in the application is out of sync with this file we should make sure to update the file the `llm.txt` so that it reflects the most accurate picture of the application and how users can get the MOST out of it.
+The main way external AI Agents find out information about Mifune will be from the `./website/public/llm.txt` that should ALWAYS reflect the current public documentation for LLM search engines. If something in the application is out of sync with this file we should make sure to update the file the `llm.txt` so that it reflects the most accurate picture of the application and how users can get the MOST out of it.
 
 ## Code Style
 
@@ -56,11 +56,11 @@ The main way external AI Agents find out information about RUSKA will be from th
 - `backend/src` contains the FastAPI stack, with domain logic split into `controllers`, `routes`, `services`, and `repos`, plus shared helpers in `common` and `utils`.
 - Database assets live in `backend/migrations` and `backend/seeds`; reusable automation sits under `backend/scripts`.
 - `frontend/src` hosts the Vite/React client (`components`, `pages`, `routes`, `tests`), while `decks/`, `deployment/`, and `infra/` hold reference material and ops tooling.
-- `docs/` holds the user and API documentation as plain Markdown, with screenshots under `docs/img/`. See `docs/README.md` for the index and its relationship to the published docs.ruska.ai site.
+- `docs/` holds the user and API documentation as plain Markdown, with screenshots under `docs/img/`. See `docs/README.md` for the index. The documentation is published at https://github.com/mifunedev/orchestra/tree/development/docs.
 
 ## Build, Test, and Development Commands
 - **Setup**: Run `make setup` from the repo root to install pre-commit hooks.
-- Backend: `cd backend && uv venv && source .venv/bin/activate && uv sync` installs dependencies, `make dev` runs the API with reload, and `make test` executes the suite. Use `ENV_FILE=~/.config/orchestra/.env.test` for the test environment.
+- Backend: `cd backend && uv venv && source .venv/bin/activate && uv sync` installs dependencies, `make dev` runs the API with reload, and `make test` executes the suite. Use `ENV_FILE=./.env.test` for the test environment.
 - Frontend: `cd frontend && npm install`, `npm run dev` for local dev, `npm run build` for production bundles, and `npm run docs` regenerates MkDocs API docs.
 - Infrastructure: the full stack lives in `infra/docker-compose.yml`; `make dev.docker.up` builds and starts it, `make dev.docker.down` stops it.
 
@@ -82,7 +82,7 @@ The main way external AI Agents find out information about RUSKA will be from th
   - `make dev.docker.down` — stop and clean up
   - `make dev.docker.migrate` — run Alembic migrations inside the app container
   - `make dev.docker.test.up` — run the stack against the test database (adds `infra/docker-compose.test.yml`)
-- **Key details**: Source directories are volume-mounted for hot-reload. The app runs `uv sync` and `alembic upgrade head` on startup automatically. Backend env is loaded from `~/.config/orchestra/.env` via the compose `env_file`.
+- **Key details**: Source directories are volume-mounted for hot-reload. The app runs `uv sync` and `alembic upgrade head` on startup automatically. Backend env is loaded from `backend/.env` via the compose `env_file`.
 
 ## Coding Style & Naming Conventions
 - Run `pre-commit run --all-files`; hooks run backend format/lint/test and frontend prettier/lint/test.

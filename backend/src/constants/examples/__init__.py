@@ -16,14 +16,14 @@ def get_arcade_response_example():
 
 MCP_SERVER_EXAMPLE = {
     "transport": "sse",
-    "url": "https://mcp.enso.sh/sse",
+    "url": "https://mcp.mifune.dev/sse",
     "headers": {"x-mcp-key": "your_api_key"},
 }
-MCP_DICT_EXAMPLE = {"ruska_mcp": MCP_SERVER_EXAMPLE}
+MCP_DICT_EXAMPLE = {"orchestra_mcp": MCP_SERVER_EXAMPLE}
 MCP_REQ_BODY_EXAMPLE = {"mcp": MCP_DICT_EXAMPLE}
 
 A2A_SERVER_EXAMPLE = {
-    "base_url": "https://a2a.enso.sh",
+    "base_url": "https://a2a.mifune.dev",
     "agent_card_path": "/.well-known/agent.json",
 }
 A2A_DICT_EXAMPLE = {"currency_agent": A2A_SERVER_EXAMPLE}
@@ -674,7 +674,7 @@ class Examples:
                 "name": "get_server_health",
                 "config": {
                     "api_tool": {
-                        "base_url": "https://chat.enso.sh/api",
+                        "base_url": "https://chat.mifune.dev/api",
                         "method": "GET",
                         "endpoint": "/info/health",
                     }
@@ -727,9 +727,9 @@ class Examples:
                 "name": "mcp_sse_server",
                 "config": {
                     "mcp_tool": {
-                        "ruska_mcp": {
+                        "orchestra_mcp": {
                             "transport": "sse",
-                            "url": "https://mcp.enso.sh/sse",
+                            "url": "https://mcp.mifune.dev/sse",
                             "headers": {"x-mcp-key": "test1234"},
                         }
                     }

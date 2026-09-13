@@ -6,13 +6,13 @@ slug: /tools/sandbox
 # Ubuntu Sandbox (exec-server MCP)
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.ruska.ai/api)
-[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://ruska.ai/socials)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 The ubuntu sandbox is a standalone MCP server that runs inside an isolated Docker container and exposes tools over the [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) transport at `/mcp`. It supports optional API key authentication, session state via `mcp-session-id`, and a `/health` endpoint for monitoring.
 
-- Source code: [ruska-ai/sandboxes](https://github.com/ruska-ai/sandboxes)
-- Container images: [ghcr.io/ruska-ai/sandbox](https://github.com/ruska-ai/sandboxes/pkgs/container/sandbox)
+- Source code: [mifunedev/sandboxes](https://github.com/mifunedev/sandboxes)
+- Container images: [ghcr.io/mifunedev/sandbox](https://github.com/mifunedev/sandboxes/pkgs/container/sandbox)
 
 ## Tools
 
@@ -128,7 +128,7 @@ Returns the file content as a base64-encoded string.
 - Clone the sandboxes repo:
 
 ```bash
-git clone https://github.com/ruska-ai/sandboxes.git
+git clone https://github.com/mifunedev/sandboxes.git
 cd sandboxes
 ```
 
@@ -145,7 +145,7 @@ docker run -p 3005:3005 exec-server
 ### From GHCR
 
 ```bash
-docker run -p 3005:3005 -e API_KEY=my-secret ghcr.io/ruska-ai/sandbox:ubuntu-latest
+docker run -p 3005:3005 -e API_KEY=my-secret ghcr.io/mifunedev/sandbox:ubuntu-latest
 ```
 
 Verify the server is running:
@@ -165,7 +165,7 @@ curl http://localhost:3005/health
 Example:
 
 ```bash
-docker run -p 3005:3005 -e API_KEY=my-secret ghcr.io/ruska-ai/sandbox:ubuntu-latest
+docker run -p 3005:3005 -e API_KEY=my-secret ghcr.io/mifunedev/sandbox:ubuntu-latest
 ```
 
 ## Testing with MCP Inspector
@@ -274,7 +274,7 @@ If `API_KEY` is not set on the server, omit the `headers` field or pass an empty
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/llm/thread' \
+  'https://chat.mifune.dev/api/llm/thread' \
   -H 'Content-Type: application/json' \
   -d '{
   "query": "Run uname -a",
@@ -304,11 +304,30 @@ Once connected, all sandbox tools are available to your assistant. Example promp
 
 The assistant will select the appropriate sandbox tool based on the task.
 
+## Run Playwright MCP Locally
+
+The sandbox image ships `agent-browser` for browser automation. To expose a Playwright MCP server from your own machine instead, run the following steps.
+
+1. Start Ngrok on port 8931
+
+    ```bash
+    ngrok http 8931
+    ```
+
+2. Run MCP server
+
+    ```bash
+    npx @playwright/mcp@latest \
+    --port 8931 \
+    --executable-path $HOME/.cache/ms-playwright/chromium-<version>/chrome-linux/chrome \
+    --vision
+    ```
+
 ## Troubleshooting
 
 | Issue | Solution |
 | ----- | -------- |
-| Container not running | Run `docker run -p 3005:3005 ghcr.io/ruska-ai/sandbox:ubuntu-latest` and check `docker logs` |
+| Container not running | Run `docker run -p 3005:3005 ghcr.io/mifunedev/sandbox:ubuntu-latest` and check `docker logs` |
 | Health check fails | Ensure port `3005` is not in use and the container is running with `docker ps` |
 | Authentication error (401) | Verify the `x-api-key` header matches the `API_KEY` env var on the container |
 | Tool not appearing in Orchestra | Confirm the MCP config is saved and the URL is reachable from the Orchestra backend |

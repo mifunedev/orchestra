@@ -166,7 +166,7 @@ import { ThreadPayload } from "@/lib/entities";
 // 		},
 // 		"servers": [
 // 			{
-// 				"url": "https://n8n.enso.sh"
+// 				"url": "https://n8n.mifune.dev"
 // 			}
 // 		]
 // 	}

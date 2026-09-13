@@ -1,14 +1,14 @@
 const DEFAULT_MCP_CONFIG = {
-	ruska_mcp: {
+	orchestra_mcp: {
 		transport: "sse",
-		url: "https://mcp.enso.sh/sse",
+		url: "https://mcp.mifune.dev/sse",
 		headers: { "x-mcp-key": "your_api_key" },
 	},
 };
 
 const DEFAULT_A2A_CONFIG = {
-	enso_a2a: {
-		base_url: "https://a2a.enso.sh",
+	orchestra_a2a: {
+		base_url: "https://a2a.mifune.dev",
 		agent_card_path: "/.well-known/agent.json",
 	},
 };

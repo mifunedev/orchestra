@@ -17,7 +17,7 @@ must be signed off with the `-s` flag (`git commit -s -m "message"`).
 ### Quick start
 
 ```bash
-git clone https://github.com/ruska-ai/orchestra
+git clone https://github.com/mifunedev/orchestra
 cd orchestra
 make setup      # installs Poetry / Node / etc.
 git checkout -b my-feature

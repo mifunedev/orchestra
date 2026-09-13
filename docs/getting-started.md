@@ -18,7 +18,7 @@ Welcome to Orchestra! This guide walks you through the complete onboarding proce
 ## Prerequisites
 
 -   A modern web browser
--   An Orchestra instance (e.g., [chat.ruska.ai](https://chat.ruska.ai))
+-   An Orchestra instance (e.g., [chat.mifune.dev](https://chat.mifune.dev))
 
 ## Step 1: Create an Account or Sign In
 
@@ -167,10 +167,10 @@ Now that you're set up, explore these features to get the most out of Orchestra:
 -   **[MCP Tools](./tools/mcp.md)** — connect to external tools via the Model Context Protocol
 -   **[A2A Agents](./tools/a2a.md)** — enable multi-agent workflows with Agent-to-Agent protocol
 -   **[Storage & RAG](./storage/index.md)** — upload documents for retrieval-augmented generation
--   **[API Documentation](https://chat.ruska.ai/docs)** — build custom integrations with the REST API
+-   **[API Documentation](https://chat.mifune.dev/api)** — build custom integrations with the REST API
 
 ## Getting Help
 
 -   **[Slack Community](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)** — get help from the community
--   **[GitHub](https://github.com/ruska-ai)** — report bugs or request features
--   **[Docs](https://docs.ruska.ai)** — full documentation site
+-   **[GitHub](https://github.com/mifunedev)** — report bugs or request features
+-   **[Docs](https://github.com/mifunedev/orchestra/tree/development/docs)** — full documentation index

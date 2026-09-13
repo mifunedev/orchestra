@@ -1,6 +1,6 @@
 import { DEFAULT_SYSTEM_PROMPT } from "../config/instruction";
 
-export const MEMORY_KEY = "enso:chat:payload:memory";
+export const MEMORY_KEY = "orchestra:chat:payload:memory";
 export function getMemory(): boolean {
 	if (typeof window === "undefined") return false;
 	const memory = window.localStorage.getItem(MEMORY_KEY) ?? null;
@@ -17,7 +17,7 @@ export function toggleMemory() {
 }
 
 //------------------------------------------------------------------------
-export const SYSTEM_PROMPT_KEY = "enso:chat:payload:system";
+export const SYSTEM_PROMPT_KEY = "orchestra:chat:payload:system";
 export function getSystemPrompt(): string {
 	if (typeof window === "undefined") return DEFAULT_SYSTEM_PROMPT;
 	const model = window.localStorage.getItem(SYSTEM_PROMPT_KEY) ?? null;

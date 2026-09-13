@@ -7,17 +7,16 @@ tracked template is `backend/.example.env` and follows one order:
 2. code-default tuning, alternate integrations, and test-only values are
    commented in the bottom `OPTIONAL` section.
 
-Copy the template to the configured user-local file:
+Copy the template to the project environment file:
 
 ```bash
-mkdir -p ~/.config/orchestra
-cp backend/.example.env ~/.config/orchestra/.env
+cp backend/.example.env backend/.env
 ```
 
-For tests, copy it to `~/.config/orchestra/.env.test` and use
-`ENV_FILE=~/.config/orchestra/.env.test make -C backend test`. Docker Compose
-loads `~/.config/orchestra/.env` and overrides service-only hostnames such as
-Postgres, Redis, and SearXNG inside `infra/docker-compose.yml`.
+For tests, copy it to `backend/.env.test` and use
+`ENV_FILE=./.env.test make -C backend test`. Docker Compose loads `backend/.env`
+and overrides service-only hostnames such as Postgres, Redis, and SearXNG inside
+`infra/docker-compose.yml`.
 
 ## Required configuration
 
@@ -72,7 +71,7 @@ default.
 
 ```dotenv
 # APP_LOG_LEVEL=INFO
-# USER_AGENT=ruska-dev
+# USER_AGENT=orchestra-dev
 # COMPACTION_TOKEN_THRESHOLD=170000
 # COMPACTION_RECENT_MESSAGES=6
 # POSTGRES_CONNECTION_STRING_SESSION=
@@ -129,6 +128,6 @@ provider values only when switching the backing service.
 
 ## Secret handling
 
-Keep real values under `~/.config/orchestra/` or the deployment secret store.
-Never commit `.env` files, provider keys, database passwords, MinIO credentials,
-or application signing keys.
+Keep real values in the untracked project environment files or the deployment
+secret store. Never commit `.env` files, provider keys, database passwords,
+MinIO credentials, or application signing keys.
