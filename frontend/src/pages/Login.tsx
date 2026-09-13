@@ -39,7 +39,7 @@ export default function Login() {
 				const data = await response.json();
 				// Store JWT token in localStorage
 				localStorage.setItem(TOKEN_NAME, data.access_token);
-				localStorage.setItem("enso:auth:user", JSON.stringify(data.user));
+				localStorage.setItem("orchestra:auth:user", JSON.stringify(data.user));
 
 				// Auto-fork if remix param is present
 				if (remixAgentId) {
@@ -67,7 +67,7 @@ export default function Login() {
 		try {
 			// Persist remix param across OAuth redirect
 			if (remixAgentId) {
-				localStorage.setItem("enso:remix_agent_id", remixAgentId);
+				localStorage.setItem("orchestra:remix_agent_id", remixAgentId);
 			}
 			const res = await fetch(`${VITE_API_URL}/auth/${provider}`, {
 				method: "GET",

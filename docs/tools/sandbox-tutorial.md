@@ -7,8 +7,8 @@ sidebar_position: 5
 # Connect Ubuntu Sandbox MCP to Assistant
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.ruska.ai/api)
-[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://ruska.ai/socials)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 This tutorial walks you through connecting the [Ubuntu Sandbox](/tools/sandbox) to Orchestra using MCP (Model Context Protocol). By the end, your assistant will be able to execute shell commands, read/write files, and more inside an isolated Docker container.
 
@@ -17,7 +17,7 @@ This tutorial walks you through connecting the [Ubuntu Sandbox](/tools/sandbox) 
 Before starting, make sure you have:
 
 - A running Ubuntu Sandbox container — see the [Sandbox documentation](/tools/sandbox) for Docker setup instructions
-- An Orchestra account at [chat.ruska.ai](https://chat.ruska.ai)
+- An Orchestra account at [chat.mifune.dev](https://chat.mifune.dev)
 
 ## Step 1: Verify the Sandbox Is Running
 

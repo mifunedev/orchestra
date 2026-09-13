@@ -109,26 +109,26 @@ jobs:
               run: |
                   TAG=${GITHUB_REF#refs/tags/}
                   docker build --target api -f ../infra/backend.Dockerfile \
-                    -t ghcr.io/ruska-ai/orchestra-api:$TAG \
-                    -t ghcr.io/ruska-ai/orchestra-api:latest \
-                    -t ghcr.io/ruska-ai/orchestra:$TAG \
-                    -t ghcr.io/ruska-ai/orchestra:latest \
+                    -t ghcr.io/mifunedev/orchestra-api:$TAG \
+                    -t ghcr.io/mifunedev/orchestra-api:latest \
+                    -t ghcr.io/mifunedev/orchestra:$TAG \
+                    -t ghcr.io/mifunedev/orchestra:latest \
                     .
-                  docker push ghcr.io/ruska-ai/orchestra-api:$TAG
-                  docker push ghcr.io/ruska-ai/orchestra-api:latest
-                  docker push ghcr.io/ruska-ai/orchestra:$TAG
-                  docker push ghcr.io/ruska-ai/orchestra:latest
+                  docker push ghcr.io/mifunedev/orchestra-api:$TAG
+                  docker push ghcr.io/mifunedev/orchestra-api:latest
+                  docker push ghcr.io/mifunedev/orchestra:$TAG
+                  docker push ghcr.io/mifunedev/orchestra:latest
 
             - name: Build and push Worker image
               working-directory: ./backend
               run: |
                   TAG=${GITHUB_REF#refs/tags/}
                   docker build --target worker -f ../infra/backend.Dockerfile \
-                    -t ghcr.io/ruska-ai/orchestra-worker:$TAG \
-                    -t ghcr.io/ruska-ai/orchestra-worker:latest \
+                    -t ghcr.io/mifunedev/orchestra-worker:$TAG \
+                    -t ghcr.io/mifunedev/orchestra-worker:latest \
                     .
-                  docker push ghcr.io/ruska-ai/orchestra-worker:$TAG
-                  docker push ghcr.io/ruska-ai/orchestra-worker:latest
+                  docker push ghcr.io/mifunedev/orchestra-worker:$TAG
+                  docker push ghcr.io/mifunedev/orchestra-worker:latest
 
             - name: Report image sizes
               run: |
@@ -136,8 +136,8 @@ jobs:
                   echo "" >> $GITHUB_STEP_SUMMARY
                   echo "| Image | Size |" >> $GITHUB_STEP_SUMMARY
                   echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
-                  docker images ghcr.io/ruska-ai/orchestra-api --format "| API | {{.Size}} |" | head -1 >> $GITHUB_STEP_SUMMARY
-                  docker images ghcr.io/ruska-ai/orchestra-worker --format "| Worker | {{.Size}} |" | head -1 >> $GITHUB_STEP_SUMMARY
+                  docker images ghcr.io/mifunedev/orchestra-api --format "| API | {{.Size}} |" | head -1 >> $GITHUB_STEP_SUMMARY
+                  docker images ghcr.io/mifunedev/orchestra-worker --format "| Worker | {{.Size}} |" | head -1 >> $GITHUB_STEP_SUMMARY
 
     deploy:
         needs: build

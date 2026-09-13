@@ -135,7 +135,7 @@ worktree_path: "$WORKSPACE/.worktrees/fix-[issue#]"
 
 > **⚠️ IMPORTANT:** If the fix requires documentation updates, edit the Markdown under [`docs/`](../../docs/README.md) in this repo — it ships in the same PR as the fix.
 >
-> The published site at [docs.ruska.ai](https://docs.ruska.ai) is still built from the Docusaurus app in [`mifunedev/wiki`](https://github.com/mifunedev/wiki), which keeps its own copy of this Markdown. Until that repo is retired, a change that must reach the published site has to be applied there too.
+> The published documentation site is retired. Read the documentation at [https://github.com/mifunedev/orchestra/tree/development/docs](https://github.com/mifunedev/orchestra/tree/development/docs). The Docusaurus app in [`mifunedev/wiki`](https://github.com/mifunedev/wiki) still keeps its own copy of this Markdown. Until that repo is retired, a change that must reach the wiki has to be applied there too.
 
 ---
 
@@ -165,5 +165,5 @@ worktree_path: "$WORKSPACE/.worktrees/fix-[issue#]"
 - [ ] All previous & new tests pass, validated using `agent-browser` CLI
 - [ ] Fix follows existing repo/service/route patterns (e.g., BaseRepo, ServiceContext)
 - [ ] No new dependencies added beyond what's already in the project (or justified in PR description)
-- [ ] Related documentation updated under `docs/` if applicable (and mirrored to the wiki repo if it must reach docs.ruska.ai)
+- [ ] Related documentation updated under `docs/` if applicable (and mirrored to the wiki repo if it must reach the published wiki)
 - [ ] <!-- Add bug-specific criteria -->

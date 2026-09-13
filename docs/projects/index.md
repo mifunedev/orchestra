@@ -34,7 +34,7 @@ The new project appears in the sidebar under Projects.
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/projects' \
+  'https://chat.mifune.dev/api/projects' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '{
@@ -66,7 +66,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'PUT' \
-  'https://chat.ruska.ai/api/projects/{project_id}' \
+  'https://chat.mifune.dev/api/projects/{project_id}' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '{
@@ -88,7 +88,7 @@ Deleting a project also deletes all its associated sources and documents. Thread
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.ruska.ai/api/projects/{project_id}' \
+  'https://chat.mifune.dev/api/projects/{project_id}' \
   -H 'Authorization: Bearer <token>'
 ```
 
@@ -96,7 +96,7 @@ curl -X 'DELETE' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/projects/search' \
+  'https://chat.mifune.dev/api/projects/search' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '{
@@ -150,7 +150,7 @@ Projects can have attached data sources that provide additional context:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/projects/{project_id}/sources' \
+  'https://chat.mifune.dev/api/projects/{project_id}/sources' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '[{
@@ -165,7 +165,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.ruska.ai/api/projects/{project_id}/sources/{source_id}' \
+  'https://chat.mifune.dev/api/projects/{project_id}/sources/{source_id}' \
   -H 'Authorization: Bearer <token>'
 ```
 

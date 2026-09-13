@@ -30,7 +30,7 @@ class TestProjectService(unittest.IsolatedAsyncioTestCase):
                 id="test-source-id",
                 type="web_scrape",
                 content={
-                    "urls": ["https://github.com/ruska-ai/a2a-langgraph"],
+                    "urls": ["https://github.com/mifunedev/a2a-langgraph"],
                 },
             ),
         ]

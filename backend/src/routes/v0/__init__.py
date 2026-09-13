@@ -48,7 +48,7 @@ def mount_static_router(app: FastAPI):
     @app.get("/docs", include_in_schema=False)
     @app.get("/docs/{path:path}", include_in_schema=False)
     async def redirect_docs(path: str = ""):
-        target = f"{DOCS_BASE_URL}/docs"
+        target = DOCS_BASE_URL
         if path:
             target = f"{target}/{path}"
         return RedirectResponse(url=target, status_code=307)

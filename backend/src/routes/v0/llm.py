@@ -49,7 +49,7 @@ TIME_LIMIT = "200/day"
     "/invoke",
     responses={status.HTTP_200_OK: MockResponse.INVOKE_RESPONSE},
     name="Invoke Graph",
-    operation_id="ruska_invoke_llm",
+    operation_id="orchestra_invoke_llm",
     tags=["mcp"],
     dependencies=[Depends(get_optional_user)],
 )
@@ -166,7 +166,7 @@ async def llm_stream(
 @llm_router.post(
     "/dlq/{run_id}/replay",
     name="Replay DLQ Run",
-    operation_id="ruska_replay_dlq_run",
+    operation_id="orchestra_replay_dlq_run",
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(get_optional_user_from_token)],
 )
@@ -227,7 +227,7 @@ async def transcribe(
 ################################################################################
 ### Optimize Prompt
 ################################################################################
-@llm_router.post("/optimize", operation_id="ruska_optimize_prompt")
+@llm_router.post("/optimize", operation_id="orchestra_optimize_prompt")
 @limiter.limit(TIME_LIMIT)
 async def optimize_prompt(
     request: Request,
@@ -249,7 +249,7 @@ async def optimize_prompt(
 @llm_router.get(
     "/models",
     name="List Models",
-    operation_id="ruska_list_models",
+    operation_id="orchestra_list_models",
     tags=["mcp"],
 )
 async def list_models(
@@ -297,7 +297,7 @@ async def list_models(
 @llm_router.get(
     "/models/reset",
     name="Reset Models",
-    operation_id="ruska_reset_models",
+    operation_id="orchestra_reset_models",
     tags=["mcp"],
 )
 async def reset_models():

@@ -46,7 +46,7 @@ class EmbedChatRequest(BaseModel):
 router = APIRouter(tags=["Assistant"], prefix="/assistants")
 
 
-@router.post("/search", name="Query Assistants", operation_id="ruska_search_assistants")
+@router.post("/search", name="Query Assistants", operation_id="orchestra_search_assistants")
 @cache(expire=30)
 async def search_assistants(
     assistant_search: AssistantSearch = Body(openapi_examples=Examples.ASSISTANT_SEARCH_EXAMPLES),
@@ -65,7 +65,7 @@ async def search_assistants(
     return {"assistants": []}
 
 
-@router.post("", name="Create Assistant", operation_id="ruska_create_assistant")
+@router.post("", name="Create Assistant", operation_id="orchestra_create_assistant")
 async def create_assistant(
     assistant: Assistant = Body(..., examples={"currency_agent": ASSISTANT_EXAMPLES["currency_agent"]}),
     user: ProtectedUser = Depends(verify_credentials),
@@ -87,7 +87,7 @@ async def create_assistant(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.put("/{assistant_id}", name="Update Assistant", operation_id="ruska_update_assistant")
+@router.put("/{assistant_id}", name="Update Assistant", operation_id="orchestra_update_assistant")
 async def update_assistant(
     assistant_id: str = Path(..., description="The ID of the assistant to update"),
     assistant: Assistant = Body(..., examples={"currency_agent": Examples.ASSISTANT_EXAMPLES["currency_agent"]}),
@@ -106,7 +106,7 @@ async def update_assistant(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.delete("/{assistant_id}", name="Delete Assistant", operation_id="ruska_delete_assistant")
+@router.delete("/{assistant_id}", name="Delete Assistant", operation_id="orchestra_delete_assistant")
 async def delete_assistant(
     assistant_id: str = Path(..., description="The ID of the assistant to delete"),
     user: ProtectedUser = Depends(verify_credentials),
@@ -123,7 +123,7 @@ async def delete_assistant(
 @router.get(
     "/public",
     name="List Public Assistants",
-    operation_id="ruska_list_public_assistants",
+    operation_id="orchestra_list_public_assistants",
 )
 async def list_public_assistants(
     limit: int = Query(default=50, ge=1, le=200),
@@ -150,7 +150,7 @@ async def list_public_assistants(
 @router.get(
     "/public/{assistant_id}",
     name="Get Public Assistant",
-    operation_id="ruska_get_public_assistant",
+    operation_id="orchestra_get_public_assistant",
 )
 async def get_public_assistant(
     assistant_id: str = Path(..., description="The ID of the public assistant"),
@@ -178,7 +178,7 @@ async def get_public_assistant(
 @router.post(
     "/public/{assistant_id}/fork",
     name="Fork Public Assistant",
-    operation_id="ruska_fork_public_assistant",
+    operation_id="orchestra_fork_public_assistant",
     status_code=status.HTTP_201_CREATED,
 )
 async def fork_public_assistant(
@@ -211,7 +211,7 @@ async def fork_public_assistant(
 @router.get(
     "/public/{assistant_id}/embed",
     name="Get Embed Config",
-    operation_id="ruska_get_embed_config",
+    operation_id="orchestra_get_embed_config",
 )
 async def get_embed_config(
     assistant_id: str = Path(..., description="The ID of the public assistant"),
@@ -244,7 +244,7 @@ async def get_embed_config(
 @router.post(
     "/public/{assistant_id}/embed-token",
     name="Generate Embed Token",
-    operation_id="ruska_generate_embed_token",
+    operation_id="orchestra_generate_embed_token",
 )
 async def generate_embed_token(
     assistant_id: str = Path(..., description="The ID of the public assistant"),
@@ -281,7 +281,7 @@ async def generate_embed_token(
 @router.post(
     "/public/{assistant_id}/embed-chat",
     name="Embed Chat",
-    operation_id="ruska_embed_chat",
+    operation_id="orchestra_embed_chat",
     response_model=None,
 )
 async def embed_chat(
@@ -371,7 +371,7 @@ async def embed_chat(
 @router.post(
     "/{assistant_id}/publish",
     name="Publish Assistant",
-    operation_id="ruska_publish_assistant",
+    operation_id="orchestra_publish_assistant",
 )
 async def publish_assistant(
     assistant_id: str = Path(..., description="The ID of the assistant to publish"),
@@ -413,7 +413,7 @@ async def publish_assistant(
 @router.delete(
     "/{assistant_id}/publish",
     name="Unpublish Assistant",
-    operation_id="ruska_unpublish_assistant",
+    operation_id="orchestra_unpublish_assistant",
 )
 async def unpublish_assistant(
     assistant_id: str = Path(..., description="The ID of the assistant to unpublish"),
@@ -458,7 +458,7 @@ async def unpublish_assistant(
 @router.post(
     "/{assistant_id}/distill",
     name="Distill Assistant Prompt",
-    operation_id="ruska_distill_assistant",
+    operation_id="orchestra_distill_assistant",
 )
 async def distill_assistant(
     assistant_id: str = Path(..., description="The ID of the assistant to distill"),

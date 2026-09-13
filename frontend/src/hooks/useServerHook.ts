@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 
 const defaultMcpCode = `{
   "new-mcp-server": {
-    "url": "https://mcp.enso.sh/sse",
+    "url": "https://mcp.mifune.dev/sse",
     "headers": {
       "x-mcp-key": "your_api_key"
     },
@@ -13,7 +13,7 @@ const defaultMcpCode = `{
 
 const defaultA2A2Code = `{
   "new-a2a-server": {
-    "base_url": "https://a2a.enso.sh",
+    "base_url": "https://a2a.mifune.dev",
     "agent_card_path": "/.well-known/agent.json"
   }
 }`;
@@ -88,7 +88,7 @@ function useServerHook() {
 						// Create a fresh object with just one key
 						const newObj = {
 							[key]: {
-								url: formData.config.url || "https://mcp.enso.sh/sse",
+								url: formData.config.url || "https://mcp.mifune.dev/sse",
 								headers:
 									Object.keys(formData.config.headers).length > 0
 										? formData.config.headers

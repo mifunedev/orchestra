@@ -112,11 +112,11 @@ services:
             context: ../backend
             dockerfile: ../infra/backend.Dockerfile
             target: api
-        image: ghcr.io/ruska-ai/orchestra-api:local
+        image: ghcr.io/mifunedev/orchestra-api:local
         working_dir: /app
         init: true
         env_file:
-            - ~/.config/orchestra/.env
+            - ../backend/.env
         environment:
             APP_ENV: development
             APP_LOG_LEVEL: DEBUG
@@ -172,7 +172,7 @@ services:
         working_dir: /app
         init: true
         env_file:
-            - ~/.config/orchestra/.env
+            - ../backend/.env
         environment:
             APP_ENV: development
             APP_LOG_LEVEL: DEBUG

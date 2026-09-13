@@ -7,8 +7,8 @@ sidebar_position: 1
 # AGENTS.md Tutorial
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.ruska.ai/api)
-[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://ruska.ai/socials)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 This tutorial walks you through creating an AGENTS.md file to customize your AI agent's behavior in Orchestra. By the end, your agent will follow the persona, rules, and instructions you define in a simple markdown file.
 
@@ -16,12 +16,12 @@ This tutorial walks you through creating an AGENTS.md file to customize your AI 
 
 Before starting, make sure you have:
 
-- An Orchestra account at [chat.ruska.ai](https://chat.ruska.ai)
+- An Orchestra account at [chat.mifune.dev](https://chat.mifune.dev)
 - Familiarity with markdown syntax
 
 ## Step 1: Open Orchestra
 
-Navigate to [chat.ruska.ai](https://chat.ruska.ai) and sign in to your account. You'll see the main Orchestra interface with a chat input and model selector.
+Navigate to [chat.mifune.dev](https://chat.mifune.dev) and sign in to your account. You'll see the main Orchestra interface with a chat input and model selector.
 
 ![Orchestra home page](./img/home-page.png)
 
@@ -130,7 +130,7 @@ You can also create an assistant with AGENTS.md programmatically:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/assistant' \
+  'https://chat.mifune.dev/api/assistant' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -H 'x-api-key: YOUR_API_KEY' \

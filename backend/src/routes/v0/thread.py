@@ -35,7 +35,7 @@ router = APIRouter(tags=["Thread"])
 @router.post(
     "/threads/search",
     name="Query Threads in Checkpointer",
-    operation_id="ruska_search_threads",
+    operation_id="orchestra_search_threads",
     tags=["mcp"],
 )
 @cache(expire=15)
@@ -80,7 +80,7 @@ async def search_threads(
 @router.post(
     "/threads/search/semantic",
     name="Semantic Search Over Threads",
-    operation_id="ruska_semantic_search_threads",
+    operation_id="orchestra_semantic_search_threads",
     tags=["mcp"],
 )
 async def semantic_search_threads(
@@ -140,7 +140,7 @@ async def semantic_search_threads(
 @router.post(
     "/threads",
     name="Create Thread",
-    operation_id="ruska_create_thread",
+    operation_id="orchestra_create_thread",
     tags=["mcp"],
 )
 async def create_thread(
@@ -193,7 +193,7 @@ async def create_thread(
 @router.get(
     "/threads/{thread_id}",
     name="Get Thread",
-    operation_id="ruska_get_thread",
+    operation_id="orchestra_get_thread",
     tags=["mcp"],
 )
 async def get_thread(
@@ -218,7 +218,7 @@ async def get_thread(
 @router.get(
     "/threads/{thread_id}/stream",
     name="Stream Thread Results",
-    operation_id="ruska_stream_thread",
+    operation_id="orchestra_stream_thread",
     tags=["Thread"],
 )
 async def stream_thread(
@@ -339,7 +339,7 @@ async def stream_thread(
 @router.post(
     "/threads/{thread_id}/abort",
     name="Abort Thread Task",
-    operation_id="ruska_abort_thread",
+    operation_id="orchestra_abort_thread",
     tags=["Thread"],
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -389,7 +389,7 @@ async def abort_thread(
 @router.patch(
     "/threads/{thread_id}",
     name="Update Thread",
-    operation_id="ruska_update_thread",
+    operation_id="orchestra_update_thread",
     tags=["mcp"],
 )
 async def update_thread(
@@ -426,7 +426,7 @@ async def update_thread(
 @router.delete(
     "/threads/{thread_id}",
     name="Delete Thread",
-    operation_id="ruska_delete_thread",
+    operation_id="orchestra_delete_thread",
     tags=["mcp"],
 )
 async def delete_thread(
@@ -449,7 +449,7 @@ async def delete_thread(
 @router.delete(
     "/a/{assistant_id}/threads/{thread_id}",
     name="Delete Assistant Thread",
-    operation_id="ruska_delete_assistant_thread",
+    operation_id="orchestra_delete_assistant_thread",
     tags=["mcp"],
 )
 async def delete_assistant_thread(
@@ -477,7 +477,7 @@ async def delete_assistant_thread(
     "/threads/{thread_id}/interrupts",
     response_model=InterruptListResponse,
     name="Get Thread Interrupts",
-    operation_id="ruska_get_thread_interrupts",
+    operation_id="orchestra_get_thread_interrupts",
     tags=["HITL"],
 )
 async def get_thread_interrupts(
@@ -538,7 +538,7 @@ async def get_thread_interrupts(
     "/threads/{thread_id}/resume",
     response_model=ResumeResponse,
     name="Resume Thread with Decision",
-    operation_id="ruska_resume_thread",
+    operation_id="orchestra_resume_thread",
     tags=["HITL"],
 )
 async def resume_thread(

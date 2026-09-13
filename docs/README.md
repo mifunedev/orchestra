@@ -3,11 +3,10 @@
 User-facing documentation for Orchestra, kept in-repo as plain Markdown so it
 travels with the code it describes.
 
-> **Source of truth for the published site.** The rendered site at
-> [docs.ruska.ai](https://docs.ruska.ai) is still built by the Docusaurus app in
-> [`mifunedev/wiki`](https://github.com/mifunedev/wiki), which holds its own copy
-> of this Markdown. Until that repo is retired, a docs change that must reach the
-> published site has to be applied there as well.
+> **Source of truth.** The Markdown in this directory is the documentation.
+> There is no separate published site to keep in step with it: read these pages
+> here on GitHub, and make every docs change in the same pull request as the
+> code it describes.
 
 These pages were written for Docusaurus, so a few constructs render as literal
 text on GitHub — `:::note` / `:::tip` admonition blocks and the YAML front matter

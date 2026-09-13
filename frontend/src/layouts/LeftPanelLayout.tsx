@@ -14,7 +14,7 @@ interface LeftPanelLayoutProps {
 }
 
 export function LeftPanelLayout({
-	title = "New Enso",
+	title = "New Mifune",
 	status = "Draft",
 	children,
 	onCreate,

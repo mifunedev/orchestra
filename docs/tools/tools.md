@@ -55,7 +55,7 @@ Use the `/api/tools` endpoint to create customized tools:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/tools' \
+  'https://chat.mifune.dev/api/tools' \
   -H 'Content-Type: application/json' \
   -d '{
   "name": "webhook_marketing_channel",
@@ -107,7 +107,7 @@ Get all tools in your repository:
 
 ```bash
 curl -X 'GET' \
-  'https://chat.ruska.ai/api/tools' \
+  'https://chat.mifune.dev/api/tools' \
   -H 'accept: application/json'
 ```
 
@@ -144,7 +144,7 @@ Remove a tool from your repository:
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.ruska.ai/api/tools/webhook_marketing_channel' \
+  'https://chat.mifune.dev/api/tools/webhook_marketing_channel' \
   -H 'accept: application/json'
 ```
 
@@ -157,7 +157,7 @@ Reference your custom tools in assistant configurations:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/assistant' \
+  'https://chat.mifune.dev/api/assistant' \
   -H 'Content-Type: application/json' \
   -d '{
   "name": "Marketing Automation Bot",
@@ -187,7 +187,7 @@ This ensures your custom configurations take precedence over defaults.
 
 ```bash
 # Create webhook tool for Slack
-curl -X 'POST' 'https://chat.ruska.ai/api/tools' \
+curl -X 'POST' 'https://chat.mifune.dev/api/tools' \
   -H 'Content-Type: application/json' \
   -d '{
   "name": "notify_engineering_slack",
@@ -200,7 +200,7 @@ curl -X 'POST' 'https://chat.ruska.ai/api/tools' \
 }'
 
 # Use in assistant
-curl -X 'POST' 'https://chat.ruska.ai/api/assistant' \
+curl -X 'POST' 'https://chat.mifune.dev/api/assistant' \
   -d '{
   "name": "DevOps Monitor",
   "instructions": "Monitor system health. Alert engineering when issues arise.",
@@ -212,7 +212,7 @@ curl -X 'POST' 'https://chat.ruska.ai/api/assistant' \
 
 ```bash
 # Create tool with API credentials
-curl -X 'POST' 'https://chat.ruska.ai/api/tools' \
+curl -X 'POST' 'https://chat.mifune.dev/api/tools' \
   -H 'Content-Type: application/json' \
   -d '{
   "name": "send_customer_email",
@@ -231,17 +231,17 @@ curl -X 'POST' 'https://chat.ruska.ai/api/tools' \
 
 ```bash
 # Create multiple webhook tools
-curl -X 'POST' 'https://chat.ruska.ai/api/tools' \
+curl -X 'POST' 'https://chat.mifune.dev/api/tools' \
   -d '{"name":"notify_slack","base_tool":"send_webhook","type":"default","env":{"WEBHOOK_URL":"https://hooks.slack.com/..."}}'
 
-curl -X 'POST' 'https://chat.ruska.ai/api/tools' \
+curl -X 'POST' 'https://chat.mifune.dev/api/tools' \
   -d '{"name":"notify_teams","base_tool":"send_webhook","type":"default","env":{"WEBHOOK_URL":"https://outlook.office.com/webhook/..."}}'
 
-curl -X 'POST' 'https://chat.ruska.ai/api/tools' \
+curl -X 'POST' 'https://chat.mifune.dev/api/tools' \
   -d '{"name":"notify_discord","base_tool":"send_webhook","type":"default","env":{"WEBHOOK_URL":"https://discord.com/api/webhooks/..."}}'
 
 # Use all in one assistant
-curl -X 'POST' 'https://chat.ruska.ai/api/assistant' \
+curl -X 'POST' 'https://chat.mifune.dev/api/assistant' \
   -d '{
   "name": "Broadcast Bot",
   "instructions": "Send important announcements to all team channels.",
@@ -270,9 +270,9 @@ When rotating API keys or secrets, delete the old tool and create a new one with
 
 For complete tool API documentation:
 
--   [POST /tools](https://chat.ruska.ai/api#/Tools/Create_Tool) - Create a new tool
--   [GET /tools](https://chat.ruska.ai/api#/Tools/List_Tools) - List all tools
--   [DELETE /tools/&#123;tool_name&#125;](https://chat.ruska.ai/api#/Tools/Delete_Tool) - Delete a tool
+-   [POST /tools](https://chat.mifune.dev/api#/Tools/Create_Tool) - Create a new tool
+-   [GET /tools](https://chat.mifune.dev/api#/Tools/List_Tools) - List all tools
+-   [DELETE /tools/&#123;tool_name&#125;](https://chat.mifune.dev/api#/Tools/Delete_Tool) - Delete a tool
 
 ## Integrations
 

@@ -8,7 +8,7 @@
             "program": "${workspaceFolder}/main.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "envFile": "/home/ryaneggz/.config/orchestra/.env"
+            "envFile": "${workspaceFolder}/.env"
         },
         {
             "name": "Python: Single Test",
@@ -18,7 +18,7 @@
             "args": ["tests/integration/test_project_routes.py", "-v"],
             "console": "integratedTerminal",
             "justMyCode": true,
-            "envFile": "/home/ryaneggz/.config/orchestra/.env.test"
+            "envFile": "${workspaceFolder}/.env.test"
         },
         {
             "name": "Python: Run Tests",
@@ -28,7 +28,7 @@
             "args": ["tests/", "-v"],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "envFile": "/home/ryaneggz/.config/orchestra/.env.test"
+            "envFile": "${workspaceFolder}/.env.test"
         },
         {
             "name": "Python: Run Unit Tests Only",
@@ -38,7 +38,7 @@
             "args": ["tests/unit/", "-v"],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "envFile": "/home/ryaneggz/.config/orchestra/.env.test"
+            "envFile": "${workspaceFolder}/.env.test"
         },
         {
             "name": "Python: Run Integration Tests Only",
@@ -48,7 +48,7 @@
             "args": ["tests/integration/", "-v"],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "envFile": "/home/ryaneggz/.config/orchestra/.env.test"
+            "envFile": "${workspaceFolder}/.env.test"
         },
         {
             "name": "Python: TaskIQ Worker",
@@ -58,7 +58,7 @@
             "args": ["worker", "src.workers.tasks:broker"],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "envFile": "/home/ryaneggz/.config/orchestra/.env"
+            "envFile": "${workspaceFolder}/.env"
         },
         {
             "name": "Python: Remote Attach",

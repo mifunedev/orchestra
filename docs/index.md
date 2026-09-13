@@ -6,14 +6,14 @@ description: Composable agent infrastructure built on LangGraph with MCP and A2A
 # Orchestra Docs
 
 [![Join Slack](https://img.shields.io/badge/Join-Slack-4A154B?logo=slack&logoColor=white)](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.ruska.ai/docs)
-[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://ruska.ai/socials)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 :::info Living Documentation
 This documentation is actively maintained and continuously updated as Orchestra evolves. Features, APIs, and best practices are regularly refined. For the most current information, check back frequently or join our [Slack community](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg).
 :::
 
-Orchestra is a composable AI agent infrastructure built on LangGraph and powered by the [MCP](https://github.com/modelcontextprotocol) & [A2A](https://github.com/google/A2A) protocols by [Ruska Labs](https://ruska.ai).
+Orchestra is a composable AI agent infrastructure built on LangGraph and powered by the [MCP](https://github.com/modelcontextprotocol) & [A2A](https://github.com/google/A2A) protocols by [Mifune](https://mifune.dev).
 
 ## What is Orchestra?
 
@@ -85,10 +85,10 @@ Ready to get started? Follow our [Getting Started Guide](getting-started.md) to:
 ## Community & Support
 
 -   **[Slack](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)**: Join our community for discussions and support
--   **[GitHub](https://github.com/ruska-ai)**: Contribute to Ruska Labs projects
--   **[API Documentation](https://chat.ruska.ai/docs)**: Complete API reference and interactive docs
--   **[Social Media](https://ruska.ai/socials)**: Follow us for updates and news
+-   **[GitHub](https://github.com/mifunedev)**: Contribute to Mifune projects
+-   **[API Documentation](https://chat.mifune.dev/api)**: Complete API reference and interactive docs
+-   **[Social Media](https://mifune.dev/socials)**: Follow us for updates and news
 
 ---
 
-_Orchestra is developed by [Ruska Labs](https://ruska.ai) - enriching the lives of builders and innovators._
+_Orchestra is developed by [Mifune](https://mifune.dev) - enriching the lives of builders and innovators._

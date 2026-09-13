@@ -8,7 +8,7 @@
         width="60"
         height="60"
         style="border-radius: 50%; display: block;"
-        alt="Ruska Logo"
+        alt="Mifune Logo"
       />
     </td>
     <td style="padding: 0 0 0 2px; vertical-align: middle;">
@@ -23,8 +23,8 @@
 Steerable Harnesses for [DeepAgents](https://docs.langchain.com/oss/python/deepagents/overview)
 
 <a href="https://discord.com/invite/QRfjg4YNzU"><img src="https://img.shields.io/badge/Join-Discord-purple"></a>
-<a href="https://chat.ruska.ai/api"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
-<a href="https://ruska.ai/socials"><img src="https://img.shields.io/badge/Follow-Social-black"></a>
+<a href="https://chat.mifune.dev/api"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
+<a href="https://mifune.dev/socials"><img src="https://img.shields.io/badge/Follow-Social-black"></a>
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![DCO](https://img.shields.io/badge/DCO-1.1-yellow)](DCO)
 
@@ -44,9 +44,9 @@ browser. TaskIQ workers with Redis run distributed execution. MinIO or S3 stores
 
 | Option | Best For | Get Started |
 |--------|----------|-------------|
-| **Community (Free)** | Developers, self-hosting | `docker pull ghcr.io/ruska-ai/orchestra:latest` |
-| **Managed Cloud** | Teams wanting convenience | [chat.ruska.ai](https://chat.ruska.ai) |
-| **Enterprise** | Organizations needing SSO, compliance, SLA | [Contact Us](https://ruska.ai/enterprise) |
+| **Community (Free)** | Developers, self-hosting | `docker pull ghcr.io/mifunedev/orchestra:latest` |
+| **Managed Cloud** | Teams wanting convenience | [chat.mifune.dev](https://chat.mifune.dev) |
+| **Enterprise** | Organizations needing SSO, compliance, SLA | [Contact Us](https://mifune.dev/enterprise) |
 
 ## 🚀 Quickstart
 
@@ -112,14 +112,13 @@ Docker network. Run `docker network connect <network> pgvector` to join it.
 ### 4. Configure the environment
 
 ```bash
-mkdir -p ~/.config/orchestra
-cp backend/.example.env ~/.config/orchestra/.env.backend
+cp backend/.example.env backend/.env
 ```
 
 Set `POSTGRES_CONNECTION_STRING` in that file to the connection string from step 3. The backend
-`make` targets read the `ENV_FILE` variable, which points at `~/.config/orchestra/.env.backend`
-by default. The frontend `npm run dev` script reads `~/.config/orchestra/.env.frontend`. Create
-that file first. Read [Environment variables](docs/environment-variables.md) for every key.
+`make` targets read the `ENV_FILE` variable, which points at `backend/.env` by default. The
+frontend `npm run dev` script reads `frontend/.env`. Create that file first. Read
+[Environment variables](docs/environment-variables.md) for every key.
 
 ### 5. Migrate, seed, and run
 
@@ -133,7 +132,7 @@ cd ../frontend
 npm run dev        # start the Vite dev server
 ```
 
-Open `http://localhost:8000/docs` for the API documentation.
+Open `http://localhost:8000/api` for the API documentation.
 
 ### 6. Command reference
 
@@ -150,7 +149,7 @@ For all commands, see `backend/Makefile`.
 
 ## 📚 Documentation
 
-- [Documentation index](docs/README.md) — full user docs, also published at [docs.ruska.ai](https://docs.ruska.ai)
+- [Documentation index](docs/README.md) — full user docs, also published at [https://github.com/mifunedev/orchestra/tree/development/docs](https://github.com/mifunedev/orchestra/tree/development/docs)
 - [Orchestra Docs](docs/index.md) — the published documentation home page
 - [Getting Started](docs/getting-started.md) — account, assistant, and first thread
 - [Self-Hosting Guide](docs/self-hosting/index.md) — Docker deployment and AI provider setup

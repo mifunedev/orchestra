@@ -1,12 +1,12 @@
 <div align="center">
 
-# Enso Labs - Orchestra 🪶
+# Mifune - Orchestra 🪶
 
 Docker deployment guide for the Orchestra backend.
 
 <a href="https://discord.com/invite/QRfjg4YNzU"><img src="https://img.shields.io/badge/Join-Discord-purple"></a>
-<a href="https://chat.enso.sh/api"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
-<a href="https://enso.sh/socials"><img src="https://img.shields.io/badge/Follow-Social-black"></a>
+<a href="https://chat.mifune.dev/api"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
+<a href="https://mifune.dev/socials"><img src="https://img.shields.io/badge/Follow-Social-black"></a>
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](../LICENSE)
 [![DCO](https://img.shields.io/badge/DCO-1.1-yellow)](../DCO)
 
@@ -67,7 +67,7 @@ make dev.docker.test.up    # default + infra/docker-compose.test.yml (test datab
 Pull the latest image from GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/ruska-ai/orchestra:latest
+docker pull ghcr.io/mifunedev/orchestra:latest
 ```
 
 ### 1. Environment Setup
@@ -107,7 +107,7 @@ docker compose up
 
 The API will be available at `http://localhost:8000`
 
--   API Docs: `http://localhost:8000/docs`
+-   API Docs: `http://localhost:8000/api`
 -   Health Check: `http://localhost:8000/health`
 
 ## 🧩 Docker Compose Services
@@ -139,7 +139,7 @@ services:
 
     # Server (use pre-built image or build locally)
     orchestra:
-        image: ghcr.io/ruska-ai/orchestra:latest
+        image: ghcr.io/mifunedev/orchestra:latest
         container_name: orchestra
         env_file: .env.docker
         ports:
@@ -188,7 +188,7 @@ See the [canonical environment-variable guide](../docs/environment-variables.md)
 | `APP_LOG_LEVEL`  | Logging level                        | `DEBUG`       |
 | `APP_SECRET_KEY` | Application secret key               | -             |
 | `JWT_SECRET_KEY` | JWT signing key                      | -             |
-| `USER_AGENT`     | User agent string for requests       | `enso-dev`    |
+| `USER_AGENT`     | User agent string for requests       | `orchestra-dev`    |
 | `TEST_USER_ID`   | Test user UUID                       | -             |
 
 ### Database
@@ -231,7 +231,7 @@ See the [canonical environment-variable guide](../docs/environment-variables.md)
 | `S3_REGION`         | S3 region         | -          |
 | `ACCESS_KEY_ID`     | S3 access key     | -          |
 | `ACCESS_SECRET_KEY` | S3 secret key     | -          |
-| `BUCKET`            | S3 bucket name    | `enso_dev` |
+| `BUCKET`            | S3 bucket name    | `orchestra_dev` |
 
 ## 🗄️ Database Migrations
 

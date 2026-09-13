@@ -13,7 +13,7 @@ export function getAuthToken(token: string = TOKEN_NAME): string | null {
 
 export function logout() {
 	window.localStorage.removeItem(TOKEN_NAME);
-	window.localStorage.removeItem("enso:checkbox:pii_analyze");
-	window.localStorage.removeItem("enso:checkbox:pii_anonymize");
+	window.localStorage.removeItem("orchestra:checkbox:pii_analyze");
+	window.localStorage.removeItem("orchestra:checkbox:pii_anonymize");
 	return true;
 }

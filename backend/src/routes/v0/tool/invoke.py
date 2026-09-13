@@ -14,7 +14,7 @@ from src.utils.logger import log_error
 invoke_router = APIRouter()
 
 
-@invoke_router.post("/invoke", name="Invoke Tools", operation_id="ruska_invoke_tools")
+@invoke_router.post("/invoke", name="Invoke Tools", operation_id="orchestra_invoke_tools")
 async def invoke_tools(
     request: Request,
     tools: List[InvokeTool] = Body(..., examples=[Examples.INVOKE_TOOLS_EXAMPLE]),

@@ -38,7 +38,7 @@ def share_cache_key_builder(
 @router.post(
     "/threads/{thread_id}/share",
     name="Create Share Link",
-    operation_id="ruska_create_share",
+    operation_id="orchestra_create_share",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_share(
@@ -93,7 +93,7 @@ async def create_share(
 @router.get(
     "/shares/{token}",
     name="Get Shared Thread",
-    operation_id="ruska_get_shared_thread",
+    operation_id="orchestra_get_shared_thread",
 )
 @cache(expire=300, key_builder=share_cache_key_builder)
 async def get_shared_thread(
@@ -157,7 +157,7 @@ async def get_shared_thread(
 @router.delete(
     "/threads/{thread_id}/share",
     name="Revoke Share Link",
-    operation_id="ruska_revoke_share",
+    operation_id="orchestra_revoke_share",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def revoke_share(
@@ -202,7 +202,7 @@ async def revoke_share(
 @router.get(
     "/shares",
     name="List User Shares",
-    operation_id="ruska_list_shares",
+    operation_id="orchestra_list_shares",
 )
 async def list_shares(
     user: ProtectedUser = Depends(verify_credentials),

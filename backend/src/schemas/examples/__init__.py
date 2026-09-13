@@ -6,12 +6,12 @@ except ImportError:
 
 class Examples:
     PROJECT_EXAMPLES = {
-        "enso_labs": Example(
-            summary="Enso Labs Project",
-            description="This is a project example for the Enso Labs project",
+        "orchestra_labs": Example(
+            summary="Mifune Project",
+            description="This is a project example for the Mifune project",
             value={
-                "name": "Enso Labs",
-                "description": "This is a project example for the Enso Labs project",
+                "name": "Mifune",
+                "description": "This is a project example for the Mifune project",
                 "metadata": {},
             },
         ),
@@ -23,7 +23,7 @@ class Examples:
         #     value=[{
         #         "type": "gitbook",
         #         "metadata": {
-        #             "urls": ["https://github.com/ruska-ai/a2a-langgraph"],
+        #             "urls": ["https://github.com/mifunedev/a2a-langgraph"],
         #             "load_all_paths": True,
         #         },
         #     }],
@@ -35,7 +35,7 @@ class Examples:
                 {
                     "type": "web_scrape",
                     "content": {
-                        "urls": ["https://github.com/ruska-ai/a2a-langgraph"],
+                        "urls": ["https://github.com/mifunedev/a2a-langgraph"],
                     },
                 }
             ],

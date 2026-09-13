@@ -84,7 +84,7 @@ Create a thread programmatically:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread' \
+  'https://chat.mifune.dev/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -98,7 +98,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread' \
+  'https://chat.mifune.dev/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -111,7 +111,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread' \
+  'https://chat.mifune.dev/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -180,7 +180,7 @@ Get a specific thread:
 
 ```bash
 curl -X 'GET' \
-  'https://chat.ruska.ai/api/thread/thread_xyz789' \
+  'https://chat.mifune.dev/api/thread/thread_xyz789' \
   -H 'accept: application/json'
 ```
 
@@ -188,7 +188,7 @@ List all your threads:
 
 ```bash
 curl -X 'GET' \
-  'https://chat.ruska.ai/api/threads?limit=20&offset=0' \
+  'https://chat.mifune.dev/api/threads?limit=20&offset=0' \
   -H 'accept: application/json'
 ```
 
@@ -198,7 +198,7 @@ Continue an existing conversation:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread/thread_xyz789/message' \
+  'https://chat.mifune.dev/api/thread/thread_xyz789/message' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -220,7 +220,7 @@ The AI will respond with full context from the previous messages in the thread.
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.ruska.ai/api/thread/thread_xyz789'
+  'https://chat.mifune.dev/api/thread/thread_xyz789'
 ```
 
 !!! warning "Permanent Deletion"
@@ -258,7 +258,7 @@ Threads support file uploads for multi-modal interactions:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread' \
+  'https://chat.mifune.dev/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -319,7 +319,7 @@ Change models mid-conversation to optimize for different tasks:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread/thread_xyz789/message' \
+  'https://chat.mifune.dev/api/thread/thread_xyz789/message' \
   -H 'Content-Type: application/json' \
   -d '{
   "query": "Now summarize our conversation so far",
@@ -364,7 +364,7 @@ For real-time interaction, use streaming to receive responses as they're generat
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/thread/stream' \
+  'https://chat.mifune.dev/api/thread/stream' \
   -H 'Content-Type: application/json' \
   -d '{
   "query": "Write a long essay about AI safety",
@@ -408,12 +408,12 @@ Large file uploads may have size restrictions. Check your instance's limits or c
 
 For complete thread API documentation:
 
--   [Thread API Reference](https://chat.ruska.ai/api#/Thread)
--   [Create Thread](https://chat.ruska.ai/api#/Thread/Create_New_Thread)
--   [Get Thread](https://chat.ruska.ai/api#/Thread/Get_Thread)
--   [List Threads](https://chat.ruska.ai/api#/Thread/List_Threads)
--   [Add Message](https://chat.ruska.ai/api#/Thread/Add_Message_to_Thread)
--   [Delete Thread](https://chat.ruska.ai/api#/Thread/Delete_Thread)
+-   [Thread API Reference](https://chat.mifune.dev/api#/Thread)
+-   [Create Thread](https://chat.mifune.dev/api#/Thread/Create_New_Thread)
+-   [Get Thread](https://chat.mifune.dev/api#/Thread/Get_Thread)
+-   [List Threads](https://chat.mifune.dev/api#/Thread/List_Threads)
+-   [Add Message](https://chat.mifune.dev/api#/Thread/Add_Message_to_Thread)
+-   [Delete Thread](https://chat.mifune.dev/api#/Thread/Delete_Thread)
 
 ## Related Documentation
 

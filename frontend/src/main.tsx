@@ -1,3 +1,7 @@
+// MUST stay the first import: this module runs the legacy-key storage
+// migrations at module-evaluation time, and ES modules evaluate depth-first in
+// import order, so nothing below can read a storage key before it has moved.
+import { runStorageMigrations } from "./lib/utils/storageMigrations";
 import "./styles/globals.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -13,6 +17,10 @@ import { OnboardingProvider } from "./context/OnboardingContext";
 import { NuqsAdapter } from "nuqs/adapters/react";
 import { QueryProvider } from "./providers/QueryProvider";
 import { Toaster } from "./components/ui/sonner";
+
+// Idempotent re-run: keeps the import above from being dropped as unused and
+// covers any module that was evaluated outside this entrypoint's import graph.
+runStorageMigrations();
 
 // Register service worker
 if ("serviceWorker" in navigator && import.meta.env.MODE === "production") {

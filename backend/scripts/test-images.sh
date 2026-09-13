@@ -5,8 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 TAG=${1:-latest}
-export API_IMAGE="ghcr.io/ruska-ai/orchestra-api:$TAG"
-export WORKER_IMAGE="ghcr.io/ruska-ai/orchestra-worker:$TAG"
+export API_IMAGE="ghcr.io/mifunedev/orchestra-api:$TAG"
+export WORKER_IMAGE="ghcr.io/mifunedev/orchestra-worker:$TAG"
 
 echo "=== Testing images: API=$API_IMAGE, Worker=$WORKER_IMAGE ==="
 

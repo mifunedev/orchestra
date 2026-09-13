@@ -57,7 +57,7 @@ Use **Inherit from Agent** when you want the schedule to automatically pick up a
 
 ```bash
 curl -X 'POST' \
-  'https://chat.ruska.ai/api/schedules' \
+  'https://chat.mifune.dev/api/schedules' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
@@ -111,7 +111,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'PUT' \
-  'https://chat.ruska.ai/api/schedules/{job_id}' \
+  'https://chat.mifune.dev/api/schedules/{job_id}' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '{
@@ -134,7 +134,7 @@ curl -X 'PUT' \
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.ruska.ai/api/schedules/{job_id}' \
+  'https://chat.mifune.dev/api/schedules/{job_id}' \
   -H 'Authorization: Bearer <token>'
 ```
 
@@ -146,7 +146,7 @@ curl -X 'DELETE' \
 
 ```bash
 curl -X 'GET' \
-  'https://chat.ruska.ai/api/schedules' \
+  'https://chat.mifune.dev/api/schedules' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer <token>'
 ```

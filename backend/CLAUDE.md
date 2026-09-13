@@ -21,14 +21,11 @@ uv sync
 
 ### 2. Environment Configuration
 
-The backend uses environment files stored at `~/.config/orchestra/.env`.
+The backend uses environment files stored at `backend/.env`.
 
 ```bash
-# Ensure the env directory exists
-mkdir -p ~/.config/orchestra
-
 # Copy example env if setting up for first time
-cp .example.env ~/.config/orchestra/.env
+cp .example.env .env
 ```
 
 ### 3. Start the Application
@@ -41,10 +38,10 @@ make dev
 **With explicit port (use if default port is taken):**
 ```bash
 # Port 8001
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8001 --log-level debug --env-file ~/.config/orchestra/.env
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8001 --log-level debug --env-file ./.env
 
 # Port 8002
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8002 --log-level debug --env-file ~/.config/orchestra/.env
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8002 --log-level debug --env-file ./.env
 ```
 
 **Auto-increment port if default is taken:**
@@ -54,7 +51,7 @@ PORT=8000
 while lsof -i :$PORT >/dev/null 2>&1; do
   PORT=$((PORT + 1))
 done
-uv run uvicorn main:app --reload --host 0.0.0.0 --port $PORT --log-level debug --env-file ~/.config/orchestra/.env
+uv run uvicorn main:app --reload --host 0.0.0.0 --port $PORT --log-level debug --env-file ./.env
 ```
 
 ## Common Commands
@@ -71,7 +68,7 @@ uv run uvicorn main:app --reload --host 0.0.0.0 --port $PORT --log-level debug -
 
 ## Database Migrations
 
-All migration commands use the env file at `~/.config/orchestra/.env`:
+All migration commands use the env file at `backend/.env`:
 
 ```bash
 # Apply all migrations
@@ -133,7 +130,7 @@ backend/
 ## API Documentation
 
 When the server is running:
-- Swagger UI: `http://localhost:8000/docs`
+- Swagger UI: `http://localhost:8000/api`
 - ReDoc: `http://localhost:8000/redoc`
 - OpenAPI JSON: `http://localhost:8000/openapi.json`
 

@@ -73,9 +73,9 @@ const OAuthCallback = () => {
 				}
 
 				// Auto-fork if remix param was stored before OAuth redirect
-				const remixAgentId = localStorage.getItem("enso:remix_agent_id");
+				const remixAgentId = localStorage.getItem("orchestra:remix_agent_id");
 				if (remixAgentId) {
-					localStorage.removeItem("enso:remix_agent_id");
+					localStorage.removeItem("orchestra:remix_agent_id");
 					try {
 						const forkRes = await AgentService.fork(remixAgentId);
 						navigate(`/assistant/${forkRes.data.assistant_id}`);
