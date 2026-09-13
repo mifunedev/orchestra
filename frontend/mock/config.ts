@@ -12,7 +12,7 @@ export const config = [
 		},
 		documentation:
 			"Standard production server configuration with full monitoring capabilities.",
-		documentation_url: "https://chat.mifune.dev/servers/production",
+		documentation_url: "http://localhost:8000/servers/production",
 		public: true,
 		created_at: "2023-01-15T08:30:00Z",
 		updated_at: "2023-06-22T14:15:30Z",

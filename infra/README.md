@@ -5,7 +5,7 @@
 Docker deployment guide for the Orchestra backend.
 
 <a href="https://discord.com/invite/QRfjg4YNzU"><img src="https://img.shields.io/badge/Join-Discord-purple"></a>
-<a href="https://chat.mifune.dev/api"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
+<a href="https://github.com/mifunedev/orchestra/tree/development/docs"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
 <a href="https://mifune.dev/socials"><img src="https://img.shields.io/badge/Follow-Social-black"></a>
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](../LICENSE)
 [![DCO](https://img.shields.io/badge/DCO-1.1-yellow)](../DCO)

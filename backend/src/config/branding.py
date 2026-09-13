@@ -37,8 +37,8 @@ class Brand(BaseModel):
 
 
 class Urls(BaseModel):
-    console: str = "https://console.mifune.dev"
-    api_base: str = "https://console.mifune.dev/api"
+    console: str = "http://localhost:8000"
+    api_base: str = "http://localhost:8000/api"
     docs: str = "https://github.com/mifunedev/orchestra/tree/development/docs"
     website: str = "https://mifune.dev"
     blog: str = "https://mifune.dev/blog"

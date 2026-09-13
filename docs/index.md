@@ -6,7 +6,7 @@ description: Composable agent infrastructure built on LangGraph with MCP and A2A
 # Orchestra Docs
 
 [![Join Slack](https://img.shields.io/badge/Join-Slack-4A154B?logo=slack&logoColor=white)](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs)
 [![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 :::info Living Documentation
@@ -86,7 +86,7 @@ Ready to get started? Follow our [Getting Started Guide](getting-started.md) to:
 
 -   **[Slack](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)**: Join our community for discussions and support
 -   **[GitHub](https://github.com/mifunedev)**: Contribute to Mifune projects
--   **[API Documentation](https://chat.mifune.dev/api)**: Complete API reference and interactive docs
+-   **[API Documentation](https://github.com/mifunedev/orchestra/tree/development/docs)**: Complete API reference and interactive docs
 -   **[Social Media](https://mifune.dev/socials)**: Follow us for updates and news
 
 ---

@@ -7,7 +7,7 @@ sidebar_position: 2
 # AGENTS.md Workflow Guide
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs)
 [![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 This guide walks you through the AGENTS.md workflow — creating, editing, and managing file-based instructions for your Orchestra assistants. For API usage and advanced topics, see the full [AGENTS.md reference](../assistants/agents-md.md).

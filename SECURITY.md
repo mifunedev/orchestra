@@ -9,7 +9,7 @@
 
 ## Reporting a Vulnerability
 
-Please **e-mail reggleston.ensolabs@gmail.com** with:
+Please **e-mail support@mifune.dev** with:
 
 * A detailed description of the vulnerability
 * Steps to reproduce

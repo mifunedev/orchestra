@@ -112,7 +112,7 @@ async def create_tool(
         await create_tool(
             name="get_server_health",
             description="Use this to get the health of the server and app version.",
-            base_url="https://console.mifune.dev/api",
+            base_url="http://localhost:8000/api",
             method="GET",
             endpoint="/info/health",
         )
@@ -220,7 +220,7 @@ async def edit_tool(
         await create_tool(
             name="get_server_health",
             description="Use this to get the health of the server and app version.",
-            base_url="https://console.mifune.dev/api",
+            base_url="http://localhost:8000/api",
             method="GET",
             endpoint="/info/health",
         )

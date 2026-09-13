@@ -10,7 +10,7 @@ This tutorial walks you through adding memories via the Settings UI and verifyin
 
 ## Prerequisites
 
--   An Orchestra account at [chat.mifune.dev](https://chat.mifune.dev)
+-   An Orchestra account at [localhost:8000](http://localhost:8000)
 
 ## Step 1: Navigate to Settings
 

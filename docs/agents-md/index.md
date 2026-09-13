@@ -67,7 +67,7 @@ Attach `AGENTS.md` as a file when creating an assistant:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/assistant' \
+  'http://localhost:8000/api/assistant' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -87,7 +87,7 @@ Update the file content to change behavior:
 
 ```bash
 curl -X 'PATCH' \
-  'https://chat.mifune.dev/api/assistant/asst_abc123' \
+  'http://localhost:8000/api/assistant/asst_abc123' \
   -H 'Content-Type: application/json' \
   -d '{
   "files": {
@@ -102,7 +102,7 @@ Include `AGENTS.md` in the thread input files for per-conversation instructions:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/thread' \
+  'http://localhost:8000/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{

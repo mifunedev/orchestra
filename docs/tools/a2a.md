@@ -6,7 +6,7 @@ slug: /tools/a2a
 # Agent-to-Agent [(A2A)](https://github.com/mifunedev/a2a-langgraph)
 
 [![Join Slack](https://img.shields.io/badge/Join-Slack-4A154B?logo=slack&logoColor=white)](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs)
 [![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 :::warning Under Development
@@ -43,13 +43,13 @@ Mifune A2A support is based on the [LangGraph Currency Agent w/ A2A Protocol](ht
 
     ![A2A Tool Execution](https://github.com/ryaneggz/static/blob/main/enso/a2a-tool.png?raw=true)
 
-## Example [API Usage](https://chat.mifune.dev/api#/Thread/Create_New_Thread_api_threads_post):
+## Example [API Usage](http://localhost:8000/api#/Thread/Create_New_Thread_api_threads_post):
 
 #### Fetch A2A Server Information
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/tools/a2a/info' \
+  'http://localhost:8000/api/tools/a2a/info' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -66,7 +66,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/thread' \
+  'http://localhost:8000/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{

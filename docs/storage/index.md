@@ -31,12 +31,12 @@ Upload files directly to threads for multi-modal interactions:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/thread' \
+  'http://localhost:8000/api/thread' \
   -H 'Content-Type: application/json' \
   -d '{
   "query": "Summarize the key points from this document",
   "model": "anthropic:claude-sonnet-4-5",
-  "images": ["https://storage.mifune.dev/documents/report.pdf"]
+  "images": ["http://localhost:9000/documents/report.pdf"]
 }'
 ```
 
@@ -46,7 +46,7 @@ Upload documents to create searchable knowledge bases:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/storage/upload' \
+  'http://localhost:8000/api/storage/upload' \
   -H 'accept: application/json' \
   -F 'file=@/path/to/document.pdf' \
   -F 'project_id=proj_abc123'
@@ -74,11 +74,11 @@ aws configure set default.region us-east-1
 
 # Upload a file
 aws s3 cp document.pdf s3://my-bucket/documents/ \
-  --endpoint-url https://storage.chat.mifune.dev
+  --endpoint-url http://localhost:9000
 
 # List files
 aws s3 ls s3://my-bucket/documents/ \
-  --endpoint-url https://storage.chat.mifune.dev
+  --endpoint-url http://localhost:9000
 ```
 
 **Python SDK (boto3) Example:**
@@ -88,7 +88,7 @@ import boto3
 
 s3_client = boto3.client(
     's3',
-    endpoint_url='https://storage.chat.mifune.dev',
+    endpoint_url='http://localhost:9000',
     aws_access_key_id='YOUR_ACCESS_KEY',
     aws_secret_access_key='YOUR_SECRET_KEY'
 )
@@ -109,7 +109,7 @@ s3_client.download_file('my-bucket', 'documents/document.pdf', 'local_copy.pdf')
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/storage/upload' \
+  'http://localhost:8000/api/storage/upload' \
   -H 'accept: application/json' \
   -F 'file=@document.pdf' \
   -F 'metadata={"category":"research","tags":["ai","ml"]}'
@@ -123,7 +123,7 @@ curl -X 'POST' \
     "filename": "document.pdf",
     "size_bytes": 1024567,
     "content_type": "application/pdf",
-    "url": "https://storage.chat.mifune.dev/files/file_xyz789",
+    "url": "http://localhost:9000/files/file_xyz789",
     "created_at": "2025-01-16T10:30:00Z"
 }
 ```
@@ -134,7 +134,7 @@ Get all files in your storage:
 
 ```bash
 curl -X 'GET' \
-  'https://chat.mifune.dev/api/storage/files?limit=50&offset=0' \
+  'http://localhost:8000/api/storage/files?limit=50&offset=0' \
   -H 'accept: application/json'
 ```
 
@@ -144,7 +144,7 @@ Retrieve a specific file:
 
 ```bash
 curl -X 'GET' \
-  'https://chat.mifune.dev/api/storage/file/file_xyz789' \
+  'http://localhost:8000/api/storage/file/file_xyz789' \
   --output document.pdf
 ```
 
@@ -154,7 +154,7 @@ Remove files from storage:
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.mifune.dev/api/storage/file/file_xyz789'
+  'http://localhost:8000/api/storage/file/file_xyz789'
 ```
 
 ## RAG & Projects
@@ -174,7 +174,7 @@ Projects (also called RAG indexes) allow you to:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/project' \
+  'http://localhost:8000/api/project' \
   -H 'Content-Type: application/json' \
   -d '{
   "name": "Company Knowledge Base",
@@ -205,7 +205,7 @@ Upload documents to your project's index:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/project/proj_abc123/documents' \
+  'http://localhost:8000/api/project/proj_abc123/documents' \
   -F 'file=@employee_handbook.pdf' \
   -F 'metadata={"type":"policy","version":"2024"}'
 ```
@@ -223,7 +223,7 @@ Retrieve relevant information from your project:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/project/proj_abc123/query' \
+  'http://localhost:8000/api/project/proj_abc123/query' \
   -H 'Content-Type: application/json' \
   -d '{
   "query": "What is the vacation policy?",
@@ -262,7 +262,7 @@ Combine projects with assistants for knowledge-enhanced agents:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/assistant' \
+  'http://localhost:8000/api/assistant' \
   -H 'Content-Type: application/json' \
   -d '{
   "name": "HR Assistant",
@@ -281,7 +281,7 @@ The retrieval API provides low-level access to search your indexed documents:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/retrieve' \
+  'http://localhost:8000/api/retrieve' \
   -H 'Content-Type: application/json' \
   -d '{
   "query": "machine learning best practices",
@@ -379,7 +379,7 @@ Update the index when documents change:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/project/proj_abc123/reindex' \
+  'http://localhost:8000/api/project/proj_abc123/reindex' \
   -H 'accept: application/json'
 ```
 
@@ -408,15 +408,15 @@ Quality of retrieval depends on: - Document quality and formatting - Appropriate
 
 ```bash
 # Create project
-curl -X 'POST' 'https://chat.mifune.dev/api/project' \
+curl -X 'POST' 'http://localhost:8000/api/project' \
   -d '{"name":"Support KB","description":"Customer support documentation"}'
 
 # Upload FAQs and troubleshooting guides
-curl -X 'POST' 'https://chat.mifune.dev/api/project/proj_123/documents' \
+curl -X 'POST' 'http://localhost:8000/api/project/proj_123/documents' \
   -F 'file=@faq.pdf' -F 'metadata={"category":"faq"}'
 
 # Create assistant with access
-curl -X 'POST' 'https://chat.mifune.dev/api/assistant' \
+curl -X 'POST' 'http://localhost:8000/api/assistant' \
   -d '{"name":"Support Agent","instructions":"You are a support agent.","model":"anthropic:claude-sonnet-4-5"}'
 ```
 
@@ -424,12 +424,12 @@ curl -X 'POST' 'https://chat.mifune.dev/api/assistant' \
 
 ```bash
 # Upload API documentation
-curl -X 'POST' 'https://chat.mifune.dev/api/project/proj_456/documents' \
+curl -X 'POST' 'http://localhost:8000/api/project/proj_456/documents' \
   -F 'file=@api_docs.md' \
   -F 'metadata={"type":"api","version":"v2.0"}'
 
 # Query for specific functionality
-curl -X 'POST' 'https://chat.mifune.dev/api/project/proj_456/query' \
+curl -X 'POST' 'http://localhost:8000/api/project/proj_456/query' \
   -d '{"query":"How do I authenticate API requests?","top_k":3}'
 ```
 
@@ -438,13 +438,13 @@ curl -X 'POST' 'https://chat.mifune.dev/api/project/proj_456/query' \
 ```bash
 # Upload research papers
 for paper in *.pdf; do
-  curl -X 'POST' 'https://chat.mifune.dev/api/project/proj_789/documents' \
+  curl -X 'POST' 'http://localhost:8000/api/project/proj_789/documents' \
     -F "file=@$paper" \
     -F 'metadata={"type":"research","field":"machine_learning"}'
 done
 
 # Search across all papers
-curl -X 'POST' 'https://chat.mifune.dev/api/project/proj_789/query' \
+curl -X 'POST' 'http://localhost:8000/api/project/proj_789/query' \
   -d '{"query":"attention mechanisms in transformers","top_k":10}'
 ```
 
@@ -452,9 +452,9 @@ curl -X 'POST' 'https://chat.mifune.dev/api/project/proj_789/query' \
 
 Complete storage and RAG API documentation:
 
--   [Storage API](https://chat.mifune.dev/api#/Storage)
--   [Project API](https://chat.mifune.dev/api#/Project)
--   [Retrieval API](https://chat.mifune.dev/api#/Retrieve)
+-   [Storage API](http://localhost:8000/api#/Storage)
+-   [Project API](http://localhost:8000/api#/Project)
+-   [Retrieval API](http://localhost:8000/api#/Retrieve)
 
 ### Key Endpoints
 
@@ -475,4 +475,4 @@ Complete storage and RAG API documentation:
 
 ---
 
-**Ready to build a knowledge-enhanced agent?** Start by [creating a project](https://chat.mifune.dev/api#/Project/Create_Project) and uploading your first documents!
+**Ready to build a knowledge-enhanced agent?** Start by [creating a project](http://localhost:8000/api#/Project/Create_Project) and uploading your first documents!
