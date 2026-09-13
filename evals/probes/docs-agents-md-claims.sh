@@ -12,10 +12,21 @@ AGENTS="$ROOT/AGENTS.md"
 FAILURES=()
 
 # check <label> <what-the-repo-says-now> <predicate...>
+# The predicate runs exactly once. Its stdout is discarded; its stderr is
+# appended to the recorded message when it fails, so a predicate can report the
+# detail the static message cannot carry.
 check() {
   local label="$1"; shift
   local now="$1"; shift
-  if ! "$@" >/dev/null 2>&1; then
+  if [ "$#" -eq 0 ]; then
+    FAILURES+=("check-wiring:$label - predicate missing; the label and message were probably concatenated")
+    return
+  fi
+  local detail rc
+  detail="$("$@" 2>&1 1>/dev/null)"
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    [ -n "$detail" ] && now="$now (${detail%%$'\n'*})"
     FAILURES+=("$label - $now")
   fi
 }
@@ -46,6 +57,38 @@ default_branch_is_development() {
   [ "$head" = "refs/remotes/origin/development" ]
 }
 
+# Every root-relative repository path AGENTS.md names in an inline-code span
+# must exist. Prose is told from a path by SHAPE, never by existence: deciding
+# with [ -e ] would skip exactly the fabricated top-level directory this check
+# has to catch.
+#
+# The extraction strips a trailing slash BEFORE requiring a "/", so a span of
+# one segment plus a trailing slash drops out on its own. That is the whole
+# prose filter, and it needs no list of names: "src/" and "migrations/" are
+# directory names written relative to the directory named in the same sentence,
+# and a name has no root to resolve against. What survives holds an internal
+# "/" — a container and something inside it — and is a root-relative claim.
+#
+# Four exclusions, each anchored to the file itself:
+#   glob metacharacter  a pattern quoted from .gitignore, not a path
+#   basename .env*      non-negotiable 1 — gitignored, absent by design
+#   backend/src/public  non-negotiable 3 — generated output
+#   leading ..          outside the repository root
+agents_md_paths_exist() {
+  local missing=() p
+  while read -r p; do
+    [ -z "$p" ] && continue
+    case "$p" in
+      ..*) continue ;;
+      backend/src/public) continue ;;
+      *[][*?]*) continue ;;
+    esac
+    case "${p##*/}" in .env*) continue ;; esac
+    [ -e "$ROOT/$p" ] || missing+=("$p")
+  done < <(grep -oE '`[A-Za-z0-9_.*/-]+`' "$AGENTS" | tr -d '`' | sed 's:/*$::' | grep '/' | sort -u)
+  [ "${#missing[@]}" -eq 0 ] || { printf 'missing: %s\n' "${missing[*]}" >&2; return 1; }
+}
+
 named_paths_exist() {
   local missing=()
   local p
@@ -69,7 +112,7 @@ named_paths_exist() {
   do
     [ -e "$ROOT/$p" ] || missing+=("$p")
   done
-  [ "${#missing[@]}" -eq 0 ] || { printf '%s\n' "${missing[*]}"; return 1; }
+  [ "${#missing[@]}" -eq 0 ] || { printf 'missing: %s\n' "${missing[*]}" >&2; return 1; }
 }
 
 # --- the file itself ---------------------------------------------------------
@@ -223,7 +266,9 @@ check "docs-claims-workflow" ".github/workflows/docs-claims.yml is gone; no work
   test -f "$ROOT/.github/workflows/docs-claims.yml"
 check "docs-claims-workflow-runs-probe" ".github/workflows/docs-claims.yml no longer names evals/probes/docs-agents-md-claims.sh" \
   file_has .github/workflows/docs-claims.yml 'evals/probes/docs-agents-md-claims.sh'
-check "named-paths-exist""AGENTS.md names a path that does not exist: $(named_paths_exist 2>/dev/null || true)" \
+check "agents-md-paths-exist" "AGENTS.md names a repository path that does not exist" \
+  agents_md_paths_exist
+check "named-paths-exist" "a structural path this guard depends on does not exist" \
   named_paths_exist
 
 # --- verdict -----------------------------------------------------------------
