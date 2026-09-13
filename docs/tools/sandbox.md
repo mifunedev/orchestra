@@ -6,7 +6,7 @@ slug: /tools/sandbox
 # Ubuntu Sandbox (exec-server MCP)
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs)
 [![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 The ubuntu sandbox is a standalone MCP server that runs inside an isolated Docker container and exposes tools over the [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) transport at `/mcp`. It supports optional API key authentication, session state via `mcp-session-id`, and a `/health` endpoint for monitoring.
@@ -274,7 +274,7 @@ If `API_KEY` is not set on the server, omit the `headers` field or pass an empty
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/llm/thread' \
+  'http://localhost:8000/api/llm/thread' \
   -H 'Content-Type: application/json' \
   -d '{
   "query": "Run uname -a",

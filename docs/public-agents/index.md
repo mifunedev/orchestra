@@ -38,7 +38,7 @@ The browse and preview endpoints are public (no auth); forking requires authenti
 ### List Public Agents
 
 ```bash
-curl 'https://chat.mifune.dev/api/assistants/public?sort_by=fork_count&limit=20'
+curl 'http://localhost:8000/api/assistants/public?sort_by=fork_count&limit=20'
 ```
 
 `sort_by` accepts `fork_count`, `published_at`, or `updated_at`.
@@ -46,7 +46,7 @@ curl 'https://chat.mifune.dev/api/assistants/public?sort_by=fork_count&limit=20'
 ### Get a Public Agent
 
 ```bash
-curl 'https://chat.mifune.dev/api/assistants/public/{assistant_id}'
+curl 'http://localhost:8000/api/assistants/public/{assistant_id}'
 ```
 
 Returns the public assistant configuration (name, description, model, tools) for preview.
@@ -55,7 +55,7 @@ Returns the public assistant configuration (name, description, model, tools) for
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/assistants/public/{assistant_id}/fork' \
+  'http://localhost:8000/api/assistants/public/{assistant_id}/fork' \
   -H 'Authorization: Bearer <token>'
 ```
 

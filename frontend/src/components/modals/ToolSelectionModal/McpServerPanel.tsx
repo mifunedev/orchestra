@@ -37,7 +37,7 @@ const MCP_TEMPLATES = {
 	mifune: {
 		name: "Mifune MCP",
 		transport: "sse" as const,
-		url: "https://console.mifune.dev/mcp",
+		url: "http://localhost:8000/mcp",
 		headers: { "x-api-key": "" },
 	},
 	github: {

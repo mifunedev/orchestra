@@ -6,7 +6,7 @@ slug: /tools/mcp
 # Model Context Protocol [(MCP)](https://modelcontextprotocol.io/introduction)
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://chat.mifune.dev/api)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs)
 [![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 :::info Actively Evolving
@@ -176,7 +176,7 @@ Once MCP servers are configured, you can selectively enable specific tools from 
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/assistant' \
+  'http://localhost:8000/api/assistant' \
   -H 'Content-Type: application/json' \
   -d '{
   "name": "Weather Assistant",
@@ -194,13 +194,13 @@ curl -X 'POST' \
 
 This assistant has access to the `get_weather` tool from the MCP server and the built-in `search` tool, but NOT other tools the weather server might expose.
 
-## Example [API Usage](https://chat.mifune.dev/api#/Thread/Create_New_Thread_api_threads_post):
+## Example [API Usage](http://localhost:8000/api#/Thread/Create_New_Thread_api_threads_post):
 
 #### GET MCP server information
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/tools/mcp/info' \
+  'http://localhost:8000/api/tools/mcp/info' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -220,7 +220,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/llm/thread' \
+  'http://localhost:8000/api/llm/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -231,7 +231,7 @@ curl -X 'POST' \
         "x-api-key": "your_api_key"
       },
       "transport": "http",
-      "url": "https://chat.mifune.dev/mcp"
+      "url": "http://localhost:8000/mcp"
     }
   },
   "model": "openai-gpt-4o",

@@ -16,8 +16,8 @@ brand:
   logo_url: ""            # optional; frontend uses a default logo when empty
 
 urls:
-  console: "https://console.mifune.dev"
-  api_base: "https://console.mifune.dev/api"
+  console: "http://localhost:8000"
+  api_base: "http://localhost:8000/api"
   docs: "https://github.com/mifunedev/orchestra/tree/development/docs"
   website: "https://mifune.dev"
   blog: "https://mifune.dev/blog"

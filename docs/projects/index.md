@@ -34,7 +34,7 @@ The new project appears in the sidebar under Projects.
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/projects' \
+  'http://localhost:8000/api/projects' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '{
@@ -66,7 +66,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'PUT' \
-  'https://chat.mifune.dev/api/projects/{project_id}' \
+  'http://localhost:8000/api/projects/{project_id}' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '{
@@ -88,7 +88,7 @@ Deleting a project also deletes all its associated sources and documents. Thread
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.mifune.dev/api/projects/{project_id}' \
+  'http://localhost:8000/api/projects/{project_id}' \
   -H 'Authorization: Bearer <token>'
 ```
 
@@ -96,7 +96,7 @@ curl -X 'DELETE' \
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/projects/search' \
+  'http://localhost:8000/api/projects/search' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '{
@@ -150,7 +150,7 @@ Projects can have attached data sources that provide additional context:
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/projects/{project_id}/sources' \
+  'http://localhost:8000/api/projects/{project_id}/sources' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
   -d '[{
@@ -165,7 +165,7 @@ curl -X 'POST' \
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.mifune.dev/api/projects/{project_id}/sources/{source_id}' \
+  'http://localhost:8000/api/projects/{project_id}/sources/{source_id}' \
   -H 'Authorization: Bearer <token>'
 ```
 

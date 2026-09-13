@@ -18,7 +18,7 @@ Welcome to Orchestra! This guide walks you through the complete onboarding proce
 ## Prerequisites
 
 -   A modern web browser
--   An Orchestra instance (e.g., [chat.mifune.dev](https://chat.mifune.dev))
+-   An Orchestra instance (e.g., [localhost:8000](http://localhost:8000))
 
 ## Step 1: Create an Account or Sign In
 
@@ -167,7 +167,7 @@ Now that you're set up, explore these features to get the most out of Orchestra:
 -   **[MCP Tools](./tools/mcp.md)** — connect to external tools via the Model Context Protocol
 -   **[A2A Agents](./tools/a2a.md)** — enable multi-agent workflows with Agent-to-Agent protocol
 -   **[Storage & RAG](./storage/index.md)** — upload documents for retrieval-augmented generation
--   **[API Documentation](https://chat.mifune.dev/api)** — build custom integrations with the REST API
+-   **[API Documentation](http://localhost:8000/api)** — build custom integrations with the REST API
 
 ## Getting Help
 

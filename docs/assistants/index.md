@@ -85,7 +85,7 @@ Create an assistant programmatically using the REST API. Use the `files` diction
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/assistant' \
+  'http://localhost:8000/api/assistant' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -133,7 +133,7 @@ You can still use the `instructions` field directly, but `AGENTS.md` in `files` 
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/thread' \
+  'http://localhost:8000/api/thread' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -161,7 +161,7 @@ Update the `AGENTS.md` file in the `files` dictionary:
 
 ```bash
 curl -X 'PATCH' \
-  'https://chat.mifune.dev/api/assistant/asst_abc123' \
+  'http://localhost:8000/api/assistant/asst_abc123' \
   -H 'Content-Type: application/json' \
   -d '{
   "files": {
@@ -180,7 +180,7 @@ Remove an assistant when no longer needed:
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.mifune.dev/api/assistant/asst_abc123'
+  'http://localhost:8000/api/assistant/asst_abc123'
 ```
 
 ### Listing Your Assistants
@@ -189,7 +189,7 @@ Get all assistants in your account:
 
 ```bash
 curl -X 'GET' \
-  'https://chat.mifune.dev/api/assistants' \
+  'http://localhost:8000/api/assistants' \
   -H 'accept: application/json'
 ```
 
@@ -209,7 +209,7 @@ Assistants can be configured with multiple tools:
     },
     "mcp": {
         "orchestra_mcp": {
-            "url": "https://chat.mifune.dev/mcp",
+            "url": "http://localhost:8000/mcp",
             "headers": {
                 "x-api-key": "your_api_key"
             }
@@ -259,7 +259,7 @@ These values are appended to the end of the system prompt, providing context to 
 
 ### Scheduled Assistants
 
-Combine assistants with the [Schedules API](https://chat.mifune.dev/api#/Schedule) to create recurring agent tasks:
+Combine assistants with the [Schedules API](http://localhost:8000/api#/Schedule) to create recurring agent tasks:
 
 -   Daily report generation
 -   Periodic data analysis
@@ -335,11 +335,11 @@ Store sensitive credentials (MCP keys, A2A tokens) securely. Never commit them t
 
 For complete API documentation, see:
 
--   [Assistant API Reference](https://chat.mifune.dev/api#/Assistant)
--   [Create Assistant](https://chat.mifune.dev/api#/Assistant/Create_Assistant)
--   [Update Assistant](https://chat.mifune.dev/api#/Assistant/Update_Assistant)
--   [Delete Assistant](https://chat.mifune.dev/api#/Assistant/Delete_Assistant)
--   [List Assistants](https://chat.mifune.dev/api#/Assistant/List_Assistants)
+-   [Assistant API Reference](http://localhost:8000/api#/Assistant)
+-   [Create Assistant](http://localhost:8000/api#/Assistant/Create_Assistant)
+-   [Update Assistant](http://localhost:8000/api#/Assistant/Update_Assistant)
+-   [Delete Assistant](http://localhost:8000/api#/Assistant/Delete_Assistant)
+-   [List Assistants](http://localhost:8000/api#/Assistant/List_Assistants)
 
 ## Related Documentation
 

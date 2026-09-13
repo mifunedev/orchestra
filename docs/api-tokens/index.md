@@ -41,7 +41,7 @@ All endpoints require an authenticated session (or another valid token).
 
 ```bash
 curl -X 'GET' \
-  'https://chat.mifune.dev/api/tokens' \
+  'http://localhost:8000/api/tokens' \
   -H 'Authorization: Bearer <token>'
 ```
 
@@ -51,7 +51,7 @@ Returns an array of token metadata (id, name, prefix, timestamps) — never the 
 
 ```bash
 curl -X 'POST' \
-  'https://chat.mifune.dev/api/tokens' \
+  'http://localhost:8000/api/tokens' \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{ "name": "ci-deploy-bot" }'
@@ -73,7 +73,7 @@ stored metadata you will see in subsequent list calls.
 
 ```bash
 curl -X 'DELETE' \
-  'https://chat.mifune.dev/api/tokens/{token_id}' \
+  'http://localhost:8000/api/tokens/{token_id}' \
   -H 'Authorization: Bearer <token>'
 ```
 

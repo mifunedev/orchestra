@@ -10,7 +10,7 @@ The root project folder contains the following application:
 backend:
     stack: python, uv, fastapi, langchain, read pyproject.toml for more information.
     description: This is the REST API for the ./frontend and ./cli clients.
-    deployment: https://chat.mifune.dev/api
+    deployment: http://localhost:8000/api
     commands:
         - `make test` Run ALL test cases (uses ENV_FILE=./.env).
         - `make test ENV_FILE=./.env.test` Run tests with test env.
@@ -21,7 +21,7 @@ backend:
 frontend:
     stack: typescript, vite, react, shadcn, tailwind, read package.json for more details.
     description: This is built during CI and bundled into the backend during `.github/build.yml`
-    deployment: https://chat.mifune.dev
+    deployment: http://localhost:8000
     commands: See package.json
 website:
     stack: typescript, nextjs, shadcn

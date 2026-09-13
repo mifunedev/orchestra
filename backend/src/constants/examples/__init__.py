@@ -674,7 +674,7 @@ class Examples:
                 "name": "get_server_health",
                 "config": {
                     "api_tool": {
-                        "base_url": "https://chat.mifune.dev/api",
+                        "base_url": "http://localhost:8000/api",
                         "method": "GET",
                         "endpoint": "/info/health",
                     }

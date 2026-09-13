@@ -111,7 +111,6 @@ export default defineConfig({
 	},
 	server: {
 		allowedHosts: [
-			"chat.mifune.dev",
 			"orchestra.mifune.dev",
 			"frontend.mifune.dev",
 		],
