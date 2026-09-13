@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning: `YYYY.M.D` (date-based, e.g. `2026.2.22`). Multiple releases per day use `-N` suffix (e.g. `2026.2.22-2`).
 
+## Planned
+
+### Added
+  - Human-In-The-Loop — agent control.
+
+## 2026.9.13
+
+### Changed
+  - task/orchestra-pgvector-readme — rewrite `README.md` as a 171-line quickstart that documents a generic pgvector container, and rename the development databases to `orchestra_dev` and `orchestra_test`.
+
 ## 2026.8.7
 
 ### Fixed

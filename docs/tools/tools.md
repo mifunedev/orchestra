@@ -25,6 +25,7 @@ All tools follow an API schema similar to the OpenAI Assistants API, making inte
 -   [Search](./search.md) - Web search integration
 -   [MCP](./mcp.md) - Model Context Protocol integration
 -   [A2A](./a2a.md) - Agent-to-Agent communication (under development)
+-   [Integrations](#integrations) - Setup references for external tools
 
 ## Base Tools (Platform Tools)
 
@@ -272,5 +273,12 @@ For complete tool API documentation:
 -   [POST /tools](https://chat.ruska.ai/api#/Tools/Create_Tool) - Create a new tool
 -   [GET /tools](https://chat.ruska.ai/api#/Tools/List_Tools) - List all tools
 -   [DELETE /tools/&#123;tool_name&#125;](https://chat.ruska.ai/api#/Tools/Delete_Tool) - Delete a tool
+
+## Integrations
+
+An external tool can need its own authentication setup before an assistant calls it. Use these references:
+
+-   [Configuring gcalcli](https://github.com/insanum/gcalcli/blob/HEAD/docs/api-auth.md)
+-   [Issues Logging into gcalcli](https://github.com/insanum/gcalcli/issues/808)
 
 ---

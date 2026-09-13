@@ -304,6 +304,25 @@ Once connected, all sandbox tools are available to your assistant. Example promp
 
 The assistant will select the appropriate sandbox tool based on the task.
 
+## Run Playwright MCP Locally
+
+The sandbox image ships `agent-browser` for browser automation. To expose a Playwright MCP server from your own machine instead, run the following steps.
+
+1. Start Ngrok on port 8931
+
+    ```bash
+    ngrok http 8931
+    ```
+
+2. Run MCP server
+
+    ```bash
+    npx @playwright/mcp@latest \
+    --port 8931 \
+    --executable-path $HOME/.cache/ms-playwright/chromium-<version>/chrome-linux/chrome \
+    --vision
+    ```
+
 ## Troubleshooting
 
 | Issue | Solution |

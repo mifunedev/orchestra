@@ -18,7 +18,8 @@ This guide covers environment configuration for self-hosting Orchestra with vari
 Orchestra uses environment variables to configure AI providers. Copy the example environment file and configure your providers:
 
 ```bash
-cp backend/.example.env ~/.env/orchestra/.env.backend
+mkdir -p ~/.config/orchestra
+cp backend/.example.env ~/.config/orchestra/.env.backend
 ```
 
 ### AI Provider Configuration
@@ -159,6 +160,46 @@ COMPOSE_PROFILES=tools docker compose up -d
 This starts the `exec_server` container on port `3005`, providing the `exec_command` tool to your agents.
 
 For full configuration details, see the [Sandbox documentation](../tools/sandbox.md).
+
+## Database Migrations
+
+Orchestra uses Alembic for database migrations. Run the migrations before you start Orchestra.
+
+### Initial Setup
+
+1. Create the database (if not exists):
+
+    ```bash
+    cd backend
+    alembic upgrade head
+    ```
+
+    ```bash
+    python -m seeds.user_seeder
+    ```
+
+2. Create new
+
+    ```bash
+    alembic revision -m "description_of_changes"
+    ```
+
+    ```bash
+    # Apply next
+    alembic upgrade +1
+
+    # Specific revision
+    alembic upgrade <revis_id>
+
+    # Apply down
+    alembic downgrade -1
+
+    # Apply down
+    alembic downgrade <revis_id>
+
+    # History
+    alembic history
+    ```
 
 ## Running Orchestra
 

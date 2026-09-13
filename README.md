@@ -36,7 +36,9 @@ Steerable Harnesses for [DeepAgents](https://docs.langchain.com/oss/python/deepa
 
 Self-host for free or let us deploy it for you. Your agents, your data, your infrastructure.
 
----
+The stack is a Python FastAPI backend that runs under uvicorn, LangGraph agents, and Alembic
+migrations over PostgreSQL with the pgvector extension. A React and Vite client serves the
+browser. TaskIQ workers with Redis run distributed execution. MinIO or S3 stores files.
 
 ## 🚀 Deployment Options
 
@@ -46,33 +48,94 @@ Self-host for free or let us deploy it for you. Your agents, your data, your inf
 | **Managed Cloud** | Teams wanting convenience | [chat.ruska.ai](https://chat.ruska.ai) |
 | **Enterprise** | Organizations needing SSO, compliance, SLA | [Contact Us](https://ruska.ai/enterprise) |
 
----
+## 🚀 Quickstart
 
-## 📖 Table of Contents
+Prerequisites: Docker, Python 3.12 or newer, Node.js, and [uv](https://github.com/astral-sh/uv).
 
-This project includes tools for running shell commands and Docker container operations. For detailed information, please refer to the following documentation:
-
--   [Documentation](./docs/README.md) — full user docs, also published at [docs.ruska.ai](https://docs.ruska.ai)
--   [Tools Documentation](./docs/tools/tools.md)
--   [Docker Deployment (GHCR / Docker Compose)](#-docker-deployment-ghcr--docker-compose)
-
-## 🐳 Docker Deployment (GHCR)
-
-We publish the backend image to GitHub Container Registry (GHCR). For the full Docker/Docker Compose deployment guide (env setup, services, migrations, troubleshooting), jump to [Docker Deployment details](#-docker-deployment-ghcr--docker-compose).
+### 1. Clone and install
 
 ```bash
-docker pull ghcr.io/ruska-ai/orchestra:latest
+git clone https://github.com/mifunedev/orchestra.git
+cd orchestra
+cd backend && uv sync            # install the Python dependencies
+cd ../frontend && npm install    # install the Node.js dependencies
 ```
 
-## 📋 Prerequisites
+### 2. Start PostgreSQL
 
--   [Docker](https://docs.docker.com/engine/install/ubuntu/) Installed
--   Python 3.11 or higher
--   Access to OpenAI API (for GPT-4o model) or Anthropic API (for Claude 3.5 Sonnet)
+Orchestra uses a shared local PostgreSQL container. The container is generic. Any project on the
+host can use it. Orchestra owns only the `orchestra_dev` and `orchestra_test` databases inside it.
 
-## 🛠️ Development
+```bash
+docker run -d \
+  --name pgvector \
+  --restart unless-stopped \
+  -p 5432:5432 \
+  -v pgvector_data:/var/lib/postgresql/data \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=test1234 \
+  -e POSTGRES_DB=postgres \
+  --memory 1g --cpus 1 \
+  pgvector/pgvector:pg17
+```
 
-### Quick Reference
+The flag `-v pgvector_data:/var/lib/postgresql/data` mounts a named volume. Docker stores the
+data outside the repository.
+
+Create the two databases and the vector extension:
+
+```bash
+docker exec pgvector psql -U admin -d postgres -c "CREATE DATABASE orchestra_dev OWNER admin;"
+docker exec pgvector psql -U admin -d postgres -c "CREATE DATABASE orchestra_test OWNER admin;"
+docker exec pgvector psql -U admin -d orchestra_dev -c "CREATE EXTENSION IF NOT EXISTS vector;"
+```
+
+The values `admin` and `test1234` serve local development only. Never reuse them in production.
+
+### 3. Choose the connection host
+
+If the application runs on the host, use `localhost`:
+
+```
+postgresql://admin:test1234@localhost:5432/orchestra_dev?sslmode=disable
+```
+
+If the application runs inside another container, use the container name `pgvector`:
+
+```
+postgresql://admin:test1234@pgvector:5432/orchestra_dev?sslmode=disable
+```
+
+A container reaches the database by container name only after the container joins the same
+Docker network. Run `docker network connect <network> pgvector` to join it.
+
+### 4. Configure the environment
+
+```bash
+mkdir -p ~/.config/orchestra
+cp backend/.example.env ~/.config/orchestra/.env.backend
+```
+
+Set `POSTGRES_CONNECTION_STRING` in that file to the connection string from step 3. The backend
+`make` targets read the `ENV_FILE` variable, which points at `~/.config/orchestra/.env.backend`
+by default. The frontend `npm run dev` script reads `~/.config/orchestra/.env.frontend`. Create
+that file first. Read [Environment variables](docs/environment-variables.md) for every key.
+
+### 5. Migrate, seed, and run
+
+```bash
+cd backend
+make migrate.up    # apply every pending Alembic migration
+make seeds.user    # create the default users
+make dev           # start the API on port 8000
+
+cd ../frontend
+npm run dev        # start the Vite dev server
+```
+
+Open `http://localhost:8000/docs` for the API documentation.
+
+### 6. Command reference
 
 | Command           | Description                      |
 |-------------------|----------------------------------|
@@ -85,455 +148,24 @@ docker pull ghcr.io/ruska-ai/orchestra:latest
 
 For all commands, see `backend/Makefile`.
 
-1. **Environment Variables:**
+## 📚 Documentation
 
-    See the [canonical environment-variable guide](./docs/environment-variables.md) for required values, optional defaults, and provider setup.
-
-    Create a `.env` file in the root directory and add your API key(s):
-
-    ```bash
-    # Backend
-    cd <project-root>/backend
-    cp .example.env .env
-
-    # Frontend
-    cd <project-root>/frontend
-    cp .example.env .env
-    ```
-
-    Ensure that your `.env` file is not tracked by git by checking the `.gitignore`:
-
-2. **Start Docker Services**
-
-    Below will start the database service.
-
-    ```bash
-    cd <project-root>
-    docker compose up postgres
-    ```
-
-### Dockerized Dev Stack
-
-For containerized local development with hot reload, the whole stack (app, worker,
-postgres, redis, minio, ollama, search_engine) runs from the single
-`infra/docker-compose.yml`. The frontend runs on the host (`cd frontend && npm run dev`).
-
-```bash
-cd <project-root>
-make dev.docker.up        # docker compose -f infra/docker-compose.yml up --build -d
-```
-
-Useful endpoints while debugging:
-
--   Backend API: `http://localhost:8000/docs`
--   Frontend (host): `http://localhost:5173`
-
-Tail the main service logs in one stream:
-
-```bash
-make dev.docker.logs
-```
-
-3. **Setup Server Environment**
-
-    ```bash
-    cd <project-root>/backend
-    make dev
-    ```
-
-    <details>
-    <summary>Manual setup (if Makefile unavailable)</summary>
-
-    Assumes you're using [astral uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation).
-
-    ```bash
-    cd <project-root>/backend
-    uv venv
-    source .venv/bin/activate
-    uv sync
-    bash scripts/dev.sh
-    ```
-    </details>
-
-4. **Setup Client Environment**
-
-    ```bash
-    # Change Directory
-    cd <project-root>/frontend
-
-    # Install
-    npm install
-
-    # Run
-    npm run dev
-    ```
-
-## Database Migrations
-
-This project uses Alembic for database migrations. Here's how to work with migrations:
-
-### Initial Setup
-
-1. Create the database (if not exists):
-
-    ```bash
-    cd backend
-    alembic upgrade head
-    ```
-
-    ```bash
-    python -m seeds.user_seeder
-    ```
-
-2. Create new
-
-    ```bash
-    alembic revision -m "description_of_changes"
-    ```
-
-    ```bash
-    ### Appliy Next
-    alembic upgrade +1
-
-    ### Speicif revision
-    alembic upgrade <revis_id>
-
-    ### Appliy Down
-    alembic downgrade -1
-
-    ### Appliy Down
-    alembic downgrade <revis_id>
-
-    ### History
-    alembic history
-    ```
-
-### Run Playwright MCP Locally
-
-1. Start Ngrok on port 8931
-
-    ```bash
-    ngrok http 8931
-    ```
-
-2. Run MCP server
-
-    ```bash
-    npx @playwright/mcp@latest \
-    --port 8931 \
-    --executable-path $HOME/.cache/ms-playwright/chromium-<version>/chrome-linux/chrome \
-    --vision
-    ```
-
-## 🤝 Integrations
-
--   [Configuring gcalcli](https://github.com/insanum/gcalcli/blob/HEAD/docs/api-auth.md)
--   [Issues Logging into gcalcli](https://github.com/insanum/gcalcli/issues/808)
-
-## 🗺️ Roadmap
+- [Documentation index](docs/README.md) — full user docs, also published at [docs.ruska.ai](https://docs.ruska.ai)
+- [Orchestra Docs](docs/index.md) — the published documentation home page
+- [Getting Started](docs/getting-started.md) — account, assistant, and first thread
+- [Self-Hosting Guide](docs/self-hosting/index.md) — Docker deployment and AI provider setup
+- [Environment variables](docs/environment-variables.md) — every key, default, and provider value
+- [Assistants](docs/assistants/index.md) — configure an agent, its model, and its tools
+- [AGENTS.md](docs/agents-md/index.md) — steer an agent with a repository instruction file
+- [Skills](docs/skills/index.md) — package a reusable agent procedure
+- [Tools & Integrations](docs/tools/tools.md) — the built-in tool catalog
+- [MCP](docs/tools/mcp.md) — connect Model Context Protocol servers
+- [A2A](docs/tools/a2a.md) — connect Agent-to-Agent endpoints
+- [Storage](docs/storage/index.md) — MinIO and S3 file storage
+- [API Tokens](docs/api-tokens/index.md) — authenticate against the REST API
 
 Stay up to date on [Discord](https://discord.com/invite/QRfjg4YNzU). Full release history in [Changelog.md](./Changelog.md).
 
-### March 2026
+## 📄 License
 
-| Feature | Category | Status |
-|---------|----------|--------|
-| Human-In-The-Loop | Agent Control | 🔵 Planned |
-
-### February 2026
-
-| Feature | Category | Status |
-|---------|----------|--------|
-| [Search Threads](https://github.com/ruska-ai/orchestra/issues/801) | UX | ✅ Shipped |
-| [Migrate Memories Seeder](https://github.com/ruska-ai/orchestra/issues/787) | Data | ✅ Shipped |
-| [Docs Agent Guidance](https://github.com/ruska-ai/orchestra/issues/804) | Docs | 🟡 In Progress |
-| [RLM Skill](https://github.com/ruska-ai/orchestra/issues/736) | Skills | ✅ Shipped |
-| [Frontend Schedule Refactor](https://github.com/ruska-ai/orchestra/issues/722) | Scheduling | ✅ Shipped |
-
-### January 2026
-
-| Feature | Category | Status |
-|---------|----------|--------|
-| [Distributed Workers (TaskIQ)](https://github.com/ruska-ai/orchestra/issues/656) | Infra | ✅ Shipped |
-| [Public Agents](https://github.com/ruska-ai/orchestra/issues/471) | Agents | ✅ Shipped |
-| [File Tree Sidebar](https://github.com/ruska-ai/orchestra/issues/650) | UX | ✅ Shipped |
-| [AWS Model Support](https://github.com/ruska-ai/orchestra/issues/666) | Integrations | ✅ Shipped |
-| [Shareable Thread Links](https://github.com/ruska-ai/orchestra/issues/663) | UX | ✅ Shipped |
-| [Subagent Tool Calls](https://github.com/ruska-ai/orchestra/issues/694) | UX | ✅ Shipped |
-| [User Default Settings](https://github.com/ruska-ai/orchestra/issues/665) | Settings | ✅ Shipped |
-| [Speech Dictation](https://github.com/ruska-ai/orchestra/issues/654) | UX | ✅ Shipped |
-
-<details>
-<summary>📦 Archive (Dec 2025 and earlier)</summary>
-
-See [Changelog.md](./Changelog.md) for the full release history.
-
-</details>
-
----
-
-## 🏢 Enterprise
-
-For organizations needing managed deployment, compliance, or dedicated support:
-
-| Feature | Description |
-|---------|-------------|
-| **SSO/SAML** | Integrate with your identity provider |
-| **Audit Logging** | Comprehensive logs for compliance |
-| **Air-Gapped Deployment** | Run in isolated environments |
-| **Priority Support** | SLA-backed response times |
-| **Custom Integrations** | Connect to your internal tools |
-
-We partner with you to deploy Orchestra inside your infrastructure. [Contact us](https://ruska.ai/enterprise) to discuss your requirements.
-
----
-
-## 🐳 Docker Deployment (GHCR / Docker Compose)
-
-This section covers deploying the Orchestra backend using Docker. For local development, see the sections above.
-
-### 📋 Prerequisites
-
--   [Docker](https://docs.docker.com/engine/install/) installed
--   [Docker Compose](https://docs.docker.com/compose/install/) installed
--   Access to AI provider API keys (OpenAI, Anthropic, etc.)
-
-### 🚀 Quick Start
-
-#### Using Pre-built Image
-
-Pull the latest image from GitHub Container Registry:
-
-```bash
-docker pull ghcr.io/ruska-ai/orchestra:latest
-```
-
-#### 1. Environment Setup
-
-See the [canonical environment-variable guide](./docs/environment-variables.md) before creating the deployment file.
-
-Create a `.env.docker` file in the `backend/` directory:
-
-```bash
-cd backend
-cp .example.env .env.docker
-```
-
-Update the following values for Docker networking:
-
-```bash
-# Database - use container name instead of localhost
-POSTGRES_CONNECTION_STRING="postgresql://admin:test1234@postgres:5432/orchestra?sslmode=disable"
-
-# Tools - use container names for internal services
-SEARX_SEARCH_HOST_URL="http://search_engine:8080"
-```
-
-#### 2. Start Services
-
-From the project root directory:
-
-```bash
-# Start database and backend
-docker compose up postgres orchestra
-
-# Or start all services
-docker compose up
-```
-
-#### 3. Verify Deployment
-
-The API will be available at `http://localhost:8000`
-
--   API Docs: `http://localhost:8000/docs`
--   Health Check: `http://localhost:8000/health`
-
-### 🧩 Docker Compose Services
-
-| Service         | Port      | Description                        |
-| --------------- | --------- | ---------------------------------- |
-| `orchestra`     | 8000      | Backend API                        |
-| `postgres`      | 5432      | PostgreSQL with pgvector           |
-| `minio`         | 9000/9001 | S3-compatible file storage         |
-| `search_engine` | 8080      | SearXNG search engine              |
-| `ollama`        | 11434     | Local LLM inference (requires GPU) |
-| `redis`         | 6379      | Redis message broker (for workers) |
-| `worker`        | -         | TaskIQ worker (no exposed port)    |
-
-### 🧱 Docker Compose Example
-
-```yaml
-services:
-    # PGVector
-    postgres:
-        image: pgvector/pgvector:pg16
-        container_name: postgres
-        environment:
-            POSTGRES_USER: admin
-            POSTGRES_PASSWORD: test1234
-            POSTGRES_DB: postgres
-        ports:
-            - "5432:5432"
-
-    # Server (use pre-built image or build locally)
-    orchestra:
-        image: ghcr.io/ruska-ai/orchestra:latest
-        container_name: orchestra
-        env_file: .env.docker
-        ports:
-            - "8000:8000"
-        depends_on:
-            - postgres
-```
-
-### 🏗️ Build Commands
-
-#### Build with Script (Recommended)
-
-The build script copies the Docker deployment README into the image and handles tagging:
-
-```bash
-# From project root
-bash backend/scripts/build.sh
-
-# Or with custom tag
-bash backend/scripts/build.sh v1.0.0
-```
-
-#### Build with Docker Compose
-
-```bash
-docker compose build orchestra
-```
-
-#### Manual Build
-
-```bash
-# Copy README first, then build (Dockerfile lives in infra/)
-cp infra/README.md backend/README.md
-docker build -t orchestra:local -f infra/backend.Dockerfile backend
-```
-
-### ⚙️ Environment Variables
-
-#### Application Config
-
-| Variable         | Description                          | Default       |
-| ---------------- | ------------------------------------ | ------------- |
-| `APP_ENV`        | Environment (development/production) | `development` |
-| `APP_LOG_LEVEL`  | Logging level                        | `DEBUG`       |
-| `APP_SECRET_KEY` | Application secret key               | -             |
-| `JWT_SECRET_KEY` | JWT signing key                      | -             |
-| `USER_AGENT`     | User agent string for requests       | `ruska-dev`    |
-| `TEST_USER_ID`   | Test user UUID                       | -             |
-
-#### Database
-
-| Variable                     | Description                  | Default |
-| ---------------------------- | ---------------------------- | ------- |
-| `POSTGRES_CONNECTION_STRING` | PostgreSQL connection string | -       |
-
-#### AI Providers (at least one required)
-
-| Variable            | Description       | Default |
-| ------------------- | ----------------- | ------- |
-| `OPENAI_API_KEY`    | OpenAI API key    | -       |
-| `GROQ_API_KEY`      | Groq API key      | -       |
-| `ANTHROPIC_API_KEY` | Anthropic API key | -       |
-| `XAI_API_KEY`       | xAI API key       | -       |
-| `OLLAMA_BASE_URL`   | Ollama server URL | -       |
-
-#### Tool Config
-
-| Variable                | Description              | Default                      |
-| ----------------------- | ------------------------ | ---------------------------- |
-| `SEARX_SEARCH_HOST_URL` | SearXNG search endpoint  | `http://localhost:8080`      |
-| `TAVILY_API_KEY`        | Tavily search API key    | -                            |
-
-#### Distributed Workers (Optional)
-
-| Variable              | Description                    | Default |
-| --------------------- | ------------------------------ | ------- |
-| `REDIS_URL`           | Redis connection for task queue | -       |
-| `DISTRIBUTED_WORKERS` | Enable distributed worker mode | `false` |
-
-> **Note**: When enabled, run the worker process separately: `make dev.worker`
-
-#### Storage
-
-| Variable            | Description       | Default    |
-| ------------------- | ----------------- | ---------- |
-| `MINIO_HOST`        | MinIO/S3 host URL | -          |
-| `S3_REGION`         | S3 region         | -          |
-| `ACCESS_KEY_ID`     | S3 access key     | -          |
-| `ACCESS_SECRET_KEY` | S3 secret key     | -          |
-| `BUCKET`            | S3 bucket name    | `enso_dev` |
-
-### 🗄️ Database Migrations
-
-Run migrations inside the container:
-
-```bash
-# Using docker compose exec
-docker compose exec orchestra alembic upgrade head
-
-# Or run migrations before starting
-docker compose run --rm orchestra alembic upgrade head
-```
-
-### 🚢 Production Considerations
-
-#### Security
-
--   Generate strong values for `APP_SECRET_KEY` and `JWT_SECRET_KEY`
--   Use SSL/TLS termination (nginx, traefik, etc.)
--   Restrict database access to internal networks
--   Never expose `.env` files
-
-#### Performance
-
--   Configure appropriate resource limits in `docker-compose.yml`
--   Use a reverse proxy for load balancing
--   Enable PostgreSQL connection pooling for high traffic
-
-#### Dockerfile Features
-
-The Dockerfile uses a multi-stage build:
-
-1. **Builder Stage**: Installs dependencies, compiles Python to bytecode (`.pyc`)
-2. **Runtime Stage**: Ships only compiled bytecode for smaller image size
-
-> **Note**: Migration files (`.py`) are preserved since Alembic requires source files.
-
-### 🧰 Troubleshooting
-
-#### Container won't start
-
-```bash
-# Check logs
-docker compose logs orchestra
-
-# Verify environment file exists
-ls -la backend/.env.docker
-```
-
-#### Database connection failed
-
-```bash
-# Ensure postgres is running
-docker compose ps postgres
-
-# Check postgres logs
-docker compose logs postgres
-```
-
-#### Port already in use
-
-```bash
-# Check what's using the port
-lsof -i :8000
-
-# Or change the port mapping in docker-compose.yml
-ports:
-  - "8001:8000"  # Map to different host port
-```
+Apache 2.0. Read [LICENSE](LICENSE). Sign every commit under the [DCO](DCO) with `git commit -s`.
