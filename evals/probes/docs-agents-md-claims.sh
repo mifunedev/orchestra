@@ -37,10 +37,83 @@ present_in_agents() { grep -qF "$1" "$AGENTS"; }
 file_has() { grep -qF "$2" "$1"; }
 file_has_line() { grep -qxF "$2" "$1"; }
 tracked() { git ls-files --error-unmatch "$1"; }
-no_root_tooling() { ! grep -nE '^ *entry: +(npx|uvx) ' .pre-commit-config.yaml; }
-no_unpinned_ruff() { ! grep -nE '^\s*uvx ruff' backend/Makefile; }
+# A hook must invoke a component's tooling from that component's directory
+# (AGENTS.md, "Before a pull request"). Matching only an entry that STARTS with
+# npx/uvx would pass `entry: bash -c 'npx prettier --write'`, which is the same
+# defect wearing a wrapper, so this matches the invocation anywhere on an entry
+# line and clears it only when that same line first cds into a component.
+no_root_tooling() {
+  local offenders
+  offenders="$(grep -nE '^[[:space:]]*entry:.*(^|[^[:alnum:]_-])(npx|uvx)[[:space:]]' .pre-commit-config.yaml \
+    | grep -vE 'cd (backend|frontend)[[:space:]]*&&' || true)"
+  [ -z "$offenders" ] || { printf '%s\n' "$offenders" >&2; return 1; }
+}
+
+# The label claims ruff cannot float. Two independent things make it float, and
+# asserting only one lets the other through: an uvx invocation resolves the
+# newest release at run time, and an unpinned dependency lets `uv run` do the
+# same. Both are checked here.
+ruff_is_pinned() {
+  if grep -qE '^[[:space:]]*uvx[[:space:]]+ruff' backend/Makefile; then
+    echo "backend/Makefile invokes ruff through uvx" >&2
+    return 1
+  fi
+  if ! grep -qE '"ruff==[0-9]+\.[0-9]+(\.[0-9]+)?"' backend/pyproject.toml; then
+    echo "backend/pyproject.toml has no exact ruff== pin" >&2
+    return 1
+  fi
+}
+
+# AGENTS.md claims every address in this REPOSITORY is local, so grepping only
+# AGENTS.md tests a fraction of the claim. 15 file:host pairs across 10 files
+# predate this widening, and they are not one kind of thing:
+#
+#   legitimate  mcp.mifune.dev and a2a.mifune.dev in fixtures, mocks and docs.
+#               AGENTS.md already carves these out -- sample MCP and A2A servers
+#               Orchestra connects to and does not host. They belong here.
+#   debt        console.mifune.dev, n8n.mifune.dev, and the two allowedHosts in
+#               frontend/vite.config.ts. These contradict the claim and are
+#               tracked for removal in issue #991. Removing them was out of
+#               scope for the contract that widened this check.
+#
+# This is a ratchet, not an exemption. Any pair outside the baseline fails, so a
+# new host, or an old host in a new file, is caught immediately -- including in
+# AGENTS.md, which is deliberately absent from the baseline. Shrink the baseline
+# as the debt is removed; never grow it.
+MIFUNE_HOST_BASELINE='backend/src/constants/examples/__init__.py:a2a.mifune.dev
+backend/src/constants/examples/__init__.py:mcp.mifune.dev
+decks/slides/onepager.html:console.mifune.dev
+docs/assistants/index.md:a2a.mifune.dev
+docs/tools/a2a.md:a2a.mifune.dev
+docs/tools/mcp.md:mcp.mifune.dev
+frontend/mock/config.ts:a2a.mifune.dev
+frontend/mock/config.ts:mcp.mifune.dev
+frontend/src/hooks/useServerHook.ts:a2a.mifune.dev
+frontend/src/hooks/useServerHook.ts:mcp.mifune.dev
+frontend/src/lib/config/tool.ts:a2a.mifune.dev
+frontend/src/lib/config/tool.ts:mcp.mifune.dev
+frontend/src/lib/utils/llm.ts:n8n.mifune.dev
+frontend/vite.config.ts:frontend.mifune.dev
+frontend/vite.config.ts:orchestra.mifune.dev'
+
+no_deployment_host() {
+  local new
+  new="$(git grep -oE '[a-z0-9-]+\.mifune\.dev' -- . ':(exclude)*.lock' ':(exclude)frontend/package-lock.json' ':(exclude)evals/probes/docs-agents-md-claims.sh' 2>/dev/null \
+    | sed 's/:[0-9]*:/:/' | sort -u | grep -vxF "$MIFUNE_HOST_BASELINE" || true)"
+  [ -z "$new" ] || { printf 'outside the baseline: %s\n' "$(printf '%s' "$new" | tr '\n' ' ')" >&2; return 1; }
+}
+
+
+# The label claims no llm.txt exists. Testing one nested path under website/,
+# a directory another check already asserts absent, could only fail in a state
+# that check catches first. Any llm.txt in the tree fails this one.
+no_llm_txt() {
+  local hits
+  hits="$(git ls-files | grep -iE '(^|/)llm\.txt$' || true)"
+  [ -e "$ROOT/website/public/llm.txt" ] && hits="$hits website/public/llm.txt"
+  [ -z "${hits// /}" ] || { printf 'present: %s\n' "$(printf '%s' "$hits" | tr '\n' ' ')" >&2; return 1; }
+}
 no_seam() { [ "$(grep -c '^---$' "$AGENTS")" = "0" ]; }
-no_deployment_host() { ! grep -qE '[a-z0-9-]+\.mifune\.dev' "$AGENTS"; }
 imports_at_least_one() { [ "$(grep -rhoE "from src\.$1" backend/src/routes/ | wc -l)" -gt 0 ]; }
 
 commit_exists() {
@@ -135,7 +208,7 @@ check "no-cli-dir" "a cli/ directory now exists; the claim that it does not is s
 check "no-deployment-dir" "a deployment/ directory now exists; the claim that it does not is stale" \
   test ! -e "$ROOT/deployment"
 check "no-llm-txt-file" "an llm.txt now exists; AGENTS.md must not have been silent about it" \
-  test ! -e "$ROOT/website/public/llm.txt"
+  no_llm_txt
 
 # --- defects AGENTS.md must never carry again --------------------------------
 check "agents-md-no-website" "AGENTS.md names website/, which does not exist" \
@@ -162,7 +235,7 @@ check "agents-md-no-ruska" "AGENTS.md names Ruska, a retired product name" \
   absent_word_in_agents "ruska"
 check "agents-md-no-enso" "AGENTS.md names Enso, a retired product name" \
   absent_word_in_agents "enso"
-check "agents-md-no-deployment-host" "AGENTS.md names a *.mifune.dev host; Orchestra deploys nothing" \
+check "agents-md-no-deployment-host" "a *.mifune.dev host appears outside the recorded baseline; AGENTS.md claims every address in this repository is local" \
   no_deployment_host
 check "agents-md-no-fabricated-backend-test" "AGENTS.md names tests/routes/test_agents.py, which does not exist" \
   absent_in_agents "tests/routes/test_agents.py"
@@ -194,8 +267,8 @@ check "env-template-tracked" ".example.env is no longer tracked at the repositor
   tracked .example.env
 check "precommit-runs-from-component-dir" ".pre-commit-config.yaml invokes npx or uvx from the repository root; AGENTS.md says component checks run from their own directory" \
   no_root_tooling
-check "backend-formatter-pinned" "backend/Makefile still invokes ruff through uvx, which resolves the newest release at run time" \
-  no_unpinned_ruff
+check "backend-formatter-pinned" "ruff can float again: backend/Makefile invokes it through uvx, or backend/pyproject.toml has no exact ruff== pin" \
+  ruff_is_pinned
 check "gitignore-env" ".gitignore no longer ignores **/.env*" \
   file_has_line .gitignore '**/.env*'
 check "gitignore-public" ".gitignore no longer ignores **/backend/src/public" \
