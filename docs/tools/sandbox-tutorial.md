@@ -84,7 +84,7 @@ Click **Add Server** and fill in the form (you can use any server name):
 | **URL** | `http://localhost:3005/mcp` |
 
 :::tip When to use which URL
-- Use `http://exec_server:3005/mcp` when both Orchestra and the sandbox are running in Docker containers on the same network (the default for `docker-compose` deployments).
+- Use `http://exec_server:3005/mcp` when both Orchestra and the sandbox are running in Docker containers on the same network.
 - Use `http://localhost:3005/mcp` when the sandbox is running on your host machine and Orchestra is accessing it directly.
 - Use `http://<SANDBOX_IP>:3005/mcp` when the sandbox runs on another machine reachable over the network.
 :::

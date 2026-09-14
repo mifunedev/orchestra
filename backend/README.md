@@ -53,11 +53,11 @@ Self-host for free or let us deploy it for you. Your agents, your data, your inf
 This project includes tools for running shell commands and Docker container operations. For detailed information, please refer to the following documentation:
 
 -   [Tools Documentation](./docs/tools/tools.md)
--   [Docker Deployment (GHCR / Docker Compose)](#-docker-deployment-ghcr--docker-compose)
+-   [Docker Deployment (GHCR)](#-docker-deployment-ghcr)
 
 ## 🐳 Docker Deployment (GHCR)
 
-We publish the backend image to GitHub Container Registry (GHCR). For the full Docker/Docker Compose deployment guide (env setup, services, migrations, troubleshooting), jump to [Docker Deployment details](#-docker-deployment-ghcr--docker-compose).
+We publish the backend image to GitHub Container Registry (GHCR). For the full deployment guide (env setup, services, migrations, troubleshooting), jump to [Docker Deployment details](#-docker-deployment-ghcr).
 
 ```bash
 docker pull ghcr.io/mifunedev/orchestra:latest
@@ -86,12 +86,8 @@ docker pull ghcr.io/mifunedev/orchestra:latest
 
 2. **Start Docker Services**
 
-    Below will start the Postgres database from the consolidated stack.
-
-    ```bash
-    cd <project-root>
-    docker compose -f infra/docker-compose.yml up postgres
-    ```
+    The project root `README.md` owns the `docker run` that starts the Postgres
+    container.
 
 3. **Setup Server Environment**
 
@@ -246,7 +242,7 @@ Update the following values for Docker networking:
 
 ```bash
 # Database - use container name instead of localhost
-POSTGRES_CONNECTION_STRING="postgresql://admin:test1234@postgres:5432/orchestra?sslmode=disable"
+POSTGRES_CONNECTION_STRING="postgresql://postgres:postgres@postgres:5432/orchestra_dev?sslmode=disable"
 
 # Tools - use container names for internal services
 SEARX_SEARCH_HOST_URL="http://search_engine:8080"
@@ -254,14 +250,15 @@ SEARX_SEARCH_HOST_URL="http://search_engine:8080"
 
 #### 2. Start Services
 
-From the project root directory:
+Start PostgreSQL and any other service you need with the `docker run` blocks in the project
+root `README.md`, then start the API against them:
 
 ```bash
-# Start database and backend
-docker compose up postgres orchestra
-
-# Or start all services
-docker compose up
+docker run -d \
+  --name orchestra \
+  -p 8000:8000 \
+  --env-file backend/.env.docker \
+  ghcr.io/mifunedev/orchestra-api:latest
 ```
 
 #### 3. Verify Deployment
@@ -319,12 +316,6 @@ bash backend/scripts/build.sh
 
 # Or with custom tag
 bash backend/scripts/build.sh v1.0.0
-```
-
-#### Build with Docker Compose
-
-```bash
-docker compose build orchestra
 ```
 
 #### Manual Build
@@ -405,11 +396,7 @@ The middleware automatically summarizes older messages when context exceeds the 
 Run migrations inside the container:
 
 ```bash
-# Using docker compose exec
-docker compose exec orchestra alembic upgrade head
-
-# Or run migrations before starting
-docker compose run --rm orchestra alembic upgrade head
+docker exec orchestra alembic upgrade head
 ```
 
 ### 🚢 Production Considerations
@@ -423,7 +410,7 @@ docker compose run --rm orchestra alembic upgrade head
 
 #### Performance
 
--   Configure appropriate resource limits in `docker-compose.yml`
+-   Configure appropriate resource limits with `--memory` and `--cpus`
 -   Use a reverse proxy for load balancing
 -   Enable PostgreSQL connection pooling for high traffic
 
@@ -442,7 +429,7 @@ The Dockerfile uses a multi-stage build:
 
 ```bash
 # Check logs
-docker compose logs orchestra
+docker logs orchestra
 
 # Verify environment file exists
 ls -la backend/.env.docker
@@ -452,10 +439,10 @@ ls -la backend/.env.docker
 
 ```bash
 # Ensure postgres is running
-docker compose ps postgres
+docker ps --filter name=postgres
 
 # Check postgres logs
-docker compose logs postgres
+docker logs postgres
 ```
 
 #### Port already in use
@@ -464,7 +451,6 @@ docker compose logs postgres
 # Check what's using the port
 lsof -i :8000
 
-# Or change the port mapping in docker-compose.yml
-ports:
-  - "8001:8000"  # Map to different host port
+# Or publish the API on a different host port
+docker run -d --name orchestra -p 8001:8000 ghcr.io/mifunedev/orchestra-api:latest
 ```

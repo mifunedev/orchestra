@@ -34,7 +34,7 @@ check() {
 absent_in_agents() { ! grep -qiF "$1" "$AGENTS"; }
 absent_word_in_agents() { ! grep -qiE "\\b$1\\b" "$AGENTS"; }
 present_in_agents() { grep -qF "$1" "$AGENTS"; }
-file_has() { grep -qF "$2" "$1"; }
+file_has() { grep -qF -e "$2" "$1"; }
 file_has_line() { grep -qxF "$2" "$1"; }
 tracked() { git ls-files --error-unmatch "$1"; }
 # A hook must invoke a component's tooling from that component's directory
@@ -180,7 +180,6 @@ named_paths_exist() {
     frontend/package.json frontend/package-lock.json frontend/vite.config.ts \
     frontend/src/tests frontend/src/tests/styles/destructive-usage.test.ts frontend/CLAUDE.md \
     docs/README.md docs/environment-variables.md docs/img \
-    infra/docker-compose.yml \
     evals/run.sh evals/README.md evals/probes evals/probes/docs-agents-md-claims.sh \
     decks/AGENTS.md examples \
     .gitignore .pre-commit-config.yaml .github/workflows/test.yml
@@ -251,7 +250,7 @@ check "agents-md-no-make-dev" "AGENTS.md names the Make target 'make dev'; backe
   absent_in_agents "make dev"
 check "agents-md-no-make-seeds" "AGENTS.md names the Make target 'make seeds.user'; backend/Makefile owns it" \
   absent_in_agents "make seeds.user"
-check "agents-md-no-image-pin" "AGENTS.md transcribes a pgvector image pin; infra/docker-compose.yml owns it" \
+check "agents-md-no-image-pin" "AGENTS.md transcribes a pgvector image pin; README.md owns it" \
   absent_in_agents "pgvector/pgvector"
 
 # --- claims AGENTS.md makes, asserted against their owning files -------------
@@ -261,8 +260,6 @@ check "precommit-test-env" ".pre-commit-config.yaml no longer runs the backend s
   file_has .pre-commit-config.yaml 'ENV_FILE=../.env.test'
 check "frontend-env" "frontend/package.json no longer loads the dev server env with 'dotenv -e ../.env'" \
   file_has frontend/package.json 'dotenv -e ../.env'
-check "compose-env-file" "infra/docker-compose.yml no longer loads the root .env" \
-  file_has infra/docker-compose.yml '../.env'
 check "env-template-tracked" ".example.env is no longer tracked at the repository root; AGENTS.md sends agents to it" \
   tracked .example.env
 check "precommit-runs-from-component-dir" ".pre-commit-config.yaml invokes npx or uvx from the repository root; AGENTS.md says component checks run from their own directory" \
@@ -277,8 +274,8 @@ check "gitignore-claude" ".gitignore no longer ignores **/.claude/" \
   file_has_line .gitignore '**/.claude/'
 check "gitignore-tasks" ".gitignore no longer ignores tasks/" \
   file_has_line .gitignore 'tasks/'
-check "api-port-8000" "infra/docker-compose.yml no longer publishes 8000:8000" \
-  file_has infra/docker-compose.yml '"8000:8000"'
+check "api-port-8000" "backend/Makefile no longer starts uvicorn on port 8000; AGENTS.md names http://localhost:8000/api" \
+  file_has backend/Makefile '--port 8000'
 check "swagger-path-api" "backend/main.py no longer serves the Swagger UI at /api" \
   file_has backend/main.py 'docs_url="/api"'
 check "agents-md-api-url" "AGENTS.md no longer names http://localhost:8000/api" \

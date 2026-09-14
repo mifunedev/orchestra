@@ -238,11 +238,8 @@ class TestExampleService:
 
 If you see errors like `[Errno -2] Name or service not known`:
 
-1. **Local Development**: Ensure PostgreSQL is running
-
-    ```bash
-    docker compose up postgres
-    ```
+1. **Local Development**: Ensure PostgreSQL is running. The repository `README.md` owns the
+   `docker run` that starts it.
 
 2. **CI Environment**: Check that the PostgreSQL service is configured in `.github/workflows/test.yml`
 

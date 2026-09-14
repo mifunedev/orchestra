@@ -150,13 +150,9 @@ BUCKET=orchestra
 
 Orchestra supports an optional sandbox environment for secure shell command execution via the `exec_server` MCP service.
 
-To enable the sandbox alongside your Orchestra stack:
-
-```bash
-COMPOSE_PROFILES=tools docker compose up -d
-```
-
-This starts the `exec_server` container on port `3005`, providing the `exec_command` tool to your agents.
+The sandbox is a separate service that this repository does not ship. Run it on port `3005`,
+then set `SHELL_EXEC_SERVER_URL` to its `/exec` endpoint to provide the `exec_command` tool to
+your agents.
 
 For full configuration details, see the [Sandbox documentation](../tools/sandbox.md).
 
@@ -209,11 +205,29 @@ cd backend
 make dev
 ```
 
-### Production with Docker
+### Production with the published image
+
+Run the API image from GitHub Container Registry against the services you started above:
 
 ```bash
-docker compose up -d
+docker run -d \
+  --name orchestra \
+  -p 8000:8000 \
+  --env-file .env \
+  ghcr.io/mifunedev/orchestra-api:latest
 ```
+
+Run the worker image the same way when `DISTRIBUTED_WORKERS=true`:
+
+```bash
+docker run -d \
+  --name orchestra-worker \
+  --env-file .env \
+  ghcr.io/mifunedev/orchestra-worker:latest
+```
+
+Both containers reach PostgreSQL, Redis and MinIO by container name once they join the same
+Docker network. The repository `README.md` owns the `docker run` for each of those services.
 
 ## Verifying Configuration
 

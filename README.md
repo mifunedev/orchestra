@@ -68,15 +68,15 @@ host can use it. Orchestra owns only the `orchestra_dev` and `orchestra_test` da
 
 ```bash
 docker run -d \
-  --name pgvector \
+  --name postgres \
   --restart unless-stopped \
   -p 5432:5432 \
   -v pgvector_data:/var/lib/postgresql/data \
-  -e POSTGRES_USER=admin \
-  -e POSTGRES_PASSWORD=test1234 \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=postgres \
   --memory 1g --cpus 1 \
-  pgvector/pgvector:pg17
+  pgvector/pgvector:pg16
 ```
 
 The flag `-v pgvector_data:/var/lib/postgresql/data` mounts a named volume. Docker stores the
@@ -85,42 +85,136 @@ data outside the repository.
 Create the two databases and the vector extension:
 
 ```bash
-docker exec pgvector psql -U admin -d postgres -c "CREATE DATABASE orchestra_dev OWNER admin;"
-docker exec pgvector psql -U admin -d postgres -c "CREATE DATABASE orchestra_test OWNER admin;"
-docker exec pgvector psql -U admin -d orchestra_dev -c "CREATE EXTENSION IF NOT EXISTS vector;"
+docker exec postgres psql -U postgres -d postgres -c "CREATE DATABASE orchestra_dev OWNER postgres;"
+docker exec postgres psql -U postgres -d postgres -c "CREATE DATABASE orchestra_test OWNER postgres;"
+docker exec postgres psql -U postgres -d orchestra_dev -c "CREATE EXTENSION IF NOT EXISTS vector;"
 ```
 
-The values `admin` and `test1234` serve local development only. Never reuse them in production.
+The user `postgres` and the password `postgres` serve local development only. Never reuse them in
+production.
 
 ### 3. Choose the connection host
 
 If the application runs on the host, use `localhost`:
 
 ```
-postgresql://admin:test1234@localhost:5432/orchestra_dev?sslmode=disable
+postgresql://postgres:postgres@localhost:5432/orchestra_dev?sslmode=disable
 ```
 
-If the application runs inside another container, use the container name `pgvector`:
+If the application runs inside another container, use the container name `postgres`:
 
 ```
-postgresql://admin:test1234@pgvector:5432/orchestra_dev?sslmode=disable
+postgresql://postgres:postgres@postgres:5432/orchestra_dev?sslmode=disable
 ```
 
 A container reaches the database by container name only after the container joins the same
-Docker network. Run `docker network connect <network> pgvector` to join it.
+Docker network. Run `docker network connect <network> postgres` to join it.
 
-### 4. Configure the environment
+### 4. Start the supporting services
+
+Every service below is optional. The API starts without them. Each one enables one feature and
+needs the keys named with it, which you set in step 5. Start only the ones you need.
+
+Each service is generic and shares the layout of step 2: a container name, a published port,
+and a named volume where the service keeps state.
+
+#### Redis — distributed workers, aborts, and the embed rate limit
+
+```bash
+docker run -d \
+  --name redis \
+  --restart unless-stopped \
+  -p 6379:6379 \
+  -v redis_data:/data \
+  --memory 512m --cpus 0.5 \
+  redis:7-alpine redis-server --appendonly yes
+```
+
+Set `REDIS_URL=redis://localhost:6379/0`. Redis carries the task queue and the dead-letter
+queue when `DISTRIBUTED_WORKERS=true` and when you run `make dev.worker`. The public
+embed-chat route uses it at either setting.
+
+#### MinIO — file storage
+
+```bash
+docker run -d \
+  --name minio \
+  --restart unless-stopped \
+  -p 9000:9000 \
+  -p 9001:9001 \
+  -v minio_data:/data \
+  -e MINIO_ROOT_USER=minioadmin \
+  -e MINIO_ROOT_PASSWORD=minioadmin \
+  quay.io/minio/minio server /data --console-address ":9001"
+```
+
+Create the bucket before you use the upload routes:
+
+```bash
+docker exec minio mc alias set local http://localhost:9000 minioadmin minioadmin
+docker exec minio mc mb local/orchestra-dev
+```
+
+Set `MINIO_HOST=localhost:9000`, `ACCESS_KEY_ID=minioadmin`, `ACCESS_SECRET_KEY=minioadmin`,
+and `BUCKET=orchestra-dev`. The browser console is at `http://localhost:9001`. A bucket name
+cannot contain an underscore. The user `minioadmin` and the password `minioadmin` serve local
+development only. Never reuse them in production.
+
+Leave `MINIO_HOST` blank to use AWS S3 instead. The client then reads `S3_REGION` and connects
+over HTTPS.
+
+#### SearXNG — the web search tool
+
+```bash
+docker run -d \
+  --name search_engine \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -v "$PWD/infra/searxng/settings.yml:/etc/searxng/settings.yml:ro" \
+  -v "$PWD/infra/searxng/uwsgi.ini:/etc/searxng/uwsgi.ini:ro" \
+  -e SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml \
+  --memory 1g --cpus 1 \
+  searxng/searxng
+```
+
+Run it from the repository root, because both mounts are repository paths. Set
+`SEARX_SEARCH_HOST_URL=http://localhost:8080`.
+
+#### Ollama — local models
+
+```bash
+docker run -d \
+  --name ollama \
+  --restart unless-stopped \
+  -p 11434:11434 \
+  -v ollama:/root/.ollama \
+  ollama/ollama
+```
+
+Add `--gpus all` on a host with the NVIDIA container runtime. Pull a model before you select
+it:
+
+```bash
+docker exec ollama ollama pull llama3.2-vision
+docker exec ollama ollama pull nomic-embed-text
+```
+
+Set `OLLAMA_BASE_URL=http://localhost:11434`. The backend reads `/api/tags` from that origin
+to list the models you pulled.
+
+### 5. Configure the environment
 
 ```bash
 cp .example.env .env
 ```
 
-Set `POSTGRES_CONNECTION_STRING` in that file to the connection string from step 3. The backend
-`make` targets read the `ENV_FILE` variable, which points at the root `.env` by default. The
-frontend `npm run dev` script reads the same root `.env`. Read
+Set `POSTGRES_CONNECTION_STRING` in that file to the connection string from step 3, and set the
+keys named by each service you started in step 4. The backend `make` targets read the
+`ENV_FILE` variable, which points at the root `.env` by default. The frontend `npm run dev`
+script reads the same root `.env`. Read
 [Environment variables](docs/environment-variables.md) for every key.
 
-### 5. Migrate, seed, and run
+### 6. Migrate, seed, and run
 
 ```bash
 cd backend
@@ -134,7 +228,7 @@ npm run dev        # start the Vite dev server
 
 Open `http://localhost:8000/api` for the API documentation.
 
-### 6. Command reference
+### 7. Command reference
 
 | Command           | Description                      |
 |-------------------|----------------------------------|

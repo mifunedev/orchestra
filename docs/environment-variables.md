@@ -14,9 +14,8 @@ cp .example.env .env
 ```
 
 For tests, copy it to `.env.test` at the repository root and use
-`ENV_FILE=../.env.test make -C backend test`. Docker Compose loads the root `.env`
-and overrides service-only hostnames such as Postgres, Redis, and SearXNG inside
-`infra/docker-compose.yml`.
+`ENV_FILE=../.env.test make -C backend test`. When the application runs in a container
+alongside the services, replace each `localhost` host with the service's container name.
 
 ## Required configuration
 
@@ -57,9 +56,8 @@ visible; fill one or both:
 | `REDIS_URL` | Redis URL used by cache, abort, and TaskIQ paths. |
 | `DISTRIBUTED_WORKERS` | Current worker-mode flag. Keep it explicit; Compose sets it to `true` for the app/worker pair. |
 
-For a local Docker stack, use the credentials configured in
-`infra/docker-compose.yml` for MinIO and the service hostnames documented in
-that file. Do not commit real credentials.
+`README.md` step 4 owns the `docker run` for MinIO and every other service, and names the
+credentials and hostnames each one expects. Do not commit real credentials.
 
 ### Client
 
