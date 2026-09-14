@@ -24,10 +24,10 @@ seeds.memory:
 	uv run python -m seeds.memory_seeder --env-file $(ENV_FILE)
 
 format:
-	uvx ruff format
+	uv run ruff format
 
 lint:
-	uvx ruff check
+	uv run ruff check
 
 test:
 	@set -a && . $(ENV_FILE) && set +a && uv run pytest

@@ -110,10 +110,7 @@ export default defineConfig({
 		alias: { "@": path.resolve(__dirname, "./src") },
 	},
 	server: {
-		allowedHosts: [
-			"orchestra.mifune.dev",
-			"frontend.mifune.dev",
-		],
+		allowedHosts: ["orchestra.mifune.dev", "frontend.mifune.dev"],
 		proxy: {
 			"/api": {
 				target: proxyTarget,

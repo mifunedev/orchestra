@@ -65,9 +65,7 @@ Each test uses a fresh database session with transaction rollback:
 @pytest.fixture
 async def test_db(test_engine):
     """Provide a test database session."""
-    async_session_maker = async_sessionmaker(
-        test_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    async_session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session_maker() as session:
         yield session
 ```
@@ -93,10 +91,7 @@ async def mock_airtable_service():
     with respx.mock:
         # Mock Airtable API endpoints - return httpx.Response objects
         respx.post("https://api.airtable.com/v0/app6sU4AprV9uZze6/Contacts").mock(
-            return_value=respx.MockResponse(
-                status_code=200,
-                json={"id": "mock_record_id", "fields": {}}
-            )
+            return_value=respx.MockResponse(status_code=200, json={"id": "mock_record_id", "fields": {}})
         )
         yield
 ```
@@ -110,13 +105,11 @@ For tests that need specific HTTP responses, use `respx` directly:
 ```python
 import respx
 
+
 async def test_custom_api_call(async_client):
     with respx.mock:
         respx.get("https://api.example.com/data").mock(
-            return_value=respx.MockResponse(
-                status_code=200,
-                json={"status": "success", "data": []}
-            )
+            return_value=respx.MockResponse(status_code=200, json={"status": "success", "data": []})
         )
 
         response = await async_client.get("/api/endpoint")
@@ -201,20 +194,14 @@ async def test_agent_operation(test_store):
 ```python
 import pytest
 
+
 async def test_create_resource(async_client, auth_headers):
     """Test creating a new resource."""
     # Arrange
-    payload = {
-        "name": "Test Resource",
-        "description": "Test description"
-    }
+    payload = {"name": "Test Resource", "description": "Test description"}
 
     # Act
-    response = await async_client.post(
-        "/api/resources",
-        json=payload,
-        headers=auth_headers
-    )
+    response = await async_client.post("/api/resources", json=payload, headers=auth_headers)
 
     # Assert
     assert response.status_code == 201
@@ -228,6 +215,7 @@ async def test_create_resource(async_client, auth_headers):
 ```python
 import pytest
 from src.services.example_service import ExampleService
+
 
 class TestExampleService:
     async def test_process_data(self, test_db):
@@ -339,6 +327,7 @@ Use pytest markers to categorize tests:
 async def test_full_integration():
     """Test that requires real external services."""
     pass
+
 
 @pytest.mark.slow
 async def test_slow_operation():

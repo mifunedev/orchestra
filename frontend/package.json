@@ -9,14 +9,15 @@
 		"docs": "cd ../backend && bash scripts/docs.sh",
 		"build": "tsc -b && vite build",
 		"build:embed": "vite build --config vite.embed.config.ts",
-		"format": "npx prettier --write .",
+		"format": "prettier --write .",
 		"lint": "eslint .",
 		"preview": "vite preview",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"e2e": "playwright test",
-		"e2e:install": "playwright install chromium"
+		"e2e:install": "playwright install chromium",
+		"format:check": "prettier --check ."
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.2.2",

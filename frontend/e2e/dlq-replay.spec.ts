@@ -15,7 +15,8 @@
 import { test, expect, Page, Locator } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/auth";
 
-const CHAT_INPUT = 'textarea[placeholder="How can I help you be more productive?"]';
+const CHAT_INPUT =
+	'textarea[placeholder="How can I help you be more productive?"]';
 const SUBMIT_BUTTON = '[data-tour="chat-submit-button"]';
 
 // Selectors for expected error / replay UI.
@@ -24,57 +25,57 @@ const SUBMIT_BUTTON = '[data-tour="chat-submit-button"]';
 // cannot be comma-joined into a single page.locator() CSS string. They are
 // OR-composed via Locator.or() below instead.
 const ERROR_STATE_SELECTORS = [
-  "[data-testid='message-error']",
-  "[data-testid='replay-button']",
-  "button:has-text('Retry')",
-  "button:has-text('Replay')",
-  "[role='alert']",
-  "text=failed",
-  "text=error",
+	"[data-testid='message-error']",
+	"[data-testid='replay-button']",
+	"button:has-text('Retry')",
+	"button:has-text('Replay')",
+	"[role='alert']",
+	"text=failed",
+	"text=error",
 ];
 
 const REPLAY_AFFORDANCE_SELECTORS = [
-  "button:has-text('Retry')",
-  "button:has-text('Replay')",
-  "[data-testid='replay-button']",
+	"button:has-text('Retry')",
+	"button:has-text('Replay')",
+	"[data-testid='replay-button']",
 ];
 
 // Compose a set of selectors (which may mix CSS and Playwright text engines)
 // into a single OR'd locator via Locator.or(), the supported cross-engine union.
 function anyOf(page: Page, selectors: string[]): Locator {
-  return selectors
-    .map((selector) => page.locator(selector))
-    .reduce((acc, locator) => acc.or(locator));
+	return selectors
+		.map((selector) => page.locator(selector))
+		.reduce((acc, locator) => acc.or(locator));
 }
 
 test.describe("DLQ replay affordance", () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-    await page.goto("/", { waitUntil: "networkidle" });
-  });
+	test.beforeEach(async ({ page }) => {
+		await loginAsAdmin(page);
+		await page.goto("/", { waitUntil: "networkidle" });
+	});
 
-  test("a permanently-failing message surfaces an error state and a replay affordance", async ({
-    page,
-  }) => {
-    // Send a payload crafted to trigger a permanent failure.
-    // "__DLQ_TRIGGER__" is a sentinel the backend (once wired) can use to
-    // force-fail immediately without retrying.  For now the spec documents the
-    // intended injection point.
-    const input = page.locator(CHAT_INPUT);
-    await input.fill("__DLQ_TRIGGER__: force permanent failure for e2e test");
+	test("a permanently-failing message surfaces an error state and a replay affordance", async ({
+		page,
+	}) => {
+		// Send a payload crafted to trigger a permanent failure.
+		// "__DLQ_TRIGGER__" is a sentinel the backend (once wired) can use to
+		// force-fail immediately without retrying.  For now the spec documents the
+		// intended injection point.
+		const input = page.locator(CHAT_INPUT);
+		await input.fill("__DLQ_TRIGGER__: force permanent failure for e2e test");
 
-    await page.locator(SUBMIT_BUTTON).click();
+		await page.locator(SUBMIT_BUTTON).click();
 
-    // Wait up to 30 s for ANY error/replay signal to appear
-    const errorLocators = anyOf(page, ERROR_STATE_SELECTORS);
-    await expect(errorLocators.first()).toBeVisible({ timeout: 30_000 });
+		// Wait up to 30 s for ANY error/replay signal to appear
+		const errorLocators = anyOf(page, ERROR_STATE_SELECTORS);
+		await expect(errorLocators.first()).toBeVisible({ timeout: 30_000 });
 
-    // Additional assertion: the loading spinner must NOT still be visible after
-    // the error surface appears (i.e., the UI has settled, not hung).
-    await expect(page.locator(".animate-spin")).toBeHidden({ timeout: 5_000 });
+		// Additional assertion: the loading spinner must NOT still be visible after
+		// the error surface appears (i.e., the UI has settled, not hung).
+		await expect(page.locator(".animate-spin")).toBeHidden({ timeout: 5_000 });
 
-    // The replay affordance must be interactive
-    const replayAffordance = anyOf(page, REPLAY_AFFORDANCE_SELECTORS);
-    await expect(replayAffordance.first()).toBeEnabled();
-  });
+		// The replay affordance must be interactive
+		const replayAffordance = anyOf(page, REPLAY_AFFORDANCE_SELECTORS);
+		await expect(replayAffordance.first()).toBeEnabled();
+	});
 });

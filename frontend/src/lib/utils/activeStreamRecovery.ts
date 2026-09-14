@@ -6,10 +6,7 @@ export const ACTIVE_STREAM_STORAGE_KEY = "orchestra.active_streams.v1";
 
 // Runs at module-evaluation time, before any exported reader below can be
 // called. A caller cannot skip it, and a second evaluation is a no-op.
-migrateStorageKey(
-	LEGACY_ACTIVE_STREAM_STORAGE_KEY,
-	ACTIVE_STREAM_STORAGE_KEY,
-);
+migrateStorageKey(LEGACY_ACTIVE_STREAM_STORAGE_KEY, ACTIVE_STREAM_STORAGE_KEY);
 
 type ActiveStreamRecoveryStore = Record<string, ActiveStreamRecoveryRecord>;
 
