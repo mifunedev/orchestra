@@ -15,7 +15,6 @@ on:
             - "backend/main.py"
             - "frontend/package.json"
             - "frontend/vite.config.ts"
-            - "infra/docker-compose.yml"
             - ".pre-commit-config.yaml"
             - ".gitignore"
             - "evals/probes/docs-agents-md-claims.sh"

@@ -47,8 +47,7 @@ One location holds the development environment. The backend `make` targets
 default to the root `.env`; `backend/Makefile` owns that default. The pre-commit
 test hook runs the suite against the root `.env.test`; `.pre-commit-config.yaml`
 owns that. The frontend dev server loads the root `.env`;
-`frontend/package.json` owns that. The compose stack loads the root `.env`;
-`infra/docker-compose.yml` owns that. The test environment stays a separate file
+`frontend/package.json` owns that. The test environment stays a separate file
 because it names a separate database.
 
 ### 2. `AGENTS.md` is the canonical instruction file
@@ -109,7 +108,7 @@ Derivable facts are owned by executable files, not by this one:
 | Frontend scripts and dependencies | `frontend/package.json` |
 | Client build output and dev-server configuration | `frontend/vite.config.ts` |
 | API mount points and the Swagger path | `backend/main.py` |
-| Services, ports, images, volumes | `infra/docker-compose.yml` |
+| The published image and its two build targets | `infra/backend.Dockerfile` |
 | The check set that must pass locally | `.pre-commit-config.yaml` |
 | The check set that must pass on push | `.github/workflows/` |
 | Probe discovery and the exit-code oracle | `evals/run.sh`, `evals/README.md` |
@@ -212,8 +211,9 @@ not silently skip a surface.
   this pull request. Screenshots live under `docs/img/`.
 - **Environment:** Does a new key belong in `.example.env` and
   `docs/environment-variables.md`? Never in a `.env*` file.
-- **Infra:** Does `infra/docker-compose.yml` need a port, a volume, or a service
-  the change depends on? Does the test overlay need it too?
+- **Infra:** Does the change depend on a new service container? `README.md` owns
+  the `docker run` for every one of them. Does `infra/backend.Dockerfile` need a
+  new build input?
 - **Verification:** Which test under `backend/tests/unit`,
   `backend/tests/integration`, or `frontend/src/tests`, or which probe under
   `evals/probes/`, fails before the fix and passes after it?
@@ -224,12 +224,10 @@ Read `README.md` for setup. It owns the prerequisites, the database, the
 connection strings, and the first run. Do not restate it here and do not run a
 setup step from memory.
 
-There are two ways to run the stack, and you do not mix them. One runs
-PostgreSQL in a container and everything else on the host; `README.md` owns that
-path. The other runs the whole stack from `infra/docker-compose.yml`; the root
-`Makefile` owns the targets that drive it. The two paths do not agree on every
-database name or image tag. Read the file for the path you chose, and stay in
-it.
+There is one way to run the stack. PostgreSQL and every other service run in
+their own containers, and the application runs on the host. `README.md` owns
+that path end to end: the `docker run` for each service, the connection strings,
+and the environment keys each service feeds. Do not add a second path.
 
 Before a pull request:
 
@@ -262,8 +260,7 @@ nearest directory `README.md` before changing unfamiliar machinery.
   `frontend/src/tests`. It builds into `backend/src/public`.
 - `docs/` holds the user and API documentation as plain Markdown, indexed by
   `docs/README.md`, with images under `docs/img/`.
-- `infra/` holds the compose stack, the backend image definition, and
-  per-service configuration.
+- `infra/` holds the backend image definition and per-service configuration.
 - `evals/` holds the probe corpus, the runner `evals/run.sh`, the contract
   `evals/README.md`, and the `RESULTS.md` scoreboard.
 - `examples/` and `decks/` hold notebooks and the slide deck.

@@ -114,7 +114,8 @@ async def test_engine():
             f"Error: {e}\n\n"
             f"Make sure PostgreSQL is running and accessible.\n"
             f"For CI: Ensure PostgreSQL service is configured in workflow.\n"
-            f"For local: Run 'docker compose up postgres' or check your .env file."
+            f"For local: Start PostgreSQL with the docker run block in README.md, "
+            f"or check your .env file."
         )
 
 
