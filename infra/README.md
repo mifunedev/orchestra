@@ -78,7 +78,7 @@ Create a `.env.docker` file in the `backend/` directory:
 
 ```bash
 cd backend
-cp .example.env .env.docker
+cp ../.example.env .env.docker
 ```
 
 Update the following values for Docker networking:

@@ -15,11 +15,12 @@ npm install
 
 ### 2. Environment Configuration
 
-The frontend uses environment files stored at `frontend/.env`.
+The frontend reads the environment file at the repository root, `.env`. The dev
+server loads it through `dotenv -e ../.env`; see `package.json`.
 
 ```bash
 # Copy example env if setting up for first time
-cp .example.env .env
+cp ../.example.env ../.env
 ```
 
 ### 3. Start the Application

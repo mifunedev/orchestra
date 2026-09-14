@@ -17,7 +17,7 @@ repos:
             always_run: false
           - id: backend-test
             name: Backend Test
-            entry: bash -c 'cd backend && make test ENV_FILE=./.env.test'
+            entry: bash -c 'cd backend && make test ENV_FILE=../.env.test'
             language: system
             files: ^backend/
             pass_filenames: false

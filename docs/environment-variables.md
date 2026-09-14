@@ -1,7 +1,7 @@
 # Environment variables
 
 This is the canonical environment-variable reference for Orchestra. The
-tracked template is `backend/.example.env` and follows one order:
+tracked template is `.example.env` at the repository root and follows one order:
 
 1. values required by the current API/worker stack are active at the top;
 2. code-default tuning, alternate integrations, and test-only values are
@@ -10,11 +10,11 @@ tracked template is `backend/.example.env` and follows one order:
 Copy the template to the project environment file:
 
 ```bash
-cp backend/.example.env backend/.env
+cp .example.env .env
 ```
 
-For tests, copy it to `backend/.env.test` and use
-`ENV_FILE=./.env.test make -C backend test`. Docker Compose loads `backend/.env`
+For tests, copy it to `.env.test` at the repository root and use
+`ENV_FILE=../.env.test make -C backend test`. Docker Compose loads the root `.env`
 and overrides service-only hostnames such as Postgres, Redis, and SearXNG inside
 `infra/docker-compose.yml`.
 
@@ -60,6 +60,20 @@ visible; fill one or both:
 For a local Docker stack, use the credentials configured in
 `infra/docker-compose.yml` for MinIO and the service hostnames documented in
 that file. Do not commit real credentials.
+
+### Client
+
+The dev server and the client bundle read these. Vite exposes a variable to the
+bundle only when its name starts with `VITE_`, so the backend keys in the same
+file never reach the browser.
+
+| Variable | Configuration |
+|---|---|
+| `VITE_API_URL` | API base the client calls. Keep `/api` for local development; the dev server proxies that prefix to `VITE_PROXY_TARGET`. |
+| `VITE_PROXY_TARGET` | Origin the dev-server proxy forwards `/api` to, normally `http://localhost:8000`. Read through `process.env` in `frontend/vite.config.ts`, so only the dotenv-wrapped `npm run dev` scripts see it. |
+| `VITE_APP_ENV` | Current environment name reported by the client. |
+| `VITE_APP_VERSION` | Version string the client displays. |
+| `VITE_ORCHESTRA_LOGO_URL` | Logo the client renders. Override it to brand a self-hosted instance. |
 
 ## Optional configuration
 

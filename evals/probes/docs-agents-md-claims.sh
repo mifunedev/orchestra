@@ -180,16 +180,16 @@ check "agents-md-no-image-pin" "AGENTS.md transcribes a pgvector image pin; infr
   absent_in_agents "pgvector/pgvector"
 
 # --- claims AGENTS.md makes, asserted against their owning files -------------
-check "backend-env-default" "backend/Makefile no longer defaults ENV_FILE to ./.env" \
-  file_has_line backend/Makefile 'ENV_FILE ?= ./.env'
-check "precommit-test-env" ".pre-commit-config.yaml no longer runs the backend suite against ./.env.test" \
-  file_has .pre-commit-config.yaml 'ENV_FILE=./.env.test'
-check "frontend-env" "frontend/package.json no longer loads the dev server env with 'dotenv -e .env'" \
-  file_has frontend/package.json 'dotenv -e .env'
-check "compose-env-file" "infra/docker-compose.yml no longer loads ../backend/.env" \
-  file_has infra/docker-compose.yml '../backend/.env'
-check "env-template-tracked" "backend/.example.env is no longer tracked; AGENTS.md sends agents to it" \
-  tracked backend/.example.env
+check "backend-env-default" "backend/Makefile no longer defaults ENV_FILE to ../.env" \
+  file_has_line backend/Makefile 'ENV_FILE ?= ../.env'
+check "precommit-test-env" ".pre-commit-config.yaml no longer runs the backend suite against ../.env.test" \
+  file_has .pre-commit-config.yaml 'ENV_FILE=../.env.test'
+check "frontend-env" "frontend/package.json no longer loads the dev server env with 'dotenv -e ../.env'" \
+  file_has frontend/package.json 'dotenv -e ../.env'
+check "compose-env-file" "infra/docker-compose.yml no longer loads the root .env" \
+  file_has infra/docker-compose.yml '../.env'
+check "env-template-tracked" ".example.env is no longer tracked at the repository root; AGENTS.md sends agents to it" \
+  tracked .example.env
 check "gitignore-env" ".gitignore no longer ignores **/.env*" \
   file_has_line .gitignore '**/.env*'
 check "gitignore-public" ".gitignore no longer ignores **/backend/src/public" \
