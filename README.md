@@ -68,12 +68,12 @@ host can use it. Orchestra owns only the `orchestra_dev` and `orchestra_test` da
 
 ```bash
 docker run -d \
-  --name pgvector \
+  --name postgres \
   --restart unless-stopped \
   -p 5432:5432 \
   -v pgvector_data:/var/lib/postgresql/data \
-  -e POSTGRES_USER=admin \
-  -e POSTGRES_PASSWORD=test1234 \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=postgres \
   --memory 1g --cpus 1 \
   pgvector/pgvector:pg16
@@ -85,29 +85,30 @@ data outside the repository.
 Create the two databases and the vector extension:
 
 ```bash
-docker exec pgvector psql -U admin -d postgres -c "CREATE DATABASE orchestra_dev OWNER admin;"
-docker exec pgvector psql -U admin -d postgres -c "CREATE DATABASE orchestra_test OWNER admin;"
-docker exec pgvector psql -U admin -d orchestra_dev -c "CREATE EXTENSION IF NOT EXISTS vector;"
+docker exec postgres psql -U postgres -d postgres -c "CREATE DATABASE orchestra_dev OWNER postgres;"
+docker exec postgres psql -U postgres -d postgres -c "CREATE DATABASE orchestra_test OWNER postgres;"
+docker exec postgres psql -U postgres -d orchestra_dev -c "CREATE EXTENSION IF NOT EXISTS vector;"
 ```
 
-The values `admin` and `test1234` serve local development only. Never reuse them in production.
+The user `postgres` and the password `postgres` serve local development only. Never reuse them in
+production.
 
 ### 3. Choose the connection host
 
 If the application runs on the host, use `localhost`:
 
 ```
-postgresql://admin:test1234@localhost:5432/orchestra_dev?sslmode=disable
+postgresql://postgres:postgres@localhost:5432/orchestra_dev?sslmode=disable
 ```
 
-If the application runs inside another container, use the container name `pgvector`:
+If the application runs inside another container, use the container name `postgres`:
 
 ```
-postgresql://admin:test1234@pgvector:5432/orchestra_dev?sslmode=disable
+postgresql://postgres:postgres@postgres:5432/orchestra_dev?sslmode=disable
 ```
 
 A container reaches the database by container name only after the container joins the same
-Docker network. Run `docker network connect <network> pgvector` to join it.
+Docker network. Run `docker network connect <network> postgres` to join it.
 
 ### 4. Configure the environment
 
