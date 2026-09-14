@@ -6,9 +6,10 @@ in [`evals/README.md`](README.md). `SKIPPED` does not count toward pass-rate.
 
 | probe | tier | last-run (UTC) | status | source |
 |-------|------|----------------|--------|--------|
-| resiliency-correlation-id | resiliency | 2026-06-14 05:06 | PASS | resiliency track — correlation-id plan (backend/tests/resiliency/test_correlation_id.py) |
-| resiliency-dlq | resiliency | 2026-06-14 05:06 | PASS | resiliency track — DLQ replay plan (backend/tests/resiliency/test_dlq_replay.py) |
-| resiliency-heartbeat-drain | resiliency | 2026-06-14 05:07 | PASS | resiliency track — heartbeat-drain plan (backend/tests/resiliency/test_heartbeat_drain.py) |
-| resiliency-idempotency | resiliency | 2026-06-14 05:06 | PASS | resiliency track — idempotency plan (backend/tests/resiliency/test_idempotency.py) |
+| docs-agents-md-claims | docs | 2026-09-14 02:05 | PASS | AGENTS.md claim table |
+| resiliency-correlation-id | resiliency | 2026-09-14 02:05 | SKIPPED | resiliency track — correlation-id plan (backend/tests/resiliency/test_correlation_id.py) |
+| resiliency-dlq | resiliency | 2026-09-14 02:05 | SKIPPED | resiliency track — DLQ replay plan (backend/tests/resiliency/test_dlq_replay.py) |
+| resiliency-heartbeat-drain | resiliency | 2026-09-14 02:05 | SKIPPED | resiliency track — heartbeat-drain plan (backend/tests/resiliency/test_heartbeat_drain.py) |
+| resiliency-idempotency | resiliency | 2026-09-14 02:05 | SKIPPED | resiliency track — idempotency plan (backend/tests/resiliency/test_idempotency.py) |
 
 <!-- benchmark: pass-rate = PASS / (PASS + REGRESSION + TIMEOUT); SKIPPED excluded -->

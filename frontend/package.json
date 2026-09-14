@@ -4,8 +4,8 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"dev": "dotenv -e .env -- vite --host",
-		"dev:claude": "dotenv -e .env -- vite --host 0.0.0.0 --port 8030",
+		"dev": "dotenv -e ../.env -- vite --host",
+		"dev:claude": "dotenv -e ../.env -- vite --host 0.0.0.0 --port 8030",
 		"docs": "cd ../backend && bash scripts/docs.sh",
 		"build": "tsc -b && vite build",
 		"build:embed": "vite build --config vite.embed.config.ts",

@@ -112,12 +112,12 @@ Docker network. Run `docker network connect <network> pgvector` to join it.
 ### 4. Configure the environment
 
 ```bash
-cp backend/.example.env backend/.env
+cp .example.env .env
 ```
 
 Set `POSTGRES_CONNECTION_STRING` in that file to the connection string from step 3. The backend
-`make` targets read the `ENV_FILE` variable, which points at `backend/.env` by default. The
-frontend `npm run dev` script reads `frontend/.env`. Create that file first. Read
+`make` targets read the `ENV_FILE` variable, which points at the root `.env` by default. The
+frontend `npm run dev` script reads the same root `.env`. Read
 [Environment variables](docs/environment-variables.md) for every key.
 
 ### 5. Migrate, seed, and run

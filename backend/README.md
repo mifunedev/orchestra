@@ -75,15 +75,10 @@ docker pull ghcr.io/mifunedev/orchestra:latest
 
     See the [canonical environment-variable guide](../docs/environment-variables.md) for required values, optional defaults, and provider setup.
 
-    Create a `.env` file in the root directory and add your API key(s):
+    Create a `.env` file at the repository root and add your API key(s):
 
     ```bash
-    # Backend
-    cd <project-root>/backend
-    cp .example.env .env
-
-    # Frontend
-    cd <project-root>/frontend
+    cd <project-root>
     cp .example.env .env
     ```
 
@@ -244,7 +239,7 @@ Create a `.env.docker` file in the `backend/` directory:
 
 ```bash
 cd backend
-cp .example.env .env.docker
+cp ../.example.env .env.docker
 ```
 
 Update the following values for Docker networking:
