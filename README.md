@@ -76,7 +76,7 @@ docker run -d \
   -e POSTGRES_PASSWORD=test1234 \
   -e POSTGRES_DB=postgres \
   --memory 1g --cpus 1 \
-  pgvector/pgvector:pg17
+  pgvector/pgvector:pg16
 ```
 
 The flag `-v pgvector_data:/var/lib/postgresql/data` mounts a named volume. Docker stores the
