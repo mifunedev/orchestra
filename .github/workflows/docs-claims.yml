@@ -1,0 +1,38 @@
+name: Docs Claims
+
+on:
+    push:
+        branches:
+            # Run on pushes to any branch, including namespaced branches like feat/foo.
+            - "**"
+        # An allowlist, not paths-ignore: the guard must run precisely when a
+        # claim source moves, including paths the test suite deliberately
+        # ignores. Drift travels in that direction — the code moves and
+        # AGENTS.md stands still.
+        paths:
+            - "AGENTS.md"
+            - "backend/Makefile"
+            - "backend/main.py"
+            - "frontend/package.json"
+            - "frontend/vite.config.ts"
+            - "infra/docker-compose.yml"
+            - ".pre-commit-config.yaml"
+            - ".gitignore"
+            - "evals/probes/docs-agents-md-claims.sh"
+            - ".github/workflows/docs-claims.yml"
+    # Allow a manual re-run. Without this the workflow can only be started by a
+    # push that touches an allowlisted path, so a run that fails to acquire a
+    # runner cannot be retried without inventing a code change.
+    workflow_dispatch:
+jobs:
+    ###############################################################
+    ## Docs Claims — AGENTS.md drift guard
+    ###############################################################
+    docs-claims:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Assert AGENTS.md claims
+              run: bash evals/probes/docs-agents-md-claims.sh

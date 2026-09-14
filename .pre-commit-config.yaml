@@ -43,3 +43,10 @@ repos:
             files: ^frontend/
             pass_filenames: false
             always_run: false
+          - id: agents-md-claims
+            name: AGENTS.md claims
+            entry: bash evals/probes/docs-agents-md-claims.sh
+            language: system
+            files: ^(AGENTS\.md|backend/Makefile|backend/main\.py|frontend/package\.json|frontend/vite\.config\.ts|infra/docker-compose\.yml|\.pre-commit-config\.yaml|\.gitignore|evals/probes/docs-agents-md-claims\.sh|\.github/workflows/docs-claims\.yml)$
+            pass_filenames: false
+            always_run: false

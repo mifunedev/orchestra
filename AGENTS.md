@@ -1,104 +1,283 @@
-# AGENTS.md
+# Orchestra
 
-This file provides guidance to AI agents when working with the codebase.
+You are a coding agent working in the Orchestra repository. You own application
+code: the FastAPI backend, the React client, the documentation, the compose
+stack, and the probes that prove the behavior.
 
-## Project Overview
+`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
+Never replace the symlink with a regular file, and never write a second copy of
+these instructions.
 
-The root project folder contains the following application:
+This file states policy and names owners. It does not transcribe. A command, a
+port, an image pin, a directory listing, or a test filename belongs to the file
+that executes it. Where you want to copy such a fact, name its owner instead.
 
-```yml
-backend:
-    stack: python, uv, fastapi, langchain, read pyproject.toml for more information.
-    description: This is the REST API for the ./frontend and ./cli clients.
-    deployment: http://localhost:8000/api
-    commands:
-        - `make test` Run ALL test cases (uses ENV_FILE=./.env).
-        - `make test ENV_FILE=./.env.test` Run tests with test env.
-        - `make format` Format project files with ruff. Use after making changes.
-        - `make lint` Lint check with ruff (no auto-fix).
-        - `make dev` Run dev server.
-        - `make seeds.user` Seed default users.
-frontend:
-    stack: typescript, vite, react, shadcn, tailwind, read package.json for more details.
-    description: This is built during CI and bundled into the backend during `.github/build.yml`
-    deployment: http://localhost:8000
-    commands: See package.json
-website:
-    stack: typescript, nextjs, shadcn
-    description: Our main landing page
-    url: https://mifune.dev
-    commands: See package.json
-docs:
-    stack: markdown
-    description: User and API documentation for the frontend interface and backend API. Plain markdown in this repo — edit it in the same PR as the change it documents.
-    url: https://github.com/mifunedev/orchestra/tree/development/docs
-    note: The published site is retired. The Docusaurus app in the separate `mifunedev/wiki` repo keeps its own copy of this markdown. Until that repo is retired, docs changes that must reach the wiki have to be applied there too.
-cli:
-    stack: typescript, react-ink
-    description: New server-side client we are working on for perform actions against the API
-    commands: See package.json
-```
+## What Orchestra is
 
-The main way external AI Agents find out information about Mifune will be from the `./website/public/llm.txt` that should ALWAYS reflect the current public documentation for LLM search engines. If something in the application is out of sync with this file we should make sure to update the file the `llm.txt` so that it reflects the most accurate picture of the application and how users can get the MOST out of it.
+Orchestra is an open-source AI agent orchestration platform built on LangGraph.
+A user creates an assistant, gives it tools, and talks to it in a thread. The
+platform persists the conversation, runs long work on background workers, and
+exposes the same surface through a REST API.
 
-## Code Style
+The stack is one Python FastAPI application under uvicorn, Alembic migrations
+over PostgreSQL with the pgvector extension, TaskIQ workers over Redis, and a
+React and Vite client. MinIO or S3 stores files. MCP and A2A connect external
+tools and agents. Nothing in that sentence is a version or a pin; read
+`backend/pyproject.toml` and `frontend/package.json` for those.
 
-- Use Python 3.12+ features
-- Follow PEP 8 conventions
-- Type hints required for all functions
-- Use Pydantic for data validation
+Orchestra is self-hosted. This project deploys nothing and hosts no domain.
+Every address in this repository is a local address a self-hoster reaches after
+starting the API. The API and its Swagger UI are at `http://localhost:8000/api`.
 
----
+The following properties are non-negotiable.
 
-# Repository Guidelines for Orchestra
+### 1. Never read a `.env*` file
 
-## Project Structure & Module Organization
-- `backend/src` contains the FastAPI stack, with domain logic split into `controllers`, `routes`, `services`, and `repos`, plus shared helpers in `common` and `utils`.
-- Database assets live in `backend/migrations` and `backend/seeds`; reusable automation sits under `backend/scripts`.
-- `frontend/src` hosts the Vite/React client (`components`, `pages`, `routes`, `tests`), while `decks/`, `deployment/`, and `infra/` hold reference material and ops tooling.
-- `docs/` holds the user and API documentation as plain Markdown, with screenshots under `docs/img/`. See `docs/README.md` for the index. The documentation is published at https://github.com/mifunedev/orchestra/tree/development/docs.
+Do not read, print, copy, or diff `backend/.env`, `backend/.env.test`,
+`frontend/.env`, or any other `.env*` path, in exploration or in a fix. These
+files hold live provider keys and database credentials. `.gitignore` excludes
+`**/.env*` from git, so reading one copies a secret into a transcript that git
+cannot protect.
 
-## Build, Test, and Development Commands
-- **Setup**: Run `make setup` from the repo root to install pre-commit hooks.
-- Backend: `cd backend && uv venv && source .venv/bin/activate && uv sync` installs dependencies, `make dev` runs the API with reload, and `make test` executes the suite. Use `ENV_FILE=./.env.test` for the test environment.
-- Frontend: `cd frontend && npm install`, `npm run dev` for local dev, `npm run build` for production bundles, and `npm run docs` regenerates MkDocs API docs.
-- Infrastructure: the full stack lives in `infra/docker-compose.yml`; `make dev.docker.up` builds and starts it, `make dev.docker.down` stops it.
+Read `backend/.example.env` for the key names and
+`docs/environment-variables.md` for every default. Both are tracked and safe.
+When a value must change, tell the operator which key to set. Do not set it.
 
-## Docker Development Environment
-- **When to use**: Backend development requiring all services (app, worker, postgres, redis, search_engine, minio, ollama) running together. The entire stack is one file: `infra/docker-compose.yml`.
-- **Start the stack**: `make dev.docker.up` — builds and starts all services in detached mode (`docker compose -f infra/docker-compose.yml up --build -d`).
-- **Services and ports**:
-  - `app` — :8000 (FastAPI with hot-reload)
-  - `worker` — TaskIQ worker (auto-reloads on code changes)
-  - `postgres` — :5432 (pgvector/pg16)
-  - `redis` — :6379
-  - `minio` — :9000/:9001 (S3-compatible storage)
-  - `ollama` — :11434 (local LLM inference; requires GPU)
-  - `search_engine` — :8080 (SearXNG)
-- **Frontend**: Run from the host (`cd frontend && npm run dev`) and connect to the backend API on :8000. Use the `agent-browser` skill for browser-based testing.
-- **Management commands**:
-  - `make dev.docker.logs` — tail app + worker logs (override with `DOCKER_DEV_LOG_SERVICES="app worker"`)
-  - `make dev.docker.ps` — show running containers
-  - `make dev.docker.down` — stop and clean up
-  - `make dev.docker.migrate` — run Alembic migrations inside the app container
-  - `make dev.docker.test.up` — run the stack against the test database (adds `infra/docker-compose.test.yml`)
-- **Key details**: Source directories are volume-mounted for hot-reload. The app runs `uv sync` and `alembic upgrade head` on startup automatically. Backend env is loaded from `backend/.env` via the compose `env_file`.
+The backend `make` targets default to `backend/.env`; `backend/Makefile` owns
+that default. The pre-commit test hook runs the suite against
+`backend/.env.test`; `.pre-commit-config.yaml` owns that. The frontend dev
+server loads `frontend/.env`; `frontend/package.json` owns that. The compose
+stack loads `../backend/.env`; `infra/docker-compose.yml` owns that.
 
-## Coding Style & Naming Conventions
-- Run `pre-commit run --all-files`; hooks run backend format/lint/test and frontend prettier/lint/test.
-- Python: ruff configured in `backend/pyproject.toml` with `line-length = 120`, select `["E", "F"]`. Per-file E402 ignores for files with `load_dotenv()` before imports. Use 4-space indents, `snake_case` files, typed Pydantic models in `backend/src/schemas`.
-- React: Prettier 2-space indent; components in `PascalCase`, hooks in `camelCase`.
+### 2. `AGENTS.md` is the canonical instruction file
 
-## Testing Guidelines
-- Place backend unit specs in `backend/tests/unit` and integration cases in `backend/tests/integration`; seed demo data with `python -m seeds.user_seeder` when needed.
-- Frontend tests rely on Vitest and Testing Library (`npm run test`, `npm run test:watch`, `npm run test:coverage` for reports).
-- Use descriptive filenames (`tests/routes/test_agents.py`, `src/tests/AgentFlow.test.tsx`) and assert observable behavior.
+This file is the canonical instruction surface at the repository root. Write
+guidance here. A second copy drifts, and the copy an agent happens to read wins.
 
-## Commit & Pull Request Guidelines
-- Sign every commit with `git commit -s ...`; keep subject lines imperative and reference issues or tickets when helpful.
-- Before opening a PR, ensure `uv run pytest`, `npm run test`, and any affected docs or `.env` samples reflect your changes; squash WIP noise locally.
-- PRs target `development`, link tracking issues, provide concise change notes, and include screenshots or API traces for UI-facing work.
-- Foramt outputs from plan mode in `.claude/plans/[short-plan-desc].md`
+`backend/CLAUDE.md` and `frontend/CLAUDE.md` are real files with no `AGENTS.md`
+sibling, so only Claude-family harnesses load them. Treat them as component
+notes, not as policy. Anything that must bind every agent belongs in this file.
+`decks/` carries its own tracked `AGENTS.md` for the slide deck.
 
-## Security & Configuration Tips
-- EXTREMELY IMPORTANT: NEVER read a .env* file in your exploration.
+### 3. Generated output is not source
+
+`frontend/vite.config.ts` builds the client into `backend/src/public` with
+`emptyOutDir` set, and `.gitignore` excludes that directory. The next frontend
+build erases anything written there. Change the frontend source.
+
+The same rule covers Alembic migration state, `backend/uv.lock`, and
+`frontend/package-lock.json`. Change the input, then regenerate.
+
+### 4. The backend has no enforced layer order
+
+`backend/src` splits into `routes`, `controllers`, `services`, and `repos`, but
+no gate enforces a direction between them. Routes import `src.services` far more
+often than `src.controllers`, and import `src.repos` directly. Follow the
+convention of the module you are editing. Do not impose a layer order as a
+drive-by change, and do not write guidance that claims one exists.
+
+Shared helpers live in `backend/src/common` and `backend/src/utils`. Typed
+request and response models live in `backend/src/schemas`.
+
+### 5. Every commit is signed off, and every pull request targets `development`
+
+`development` is the default branch of `origin`. Sign every commit with
+`git commit -s` under the [DCO](DCO). This is a project requirement. Do not
+describe how, or whether, it is enforced.
+
+## Who owns what
+
+One agent owns one change end to end: the backend, the client, the
+documentation, and the check that proves it. Orchestra has no delegation
+machinery and no control plane. The boundary that matters is the
+generated-output boundary in non-negotiable 3, not an execution location.
+
+Documentation is owned by the change that alters behavior. `docs/` is plain
+Markdown and is the source of truth; `docs/README.md` is its index, and there is
+no published site to keep in step with it. Edit the page in the same pull
+request as the code. The tree is browsable at
+<https://github.com/mifunedev/orchestra/tree/development/docs>.
+
+Derivable facts are owned by executable files, not by this one:
+
+| Fact | Owner |
+|---|---|
+| Setup, prerequisites, connection strings | `README.md` |
+| Backend commands and the `ENV_FILE` default | `backend/Makefile` |
+| Frontend scripts and dependencies | `frontend/package.json` |
+| Client build output and dev-server configuration | `frontend/vite.config.ts` |
+| API mount points and the Swagger path | `backend/main.py` |
+| Services, ports, images, volumes | `infra/docker-compose.yml` |
+| The check set that must pass locally | `.pre-commit-config.yaml` |
+| The check set that must pass on push | `.github/workflows/` |
+| Probe discovery and the exit-code oracle | `evals/run.sh`, `evals/README.md` |
+| Ignored paths | `.gitignore` |
+
+## A note from the maintainer
+
+Prefer ambitious outcomes and simple systems. Do not preserve complexity because
+it already exists. Do not add machinery because the architecture looks
+impressive. Find the real constraint, then choose the smallest model that makes
+correct behavior unsurprising. Apply YAGNI. Resist scope creep. Preserve the
+operator's intent in the smallest realistic change.
+
+Widen a fix to the class of defect, not to the next feature. When a bug is one
+instance of a pattern, fix every live instance and add the gate that fails on
+the next one. Leave the adjacent bug filed rather than folded in.
+
+The non-negotiables in this file are hard constraints. Other guidance is a
+default. An explicit operator instruction can override a default. It can never
+authorize reading a secret or committing a generated artifact as source.
+
+## A small glossary
+
+- **you** means the coding agent reading this file.
+- **operator** means the person who owns this checkout and directs the work.
+- **self-hoster** means the user who runs Orchestra on their own machine. Every
+  address in the documentation is written for them.
+- **assistant** means a saved agent configuration: instructions, model, tools,
+  and skills.
+- **thread** means one stateful conversation. Every interaction happens in a
+  thread.
+- **skill** means a reusable Markdown instruction set attached to an agent.
+- **prompt** means a versioned, reusable system prompt in the Prompt Library.
+- **memory** means a persistent per-user context snippet injected into every
+  conversation.
+- **project** means a workspace that groups threads and files. **epic** groups
+  tasks.
+- **public agent** means an assistant published for anyone to try and remix.
+- **tool** means a callable the agent may invoke, native or reached over **MCP**
+  or **A2A**.
+- **store** means the single `AsyncPostgresStore` that backs long-term memory. It
+  is a process-wide singleton reached through `get_shared_store()` in
+  `backend/src/services/db.py`.
+- **checkpoint** means LangGraph's persisted graph state for a thread.
+- **worker** means a TaskIQ process that runs work off the request path.
+- **probe** means a deterministic exit-code-scored check under `evals/probes/`.
+  `evals/run.sh` discovers every probe and scores it `0` PASS, `1` REGRESSION,
+  `2` SKIPPED.
+
+## Ways to hurt yourself
+
+Each entry is a defect this repository already shipped. This is the part of the
+file you cannot derive from the tree.
+
+- **Do not `async with` a shared store singleton.** `get_shared_store()` in
+  `backend/src/services/db.py` hands back a process-wide instance, used by
+  `backend/src/workers/state.py` and `backend/src/services/schedule.py`.
+  Entering it runs `__aenter__` and `__aexit__` on a resource the caller does
+  not own. Await the method on the injected instance. (#958, #964, #975.)
+- **Do not open a connection pool per call.** The store was built fresh on every
+  call site, each eagerly opening its minimum pool size. One resource per
+  process, created at lifespan, closed at shutdown. (#975.)
+- **Do not assume one shape for message content.** The streaming path flattens a
+  chunk to a string; the hydration path leaves the raw LangChain block array.
+  Reading `content[0].text` rendered "Invalid message" for every reasoning
+  model. Join every text block and always return a string. (#963.)
+- **Do not fire a background toast without a stable id.** An un-ided
+  `duration: Infinity` toast permanently occupied a visible slot and starved
+  every later notification app-wide. A hook owns its toast, keyed by a fixed id.
+  A user-initiated toast may go un-ided. (#972.)
+- **Do not use a fill token as ink.** `--destructive` is a fill that sits behind
+  `--destructive-foreground`. Used as text it fails contrast. Use
+  `--destructive-accent`. `frontend/src/tests/styles/destructive-usage.test.ts`
+  now fails on a new bare `text-destructive`, because the usage is what recurs.
+  (#968, #973.)
+- **Do not reintroduce a deployment domain.** Orchestra is not deployed by this
+  project and hosts no domain. The retired hosts were replaced with
+  `http://localhost:8000`. Sample MCP and A2A servers Orchestra connects to and
+  does not host are the only external hostnames in this repository, and they
+  live in fixtures and examples, not here. (#985.)
+- **Do not trust a command because a Markdown file names it.** This file once
+  told agents to run a frontend script whose target was deleted in `26d646fa`
+  (#623), and kept naming it afterwards. Run the command, or read the file that
+  defines it, before you write it down.
+
+## Think through every affected surface
+
+Before implementation, mark each surface **applied** or **not applicable**. Do
+not silently skip a surface.
+
+- **Backend:** Which module owns the change? Does it need an Alembic migration
+  in `backend/migrations` and a matching downgrade?
+- **Frontend:** Do the streaming path and the hydration path both carry it? Does
+  it survive a StrictMode double-render?
+- **Worker and scheduler:** Does the code run outside a request, where
+  `app.state` is unreachable?
+- **Contract:** Does a schema in `backend/src/schemas` change, and does the
+  client type change with it?
+- **Docs:** Does user-facing behavior change a page under `docs/`? Edit it in
+  this pull request. Screenshots live under `docs/img/`.
+- **Environment:** Does a new key belong in `backend/.example.env` and
+  `docs/environment-variables.md`? Never in a `.env*` file.
+- **Infra:** Does `infra/docker-compose.yml` need a port, a volume, or a service
+  the change depends on? Does the test overlay need it too?
+- **Verification:** Which test under `backend/tests/unit`,
+  `backend/tests/integration`, or `frontend/src/tests`, or which probe under
+  `evals/probes/`, fails before the fix and passes after it?
+
+## How to work in this repository
+
+Read `README.md` for setup. It owns the prerequisites, the database, the
+connection strings, and the first run. Do not restate it here and do not run a
+setup step from memory.
+
+There are two ways to run the stack, and you do not mix them. One runs
+PostgreSQL in a container and everything else on the host; `README.md` owns that
+path. The other runs the whole stack from `infra/docker-compose.yml`; the root
+`Makefile` owns the targets that drive it. The two paths do not agree on every
+database name or image tag. Read the file for the path you chose, and stay in
+it.
+
+Before a pull request:
+
+- Run the backend and frontend checks from their own directories. `backend/`
+  and `frontend/` each own their targets and scripts; run them from there, never
+  from the repository root.
+- `pre-commit run --all-files` must pass. `.pre-commit-config.yaml` is the
+  authority on what that set is.
+- Add a changelog entry for the branch. The root `Makefile` owns the target.
+- `bash evals/run.sh` scores the probe corpus and rewrites `evals/RESULTS.md`.
+
+Write plans and task state inside this repository, never in the parent
+directory. `.gitignore` excludes `**/.claude/` and `tasks/`, so neither enters
+git history.
+
+## How the system fits together
+
+Tests and deterministic probes verify behavior against real state. Read the
+nearest directory `README.md` before changing unfamiliar machinery.
+
+- `backend/` holds the FastAPI application. `src/` holds the modules,
+  `migrations/` holds Alembic revisions, `seeds/` holds seed data, `scripts/`
+  holds automation, and `tests/` holds the suites, including
+  `backend/tests/unit` and `backend/tests/integration`.
+- `frontend/` holds the Vite and React client. Its tests live in
+  `frontend/src/tests`. It builds into `backend/src/public`.
+- `docs/` holds the user and API documentation as plain Markdown, indexed by
+  `docs/README.md`, with images under `docs/img/`.
+- `infra/` holds the compose stack, the backend image definition, and
+  per-service configuration.
+- `evals/` holds the probe corpus, the runner `evals/run.sh`, the contract
+  `evals/README.md`, and the `RESULTS.md` scoreboard.
+- `examples/` and `decks/` hold notebooks and the slide deck.
+- `.github/workflows/` holds the checks that run on push and on tag, plus the
+  deployment workflows, which only a manual dispatch starts.
+
+## Taste
+
+- Fix the class, gate the recurrence, file the neighbor.
+- Prefer one owned resource over a fresh one per call site.
+- Make the data shape explicit at the boundary where two paths meet.
+- Name the file that owns a fact instead of copying the fact.
+- Delete a retired path instead of renaming it to something unreachable.
+- Use tests and probes as evidence, not a description of intent.
+
+## How a claim enters this file
+
+Every factual claim above is asserted by `evals/probes/docs-agents-md-claims.sh`
+against the repository. The probe fails when the code moves and this file stands
+still, which is the direction drift actually travels.
+
+Add a claim only together with its check in that probe. A claim you cannot check
+is deleted, not softened.
