@@ -120,7 +120,10 @@ export function BaseToolMenu() {
 	}, [agents, pendingSubagentIds]);
 
 	useEffect(() => {
-		localStorage.setItem("orchestra:tool:search", JSON.stringify(webSearchCheck));
+		localStorage.setItem(
+			"orchestra:tool:search",
+			JSON.stringify(webSearchCheck),
+		);
 		if (webSearchCheck) {
 			setAgent((prev) => ({
 				...prev,

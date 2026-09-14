@@ -236,6 +236,10 @@ Before a pull request:
 - Run the backend and frontend checks from their own directories. `backend/`
   and `frontend/` each own their targets and scripts; run them from there, never
   from the repository root.
+- Pin every formatter and linter in the file that owns its dependencies, and
+  invoke it through that pin. `uvx` and `npx` resolve the newest release at run
+  time, so an unpinned tool silently rewrites the tree the day it ships a
+  version.
 - `pre-commit run --all-files` must pass. `.pre-commit-config.yaml` is the
   authority on what that set is.
 - Add a changelog entry for the branch. The root `Makefile` owns the target.

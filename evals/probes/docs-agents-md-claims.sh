@@ -37,6 +37,8 @@ present_in_agents() { grep -qF "$1" "$AGENTS"; }
 file_has() { grep -qF "$2" "$1"; }
 file_has_line() { grep -qxF "$2" "$1"; }
 tracked() { git ls-files --error-unmatch "$1"; }
+no_root_tooling() { ! grep -nE '^ *entry: +(npx|uvx) ' .pre-commit-config.yaml; }
+no_unpinned_ruff() { ! grep -nE '^\s*uvx ruff' backend/Makefile; }
 no_seam() { [ "$(grep -c '^---$' "$AGENTS")" = "0" ]; }
 no_deployment_host() { ! grep -qE '[a-z0-9-]+\.mifune\.dev' "$AGENTS"; }
 imports_at_least_one() { [ "$(grep -rhoE "from src\.$1" backend/src/routes/ | wc -l)" -gt 0 ]; }
@@ -190,6 +192,10 @@ check "compose-env-file" "infra/docker-compose.yml no longer loads the root .env
   file_has infra/docker-compose.yml '../.env'
 check "env-template-tracked" ".example.env is no longer tracked at the repository root; AGENTS.md sends agents to it" \
   tracked .example.env
+check "precommit-runs-from-component-dir" ".pre-commit-config.yaml invokes npx or uvx from the repository root; AGENTS.md says component checks run from their own directory" \
+  no_root_tooling
+check "backend-formatter-pinned" "backend/Makefile still invokes ruff through uvx, which resolves the newest release at run time" \
+  no_unpinned_ruff
 check "gitignore-env" ".gitignore no longer ignores **/.env*" \
   file_has_line .gitignore '**/.env*'
 check "gitignore-public" ".gitignore no longer ignores **/backend/src/public" \

@@ -17,17 +17,24 @@ repos:
             always_run: false
           - id: backend-test
             name: Backend Test
-            entry: bash -c 'cd backend && make test ENV_FILE=../.env.test'
+            # Manual stage on purpose. This hook needs a test env file AND a
+            # reachable test database; it cannot pass on a developer machine
+            # that has neither, and a hook that cannot pass must not gate a
+            # commit. The real gate is .github/workflows/test.yml, which runs
+            # pytest against live services on every push. Run locally with:
+            #   pre-commit run --hook-stage manual backend-test
+            stages: [manual]
+            entry: bash -c 'bash backend/scripts/precommit-test-preflight.sh && cd backend && make test ENV_FILE=../.env.test'
             language: system
             files: ^backend/
             pass_filenames: false
             always_run: false
           - id: frontend-prettier
             name: Frontend Prettier
-            entry: npx prettier --write
+            entry: bash -c 'cd frontend && npm run format'
             language: system
-            files: ^frontend/.*\.(js|jsx|ts|tsx|json|css|scss|html|md)$
-            pass_filenames: true
+            files: ^frontend/
+            pass_filenames: false
             always_run: false
           - id: frontend-lint
             name: Frontend Lint
