@@ -1,6 +1,8 @@
 import os
+import tomllib
 
 from enum import Enum
+from pathlib import Path
 
 from src.config.branding import BRANDING
 
@@ -22,7 +24,9 @@ JWT_TOKEN_EXPIRE_MINUTES = 60 * 24
 # App
 APP_TITLE = os.getenv("APP_TITLE", BRANDING.brand.title)
 APP_ENV = os.getenv("APP_ENV", "development")
-APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
+APP_VERSION = os.getenv("APP_VERSION") or tomllib.loads(
+    (Path(__file__).resolve().parents[2] / "pyproject.toml").read_text()
+)["project"]["version"]
 APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "this-is-a-secret-key")
 APP_LOG_LEVEL = os.getenv("APP_LOG_LEVEL", "INFO").upper()
 DOCS_BASE_URL = os.getenv("DOCS_BASE_URL", BRANDING.urls.docs)
