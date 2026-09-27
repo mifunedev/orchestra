@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Changed
+
+- Default new chats to GPT-6 Luna when an OpenAI key is available, while leaving automatic reasoning effort and saved preferences unchanged ([#1008](https://github.com/mifunedev/orchestra/issues/1008)).
+
 ### Fixed
 
 - Link the documentation directory to its documentation heading ([#1006](https://github.com/mifunedev/orchestra/issues/1006)).

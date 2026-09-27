@@ -239,6 +239,23 @@ class TestResolveReasoningEffort:
         assert reasoning_effort is None
 
     @pytest.mark.asyncio
+    async def test_new_default_has_automatic_effort_without_saved_preference(self, mock_store, mock_config):
+        controller = LLMController(user_id="user-1", store=mock_store, config=mock_config)
+
+        with (
+            patch("src.controllers.llm.DEFAULT_CHAT_MODEL", "openai:gpt-6-luna"),
+            patch("src.controllers.llm.UserSettingsRepo") as MockRepo,
+        ):
+            instance = MockRepo.return_value
+            instance._get_or_create = AsyncMock(return_value=FakeSettings())
+            instance._decrypt_keys = MagicMock(return_value={})
+
+            model, *_, reasoning_effort = await controller._resolve_user_settings("")
+
+        assert model == "openai:gpt-6-luna"
+        assert reasoning_effort is None
+
+    @pytest.mark.asyncio
     async def test_unauthenticated_request_effort_is_preserved(self, mock_store, mock_config):
         """No settings to read, but an explicit effort must still reach the model."""
         controller = LLMController(user_id=None, store=mock_store, config=mock_config)
