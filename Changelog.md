@@ -13,7 +13,8 @@ Versioning: `YYYY.M.D` (date-based, e.g. `2026.2.22`). Multiple releases per day
 ## 2026.9.27
 
 ### Changed
-  - task/999-testcontainers-postgres — backend tests no longer need a root `.env.test` or a hand-made test database. `backend/tests/conftest.py` starts a disposable `pgvector/pgvector:pg17` container through `testcontainers[postgres]` (pinned 4.14.2, dev dependency) once per pytest session, with its data directory on tmpfs, creates the `vector` extension, points `POSTGRES_CONNECTION_STRING` at it (and drops `POSTGRES_CONNECTION_STRING_SESSION`) before `main` and `src.constants` import, runs Alembic to head, and stops the container in `pytest_sessionfinish`. Inside a container (the AGRO sandbox) the test database joins the current container's Docker network and is reached by IP on 5432, because published ports land on the Docker host; elsewhere it uses the normal mapped port. Ryuk is disabled by default in favour of the explicit stop. `TEST_POSTGRES_CONNECTION_STRING` skips the container and uses an existing database. `make test` sources the root `.env` only if it exists, and the conftest override wins over its database URL, so the suite cannot reach `orchestra_dev`. `.example.env.test` and `backend/scripts/precommit-test-preflight.sh` are deleted; the manual `backend-test` hook is plain `cd backend && make test`; the `test-backend` CI job drops its postgres service and separate migration step; `launch.json`, `scripts/test.sh`, the resiliency probes, `AGENTS.md`, `README.md`, `docs/environment-variables.md`, and `evals/README.md` stop naming `.env.test`, and the `docs-agents-md-claims` probe now asserts the conftest owns the test database.
+  - task/997-remove-agent-scaffolding (remove agent scaffolding, `examples/` notebooks, and `evals/` probes)
+  - task/999-testcontainers-postgres (backend tests run against a disposable testcontainers PostgreSQL; retire `.example.env.test`)
 
 ## 2026.9.14
 
