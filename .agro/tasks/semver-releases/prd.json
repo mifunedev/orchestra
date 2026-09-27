@@ -18,8 +18,8 @@
         "`backend/tests/unit/test_app_version.py` passes under `make test` and covers the default and the override."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: pyproject version 4.0.0 read by parity script. 2 executed: check-version-parity.sh -> 'Version parity OK: 4.0.0' exit 0. 3 executed: PACKAGE_JSON_FILE override at 4.0.1 -> exit 1, message names both files. 4 reasoned: test.yml test-backend step 'Check version parity' at line 112; runs in CI on push. 5 executed: tests/unit/test_app_version.py 2 passed (default + override). 6 executed: frontend app-version.test.ts 2 passed; npm run build exit 0. 7 executed: make test 833 passed, 2 skipped on integrated branch.",
       "dependsOn": [],
       "files": [
         "backend/scripts/check-version-parity.sh",
@@ -31,7 +31,8 @@
         ".github/workflows/test.yml",
         ".example.env",
         "docs/environment-variables.md"
-      ]
+      ],
+      "commit": "d1e6aa26"
     },
     {
       "id": "US-002",
