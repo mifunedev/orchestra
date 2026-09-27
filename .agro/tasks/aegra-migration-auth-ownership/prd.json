@@ -16,12 +16,14 @@
         "The Aegra role cannot create, alter, or drop `public` objects. A negative preflight rejects a `public` search path before any Aegra migration. Disable automatic startup migrations in this probe."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: integrated opt-in disposable pg17 test exit 0; dummy TEST_POSTGRES_CONNECTION_STRING refused before migration (pytest exit 4). 2 executed: public revision 0001 and seeded user, aegra revision a3f7c1d9e2b4 after bundled 0.10.7 upgrade. 3 executed: role-scoped search_path=aegra, current_schemas(true) excludes public, unqualified to_regclass null before upgrade. 4 executed: public revision, all user rows, and public table-name list match before/after Aegra upgrade; catalog objects and ACLs not compared. Fixture admin revoked public CREATE before the baseline, not Aegra. 5 executed: public CREATE/ALTER/DROP denied, forced public path rejected by guard, startup migration disabled. Ruff and compileall exit 0. This accepts migration ownership only; Aegra runtime connections and universal public-read exclusion remain unverified for US-002.",
+      "commit": "221affc4",
       "dependsOn": [],
       "files": [
         "backend/tests/integration/test_aegra_schema_ownership.py",
-        "backend/src/integrations/aegra/schema_guard.py"
+        "backend/src/integrations/aegra/schema_guard.py",
+        "backend/conftest.py"
       ]
     },
     {
