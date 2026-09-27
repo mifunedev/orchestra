@@ -13,9 +13,9 @@ Copy the template to the project environment file:
 cp .example.env .env
 ```
 
-`make -C backend test` loads the root `.env` if it exists, but the test suite
+`make -C backend test` does not load the root `.env`. The test suite
 starts a disposable `pgvector/pgvector:pg17` container through testcontainers and
-points `POSTGRES_CONNECTION_STRING` at it. Set `TEST_POSTGRES_CONNECTION_STRING`
+points `POSTGRES_CONNECTION_STRING` at it from `backend/conftest.py`. Set `TEST_POSTGRES_CONNECTION_STRING`
 to use an existing database instead. Docker Compose loads the root `.env`
 and overrides service-only hostnames such as Postgres, Redis, and SearXNG inside
 `infra/docker-compose.yml`.

@@ -1,12 +1,5 @@
 #!/bin/bash
 
-ENV_FILE=../.env
-
-### Set Environment Variables
-set -a # automatically export all variables
-[ -f $ENV_FILE ] && source $ENV_FILE
-set +a
-
 APP_VERSION=$(git rev-parse --short HEAD)
 # unset DATABASE_URL # Clear so will use sqlite
 # unset MINIO_HOST
