@@ -47,13 +47,14 @@
         "`CONTRIBUTING.md` states the entry rule: one imperative sentence, 250 characters or less, a PR or issue link, under `## [Unreleased]`."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: header names Keep a Changelog 1.1.0, SemVer, backend/pyproject.toml source, frontend mirror, v tags. 2 executed: [Unreleased] is first ## section. 3 executed: categories Changed/Removed/Fixed only. 4 executed: 4 bullets, lengths 139/200/141/124, each links a PR or issue. 5 executed: diff of region from '## 2026.9.14' vs origin/development exit 0; heading '## Legacy CalVer releases' directly above. 6 executed: grep '^## Planned' count 0; content moved to docs/roadmap.md (docs/README link deferred to US-005). 7 reasoned: CONTRIBUTING.md '### Changelog entries' states the rule.",
       "dependsOn": [],
       "files": [
         "Changelog.md",
         "CONTRIBUTING.md"
-      ]
+      ],
+      "commit": "8e415228"
     },
     {
       "id": "US-003",
