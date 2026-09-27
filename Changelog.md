@@ -14,7 +14,7 @@ Versioning: `YYYY.M.D` (date-based, e.g. `2026.2.22`). Multiple releases per day
 
 ### Changed
   - task/997-remove-agent-scaffolding (remove agent scaffolding, `examples/` notebooks, and `evals/` probes)
-  - task/999-testcontainers-postgres (backend tests run against a disposable testcontainers PostgreSQL; retire `.example.env.test`)
+  - task/999-testcontainers-postgres (backend tests run against a disposable testcontainers PostgreSQL; retire `.example.env.test`; bootstrap in rootdir `backend/conftest.py` with a DB_URI guard, admin seed and LangGraph table setup; `make test` no longer sources an env file)
 
 ## 2026.9.14
 
