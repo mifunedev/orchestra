@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "project": "orchestra",
+  "branchName": "feat/1012-file-explorer-markdown-preview",
+  "description": "Move the file explorer to the right within Files and preview Markdown by default.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Place the explorer to the right",
+      "description": "As a user, I want the file explorer to the right of the file editor so that the editor sits next to chat.",
+      "acceptanceCriteria": [
+        "On desktop, the file editor appears to the left of the explorer within `FileEditorPanel`.",
+        "On desktop, the resize handle stays between the editor and the explorer, and collapsing the explorer leaves the editor visible.",
+        "On mobile, selecting a file still hides the explorer and shows the editor; the explorer toggle still restores the tree.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "frontend/src/components/panels/FileEditorPanel.tsx",
+        "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Preview Markdown when a file opens",
+      "description": "As a user, I want Markdown files to open in preview so that I can read formatted content first.",
+      "acceptanceCriteria": [
+        "Opening a `.md` file renders `MarkdownCard` before the user presses the preview button.",
+        "The preview button changes the selected `.md` file to code, then changes it back to preview.",
+        "Selecting another `.md` file starts in preview, including after the user viewed code in an earlier file.",
+        "`.html`, `.htm`, and `.mmd` files still open in code; non-previewable files still open in the editor.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "frontend/src/components/panels/FileEditorPanel.tsx",
+        "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
+      ]
+    }
+  ]
+}
