@@ -889,36 +889,6 @@ export default function FileEditorPanel() {
 			aria-label="File editor"
 		>
 			<PanelGroup direction="horizontal" className="flex-1">
-				{/* Tree Sidebar Panel */}
-				<Panel
-					defaultSize={20}
-					minSize={15}
-					maxSize={35}
-					collapsible
-					collapsedSize={0}
-					onCollapse={handleTreeCollapse}
-					onExpand={handleTreeExpand}
-					className={
-						isTreeCollapsed ? "hidden" : isMobile ? "!flex-[1_1_100%]" : ""
-					}
-				>
-					<FileTreeSidebar
-						selectedFile={selectedFile}
-						dirtyFiles={dirtyFiles}
-						onFileSelect={handleFileSelect}
-						onNewFile={handleOpenNewFileDialog}
-						onRename={initiateRename}
-						onDelete={initiateDelete}
-						isCollapsed={isTreeCollapsed}
-						onToggleCollapse={handleToggleTreeCollapse}
-					/>
-				</Panel>
-
-				{/* Resize Handle - hidden on mobile since sidebar is full-width */}
-				{!isTreeCollapsed && !isMobile && (
-					<PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors cursor-col-resize" />
-				)}
-
 				{/* Editor Panel - hidden on mobile when sidebar is full-width */}
 				<Panel
 					defaultSize={80}
@@ -1249,6 +1219,34 @@ export default function FileEditorPanel() {
 							) : null}
 						</div>
 					</div>
+				</Panel>
+
+				{!isTreeCollapsed && !isMobile && (
+					<PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors cursor-col-resize" />
+				)}
+
+				<Panel
+					defaultSize={20}
+					minSize={15}
+					maxSize={35}
+					collapsible
+					collapsedSize={0}
+					onCollapse={handleTreeCollapse}
+					onExpand={handleTreeExpand}
+					className={
+						isTreeCollapsed ? "hidden" : isMobile ? "!flex-[1_1_100%]" : ""
+					}
+				>
+					<FileTreeSidebar
+						selectedFile={selectedFile}
+						dirtyFiles={dirtyFiles}
+						onFileSelect={handleFileSelect}
+						onNewFile={handleOpenNewFileDialog}
+						onRename={initiateRename}
+						onDelete={initiateDelete}
+						isCollapsed={isTreeCollapsed}
+						onToggleCollapse={handleToggleTreeCollapse}
+					/>
 				</Panel>
 			</PanelGroup>
 
