@@ -25,6 +25,7 @@ class ChatModels(str, Enum):
         OPENAI_GPT_5_2 = "openai:gpt-5.2"
         OPENAI_GPT_5_2_CHAT_LATEST = "openai:gpt-5.2-chat-latest"
         OPENAI_GPT_5_2_PRO = "openai:gpt-5.2-pro"
+        OPENAI_GPT_6_LUNA = "openai:gpt-6-luna"
         # OPENAI_GPT_5_CODEX = "openai:gpt-5-codex"
     if ANTHROPIC_API_KEY:
         ANTHROPIC_CLAUDE_3_7_SONNET = "anthropic:claude-3-7-sonnet-latest"
@@ -134,7 +135,7 @@ def get_free_models():
 def get_default_chat_model():
     """Get the default chat model based on available API keys."""
     if OPENAI_API_KEY:
-        return ChatModels.OPENAI_GPT_4_1_MINI.value
+        return ChatModels.OPENAI_GPT_6_LUNA.value
     if GOOGLE_API_KEY:
         return ChatModels.GOOGLE_GEMINI_3_FLASH_PREVIEW.value
     if XAI_API_KEY:

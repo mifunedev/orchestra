@@ -153,6 +153,9 @@ class TestReasoningKwargs:
     def test_openai_reasoning_model_still_uses_responses_api_offline(self, no_catalog):
         assert reasoning_kwargs("openai:gpt-5.6-luna") == {"use_responses_api": True}
 
+    def test_default_gpt_6_uses_responses_api_offline_without_explicit_effort(self, no_catalog):
+        assert reasoning_kwargs("openai:gpt-6-luna", None) == {"use_responses_api": True}
+
     def test_effort_is_applied(self, catalog):
         assert reasoning_kwargs("openai:gpt-5.6-luna", "high") == {
             "use_responses_api": True,

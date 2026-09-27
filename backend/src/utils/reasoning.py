@@ -48,7 +48,7 @@ EFFORT_PROVIDERS: frozenset[str] = frozenset({"openai", "xai", "groq"})
 # Offline fallback: OpenAI reasoning families, used only when the models.dev
 # catalogue is unreachable. Getting this wrong costs a 400 on the first chat, so
 # it deliberately errs toward "is a reasoning model".
-_OPENAI_REASONING_PREFIXES: tuple[str, ...] = ("o1", "o3", "o4", "gpt-5")
+_OPENAI_REASONING_PREFIXES: tuple[str, ...] = ("o1", "o3", "o4", "gpt-5", "gpt-6")
 
 
 def split_model(model: str | None) -> tuple[str, str]:

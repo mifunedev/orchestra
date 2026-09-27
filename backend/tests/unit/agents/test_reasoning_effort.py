@@ -30,6 +30,11 @@ class TestInitGraphReasoning:
         """Without this the default model 500s on every chat -- see #961."""
         assert build_graph("openai:gpt-5.6-luna")["use_responses_api"] is True
 
+    def test_new_default_keeps_automatic_effort_unset(self):
+        kwargs = build_graph("openai:gpt-6-luna")
+        assert kwargs["model"] == "openai:gpt-6-luna"
+        assert "reasoning_effort" not in kwargs
+
     def test_effort_reaches_the_model(self):
         kwargs = build_graph("openai:gpt-5.6-luna", reasoning_effort="high")
         assert kwargs["reasoning_effort"] == "high"
