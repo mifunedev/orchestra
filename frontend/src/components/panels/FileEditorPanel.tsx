@@ -11,6 +11,7 @@ import {
 	Download,
 	Check,
 	Copy,
+	MoreHorizontal,
 	Eye,
 	Plus,
 	X,
@@ -43,6 +44,12 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useChatContext } from "@/context/ChatContext";
 import {
@@ -121,7 +128,10 @@ export default function FileEditorPanel() {
 	};
 
 	const [copied, setCopied] = useState(false);
-	const [showPreview, setShowPreview] = useState(false);
+	const [previewOverride, setPreviewOverride] = useState<{
+		file: string;
+		showPreview: boolean;
+	} | null>(null);
 
 	// Dialog states
 	const [pendingEditorAction, setPendingEditorAction] =
@@ -213,6 +223,10 @@ export default function FileEditorPanel() {
 
 	// Use activeFile from context (no local selectedFile state needed)
 	const selectedFile = activeFile;
+
+	useEffect(() => {
+		setPreviewOverride(null);
+	}, [selectedFile]);
 
 	// Keep editor value ref in sync (ref assignment, not state)
 	latestEditorValueRef.current = selectedFile
@@ -469,7 +483,11 @@ export default function FileEditorPanel() {
 		(isMarkdownFile(selectedFile) ||
 			isHtmlFile(selectedFile) ||
 			isMermaidFile(selectedFile));
-	const effectiveShowPreview = showPreview && canPreview;
+	const effectiveShowPreview =
+		canPreview &&
+		(previewOverride?.file === selectedFile
+			? previewOverride.showPreview
+			: isMarkdownFile(selectedFile ?? ""));
 
 	// Validate file path
 	const validatePath = (path: string, excludePath?: string): string => {
@@ -889,36 +907,6 @@ export default function FileEditorPanel() {
 			aria-label="File editor"
 		>
 			<PanelGroup direction="horizontal" className="flex-1">
-				{/* Tree Sidebar Panel */}
-				<Panel
-					defaultSize={20}
-					minSize={15}
-					maxSize={35}
-					collapsible
-					collapsedSize={0}
-					onCollapse={handleTreeCollapse}
-					onExpand={handleTreeExpand}
-					className={
-						isTreeCollapsed ? "hidden" : isMobile ? "!flex-[1_1_100%]" : ""
-					}
-				>
-					<FileTreeSidebar
-						selectedFile={selectedFile}
-						dirtyFiles={dirtyFiles}
-						onFileSelect={handleFileSelect}
-						onNewFile={handleOpenNewFileDialog}
-						onRename={initiateRename}
-						onDelete={initiateDelete}
-						isCollapsed={isTreeCollapsed}
-						onToggleCollapse={handleToggleTreeCollapse}
-					/>
-				</Panel>
-
-				{/* Resize Handle - hidden on mobile since sidebar is full-width */}
-				{!isTreeCollapsed && !isMobile && (
-					<PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors cursor-col-resize" />
-				)}
-
 				{/* Editor Panel - hidden on mobile when sidebar is full-width */}
 				<Panel
 					defaultSize={80}
@@ -1035,136 +1023,76 @@ export default function FileEditorPanel() {
 								<ScrollBar orientation="horizontal" />
 							</ScrollArea>
 
-							{/* Actions */}
-							<div className="flex items-center gap-1 px-2 border-l border-border">
-								{/* Inference Mode Toggle */}
-								{selectedFile && (
-									<MainToolTip
-										content={
-											inferenceMode
-												? "Inference mode ON: Voice will generate content via LLM"
-												: "Inference mode OFF: Voice will insert text directly"
-										}
-										delayDuration={300}
+							<div className="flex items-center px-2 border-l border-border">
+								<DropdownMenu>
+									<DropdownMenuTrigger
+										asChild
+										disabled={!selectedFile && allFilePaths.length <= 1}
 									>
 										<Button
-											variant={inferenceMode ? "secondary" : "ghost"}
+											variant="ghost"
 											size="sm"
-											onClick={toggleInferenceMode}
-											className={`h-8 gap-1 ${inferenceMode ? "bg-primary/20 text-primary" : ""}`}
-											aria-label="Toggle inference mode"
-											disabled={isRecording || isGenerating}
+											className="h-8 w-8 p-0"
+											aria-label="File actions"
+											disabled={!selectedFile && allFilePaths.length <= 1}
 										>
-											<Sparkles className="h-4 w-4" />
-											{inferenceMode && (
-												<span className="text-xs hidden sm:inline">
-													Generate
-												</span>
-											)}
+											<MoreHorizontal className="h-4 w-4" />
 										</Button>
-									</MainToolTip>
-								)}
-
-								{/* Dictation button */}
-								{selectedFile && (
-									<MainToolTip
-										content={
-											isGenerating
-												? "Generating content..."
-												: isRecording
-													? "Stop dictation"
-													: inferenceMode
-														? "Start voice prompt for LLM generation"
-														: "Start dictation"
-										}
-										delayDuration={500}
-									>
-										<Button
-											variant={isRecording ? "destructive" : "ghost"}
-											size="sm"
-											onClick={
-												isRecording ? handleStopRecording : handleStartRecording
-											}
-											className="h-8 gap-2"
-											aria-label={
-												isRecording ? "Stop dictation" : "Start dictation"
-											}
-											disabled={isGenerating}
-										>
-											{isGenerating ? (
-												<Loader2 className="h-4 w-4 animate-spin" />
-											) : isRecording ? (
-												<Square className="h-4 w-4" />
-											) : (
-												<Mic className="h-4 w-4" />
-											)}
-										</Button>
-									</MainToolTip>
-								)}
-
-								{selectedFile &&
-									(isMarkdownFile(selectedFile) ||
-										isHtmlFile(selectedFile) ||
-										isMermaidFile(selectedFile)) && (
-										<Button
-											variant={effectiveShowPreview ? "secondary" : "ghost"}
-											size="sm"
-											onClick={() => setShowPreview(!showPreview)}
-											className="h-8 gap-2"
-											title={
-												effectiveShowPreview
-													? "Show code"
-													: `Preview ${isHtmlFile(selectedFile) ? "HTML" : isMermaidFile(selectedFile) ? "Mermaid diagram" : "markdown"}`
-											}
-											aria-label={
-												effectiveShowPreview
-													? "Show code"
-													: `Preview ${isHtmlFile(selectedFile) ? "HTML" : isMermaidFile(selectedFile) ? "Mermaid diagram" : "markdown"}`
-											}
-										>
-											<Eye className="h-4 w-4" />
-										</Button>
-									)}
-
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={handleCopy}
-									className="h-8 gap-2"
-									title="Copy current file"
-									aria-label="Copy file content to clipboard"
-								>
-									{copied ? (
-										<Check className="h-4 w-4 text-green-500" />
-									) : (
-										<Copy className="h-4 w-4" />
-									)}
-								</Button>
-
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={handleDownloadFile}
-									className="h-8 gap-2"
-									title="Download current file"
-									aria-label="Download current file"
-								>
-									<Download className="h-4 w-4" />
-								</Button>
-
-								{allFilePaths.length > 1 && (
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={handleDownloadAllAsZip}
-										className="h-8 gap-2 text-xs"
-										title="Download all as ZIP"
-										aria-label="Download all files as ZIP"
-									>
-										<Download className="h-4 w-4" />
-										All
-									</Button>
-								)}
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										{selectedFile && (
+											<>
+												<DropdownMenuItem
+													onSelect={toggleInferenceMode}
+													disabled={isRecording || isGenerating}
+												>
+													<Sparkles />
+													Inference mode: {inferenceMode ? "On" : "Off"}
+												</DropdownMenuItem>
+												<DropdownMenuItem
+													onSelect={
+														isRecording
+															? handleStopRecording
+															: handleStartRecording
+													}
+													disabled={isGenerating}
+												>
+													{isRecording ? <Square /> : <Mic />}
+													{isRecording ? "Stop dictation" : "Start dictation"}
+												</DropdownMenuItem>
+												{canPreview && (
+													<DropdownMenuItem
+														onSelect={() =>
+															setPreviewOverride({
+																file: selectedFile,
+																showPreview: !effectiveShowPreview,
+															})
+														}
+													>
+														<Eye />
+														{effectiveShowPreview
+															? "Show code"
+															: `Preview ${isHtmlFile(selectedFile) ? "HTML" : isMermaidFile(selectedFile) ? "Mermaid diagram" : "markdown"}`}
+													</DropdownMenuItem>
+												)}
+												<DropdownMenuItem onSelect={handleCopy}>
+													{copied ? <Check /> : <Copy />}
+													Copy current file
+												</DropdownMenuItem>
+												<DropdownMenuItem onSelect={handleDownloadFile}>
+													<Download />
+													Download current file
+												</DropdownMenuItem>
+											</>
+										)}
+										{allFilePaths.length > 1 && (
+											<DropdownMenuItem onSelect={handleDownloadAllAsZip}>
+												<Download />
+												Download all files as ZIP
+											</DropdownMenuItem>
+										)}
+									</DropdownMenuContent>
+								</DropdownMenu>
 							</div>
 						</div>
 
@@ -1249,6 +1177,34 @@ export default function FileEditorPanel() {
 							) : null}
 						</div>
 					</div>
+				</Panel>
+
+				{!isTreeCollapsed && !isMobile && (
+					<PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors cursor-col-resize" />
+				)}
+
+				<Panel
+					defaultSize={20}
+					minSize={15}
+					maxSize={35}
+					collapsible
+					collapsedSize={0}
+					onCollapse={handleTreeCollapse}
+					onExpand={handleTreeExpand}
+					className={
+						isTreeCollapsed ? "hidden" : isMobile ? "!flex-[1_1_100%]" : ""
+					}
+				>
+					<FileTreeSidebar
+						selectedFile={selectedFile}
+						dirtyFiles={dirtyFiles}
+						onFileSelect={handleFileSelect}
+						onNewFile={handleOpenNewFileDialog}
+						onRename={initiateRename}
+						onDelete={initiateDelete}
+						isCollapsed={isTreeCollapsed}
+						onToggleCollapse={handleToggleTreeCollapse}
+					/>
 				</Panel>
 			</PanelGroup>
 

@@ -67,6 +67,7 @@ vi.mock("lucide-react", () => {
 		Download: Icon,
 		Check: Icon,
 		Copy: Icon,
+		MoreHorizontal: Icon,
 		Eye: Icon,
 		Plus: Icon,
 		X: Icon,

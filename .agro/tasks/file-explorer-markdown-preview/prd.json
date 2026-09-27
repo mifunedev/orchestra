@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "project": "orchestra",
+  "branchName": "feat/1012-file-explorer-markdown-preview",
+  "description": "Place the explorer right, preview Markdown by default, and group file actions in a three-dot menu.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Place the explorer to the right",
+      "description": "As a user, I want the file explorer to the right of the file editor so that the editor sits next to chat.",
+      "acceptanceCriteria": [
+        "On desktop, the file editor appears to the left of the explorer within `FileEditorPanel`.",
+        "On desktop, the resize handle stays between the editor and the explorer, and collapsing the explorer leaves the editor visible.",
+        "On mobile, selecting a file still hides the explorer and shows the editor; the explorer toggle still restores the tree.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Desktop order and resize handle: executed npm test -- src/tests/components/FileEditorPanel.layout.test.tsx src/tests/components/FileEditorPanel.manual-save.test.tsx (exit 0); browser screenshot .claude/screenshots/explorer-right-us001.png shows editor, handle, explorer in order. Collapse: executed agent-browser click Collapse sidebar; snapshot retained File editor and Show file explorer. Mobile: focused mock test passes; browser mobile check remains for final integrated acceptance. Browser: executed agent-browser at localhost:5173 on authenticated thread (exit 0).",
+      "dependsOn": [],
+      "files": [
+        "frontend/src/components/panels/FileEditorPanel.tsx",
+        "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
+      ],
+      "commit": "c44c18d7"
+    },
+    {
+      "id": "US-002",
+      "title": "Preview Markdown when a file opens",
+      "description": "As a user, I want Markdown files to open in preview so that I can read formatted content first.",
+      "acceptanceCriteria": [
+        "Opening a `.md` file renders `MarkdownCard` before the user presses the preview button.",
+        "The preview button changes the selected `.md` file to code, then changes it back to preview.",
+        "Selecting another `.md` file starts in preview, including after the user viewed code in an earlier file.",
+        "`.html`, `.htm`, and `.mmd` files still open in code; non-previewable files still open in the editor.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Markdown default, toggle, next file, HTML/Mermaid/plain-text defaults: executed npm test -- src/tests/components/FileEditorPanel.layout.test.tsx src/tests/components/FileEditorPanel.manual-save.test.tsx src/tests/components/FileEditorPanel.delete-flow.test.tsx (exit 0, 16 tests). Browser: executed agent-browser on localhost:5173/chat, created scratch .md, observed Show code on open, toggled to Preview markdown and back (exit 0). Deleted scratch file and verified Files count reset; screenshot .claude/screenshots/markdown-preview-us002.png.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "frontend/src/components/panels/FileEditorPanel.tsx",
+        "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
+      ],
+      "commit": "e33b8426"
+    },
+    {
+      "id": "US-003",
+      "title": "Group file actions in one menu",
+      "description": "As a user, I want one three-dot button for file actions so that the file header has fewer buttons.",
+      "acceptanceCriteria": [
+        "The file header shows one three-dot action button instead of separate inference, dictation, preview, copy, download, and ZIP buttons.",
+        "The menu exposes labeled actions for inference mode, dictation, preview or code, copy, download, and ZIP download when each action applies.",
+        "The preview or code action changes the selected file view without changing the Markdown preview default.",
+        "The menu preserves the existing recording and generation disabled states; new-file and tab-close buttons stay in place.",
+        "Keyboard users can open the menu, select an action, and close it with Escape.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Single three-dot menu, action labels and applicable conditions, preview/code toggle, disabled recording states and tab controls, keyboard access: executed npm test -- src/tests/components/FileEditorPanel.layout.test.tsx src/tests/components/FileEditorPanel.manual-save.test.tsx src/tests/components/FileEditorPanel.delete-flow.test.tsx (exit 0, 23 passed). Browser: executed agent-browser focus File actions + Enter, observed menu screenshot .claude/screenshots/file-actions-menu-us003.png; selected Show code and reopened to observe Preview markdown; Escape closes. Deleted browser scratch file (Files count reset). Full suite, lint and build rerun before release.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "frontend/src/components/panels/FileEditorPanel.tsx",
+        "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
+      ],
+      "commit": "c2349ae8,e204edf1"
+    }
+  ]
+}
