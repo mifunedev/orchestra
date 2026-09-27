@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "orchestra",
   "branchName": "feat/1012-file-explorer-markdown-preview",
-  "description": "Move the file explorer to the right within Files and preview Markdown by default.",
+  "description": "Place the explorer right, preview Markdown by default, and group file actions in a three-dot menu.",
   "userStories": [
     {
       "id": "US-001",
@@ -46,6 +46,29 @@
         "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
       ],
       "commit": "e33b8426"
+    },
+    {
+      "id": "US-003",
+      "title": "Group file actions in one menu",
+      "description": "As a user, I want one three-dot button for file actions so that the file header has fewer buttons.",
+      "acceptanceCriteria": [
+        "The file header shows one three-dot action button instead of separate inference, dictation, preview, copy, download, and ZIP buttons.",
+        "The menu exposes labeled actions for inference mode, dictation, preview or code, copy, download, and ZIP download when each action applies.",
+        "The preview or code action changes the selected file view without changing the Markdown preview default.",
+        "The menu preserves the existing recording and generation disabled states; new-file and tab-close buttons stay in place.",
+        "Keyboard users can open the menu, select an action, and close it with Escape.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "frontend/src/components/panels/FileEditorPanel.tsx",
+        "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
+      ]
     }
   ]
 }
