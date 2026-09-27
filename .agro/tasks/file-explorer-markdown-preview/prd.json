@@ -36,15 +36,16 @@
         "Verify in browser using agent-browser skill."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Markdown default, toggle, next file, HTML/Mermaid/plain-text defaults: executed npm test -- src/tests/components/FileEditorPanel.layout.test.tsx src/tests/components/FileEditorPanel.manual-save.test.tsx src/tests/components/FileEditorPanel.delete-flow.test.tsx (exit 0, 16 tests). Browser: executed agent-browser on localhost:5173/chat, created scratch .md, observed Show code on open, toggled to Preview markdown and back (exit 0). Deleted scratch file and verified Files count reset; screenshot .claude/screenshots/markdown-preview-us002.png.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         "frontend/src/components/panels/FileEditorPanel.tsx",
         "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
-      ]
+      ],
+      "commit": "e33b8426"
     }
   ]
 }
