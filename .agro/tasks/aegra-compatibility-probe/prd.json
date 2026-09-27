@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "project": "orchestra",
+  "branchName": "task/1014-aegra-compatibility-probe",
+  "description": "Test Aegra migration, protocol, auth and client stream boundaries without replacing the active runtime.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Check migration ownership",
+      "description": "As a maintainer, I want an isolated database probe so that I can assess whether Aegra preserves Orchestra revisions and existing data.",
+      "acceptanceCriteria": [
+        "Record the selected Aegra release, SDK release, Python requirements, and package source in the task evidence. Do not reuse the pins from closed PR #977 without verification.",
+        "Seed a disposable PostgreSQL database with an existing Orchestra revision and one data record before the probe.",
+        "Run the Aegra migration path against the disposable database. Assert that the existing record and Orchestra revision remain intact, or record the exact failed assertion and stop before any cutover claim.",
+        "Add a focused probe test that detects a changed revision or seeded record. Do not run `backend/src/utils/migrations.py` against an operator database.",
+        "Compare package requirements with the pg16 Compose image and pg17 test image. Mark an untested database version as unverified. Do not change `infra/docker-compose.yml` or `README.md` in this PR."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: PyPI aegra-api 0.10.7 (Python >=3.12) and npm @langchain/langgraph-sdk 1.12.0 metadata recorded in evidence/migration.md. 2 executed: disposable postgres:16 server 16.15 seeded with Orchestra revision 0001 and user; pg17 test fixture also seeded. 3 executed: Aegra migration exit 1, Can't locate revision identified by 0001; revision and user unchanged on both fixtures, so no cutover claim. 4 executed: AEGRA_PROBE_LIVE=1 uv run pytest -q tests/unit/utils/test_aegra_migration_probe.py tests/integration/test_aegra_compatibility.py tests/integration/test_distributed_stream.py: exit 0, 17 passed; focused Ruff exit 0; no operator DB used. 5 reasoned: pg17 fixture verified, postgres:16 tested; exact Compose pgvector/pgvector:pg16 pull blocked by Docker credential error exit 255 and marked unverified. Compose and README unchanged. Worker commit baed1f58; integrated commit 4c5403dc.",
+      "commit": "4c5403dc",
+      "dependsOn": [],
+      "files": [
+        "backend/tests/unit/utils/test_aegra_migration_probe.py",
+        "backend/tests/integration/test_aegra_compatibility.py"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Probe protocol and client stream contracts",
+      "description": "As a maintainer, I want an isolated Aegra request path so that I can compare its behavior with Orchestra without changing the active app.",
+      "acceptanceCriteria": [
+        "Use a disposable Aegra process and database. Keep `backend/main.py`, `backend/src/routes/v0/llm.py`, and `frontend/src/hooks/useChat.ts` unchanged.",
+        "Record the Aegra route paths and HTTP results for one health or metadata request and one Agent Protocol run request. Compare them with `/api/llm/stream` and `/api/threads/{thread_id}/stream`.",
+        "Exercise missing, valid, and cross-user credentials on the available probe routes. Record status codes and identify any route that cannot enforce current tenant rules.",
+        "Exercise one streamed run, cancellation, and reconnect or replay. Record the emitted event names, terminal signal, cursor behavior, and errors. State when the installed release lacks a capability.",
+        "Add focused, fixture-based tests for the observed event mapping against `frontend/src/lib/entities/stream.ts`. Do not wire the SDK into production chat."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "1 executed: isolated_aegra creates a fresh pg17 database and named tmux session; finally drops DB and kills only its session. Production files unchanged. 2 executed: GET /health 200; POST /threads/{id}/runs/stream 200 SSE, Orchestra POST /api/llm/stream and GET /api/threads/{id}/stream return 404; full route table in evidence/protocol.md. 3 executed: fixture missing credentials 401 on protected routes; Alice 200; Bob 404 on Alice run, replay, cancel and v2 events; shared assistant search 200 for Bob; fixture does not prove Orchestra auth integration. 4 executed: named metadata/values/updates/end frames, Last-Event-ID replay, cancelled run ends interrupted; v2 endpoint 200 heartbeat only, v1 cursor in since 422, v2 replay unverified. 5 executed: frontend fixture tests prove current tuple reader drops Aegra frames and cursor; integrated checks exit 0: live backend 18 passed, Ruff pass, frontend 22 passed, lint 0 errors/3 warnings, build pass. Worker commit 63c3db4f; integrated commit 66dd441e.",
+      "commit": "66dd441e",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "frontend/src/tests/services/aegraEventCompatibility.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Record live manual review",
+      "description": "As an operator, I want a reproducible review so that I can decide whether to fund a later integration step.",
+      "acceptanceCriteria": [
+        "With operator approval for disposable local resources, run the probe and save a redacted command transcript to `.agro/tasks/aegra-compatibility-probe/evidence/manual-review.md`.",
+        "Record exact package versions, database image, result or blocker for each boundary, and the cleanup command in the transcript.",
+        "Delete every database, process, and file created outside the worktree for the probe. Record the cleanup result.",
+        "The draft PR links the evidence, states what remains unverified, identifies the highest migration or auth risk, and recommends one next decision."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "1 executed: operator approved disposable local resources; env -u TEST_POSTGRES_CONNECTION_STRING AEGRA_PROBE_LIVE=1 uv run pytest -q --disable-warnings tests/unit/utils/test_aegra_migration_probe.py tests/integration/test_aegra_compatibility.py tests/integration/test_aegra_protocol_probe.py tests/integration/test_distributed_stream.py: exit 0, 18 passed, 5 warnings; redacted command transcript in evidence/manual-review.md. 2 executed: transcript records Aegra 0.10.7, SDK 1.12.0 metadata, pgvector/pgvector:pg17 image digest, revision 0001 rejection, routes, fixture auth, streaming, unsupported v2 replay and pg16 image. 3 executed: pytest fixture stopped its container, context manager dropped unique DB and killed probe tmux session, scratch SDK and generated files removed; Docker filtered list empty and no probe tmux session remains. 4 executed: PR #1015 body links manual-review.md, migration.md and protocol.md, names unverified boundaries, migration/auth risk and next decision; PR remains draft. Worker commit 564ff16f; integrated commit a9adeee7.",
+      "commit": "a9adeee7",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/aegra-compatibility-probe/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
