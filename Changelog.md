@@ -13,6 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Removed
 
+- Remove the release-triggered and manual deployment workflows (`build.yml`, `deploy-docker.yml`, `deploy-vm.yml`), which no longer deployed ([#1003](https://github.com/mifunedev/orchestra/issues/1003)).
 - Remove the agent scaffolding, the `examples/` notebooks, and the `evals/` probes ([#998](https://github.com/mifunedev/orchestra/pull/998)).
 
 ### Fixed

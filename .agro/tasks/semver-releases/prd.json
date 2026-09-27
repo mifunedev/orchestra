@@ -96,7 +96,7 @@
       ],
       "priority": 4,
       "passes": true,
-      "notes": "Commits 7bdbb7d5 + c14cd09b. 1 executed: make -qp shows no changelog/tag targets (root and backend). 2 executed: backend/scripts/tag.sh not tracked. 3 executed: build.yml deleted (duplicated release.yml publish; its auto-deploy on tag is dropped, manual deploy-docker.yml remains). 4 executed: deploy-docker input 'e.g. 4.0.0', deploy-vm input 'e.g. v4.0.0'; rc/agent gates removed; actionlint -shellcheck= exit 0 (pre-existing shellcheck findings unchanged). 5 executed: grep for YYYY.M.D|date-based|tag.sh|make changelog|make tag outside Changelog.md and .agro/tasks exit 1; hits inside .agro/tasks are the plan quoting the pattern.",
+      "notes": "Commits 7bdbb7d5 + c14cd09b. 1 executed: make -qp shows no changelog/tag targets (root and backend). 2 executed: backend/scripts/tag.sh not tracked. 3 executed: build.yml deleted (duplicated release.yml publish; its auto-deploy on tag is dropped, manual deploy-docker.yml remains). 4 executed: deploy-docker input 'e.g. 4.0.0', deploy-vm input 'e.g. v4.0.0'; rc/agent gates removed; actionlint -shellcheck= exit 0 (pre-existing shellcheck findings unchanged). 5 executed: grep for YYYY.M.D|date-based|tag.sh|make changelog|make tag outside Changelog.md and .agro/tasks exit 1; hits inside .agro/tasks are the plan quoting the pattern. Operator follow-up 2026-09-27: deploy-docker.yml and deploy-vm.yml deleted (deploys did not work; new ones later). Criterion 4 is superseded by that deletion.",
       "dependsOn": [
         "US-003"
       ],
