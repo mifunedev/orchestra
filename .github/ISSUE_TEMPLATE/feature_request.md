@@ -109,7 +109,7 @@ worktree_path: "$WORKSPACE/.worktrees/feat-[issue#]"
 
 > **⚠️ IMPORTANT:** User and API documentation lives under [`docs/`](../../docs/README.md) in this repo — it ships in the same PR as the feature.
 >
-> The published documentation site is retired. Read the documentation at [https://github.com/mifunedev/orchestra/tree/development/docs](https://github.com/mifunedev/orchestra/tree/development/docs). The Docusaurus app in [`mifunedev/wiki`](https://github.com/mifunedev/wiki) still keeps its own copy of this Markdown. Until that repo is retired, a change that must reach the wiki has to be applied there too.
+> The published documentation site is retired. Read the documentation at [https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation](https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation). The Docusaurus app in [`mifunedev/wiki`](https://github.com/mifunedev/wiki) still keeps its own copy of this Markdown. Until that repo is retired, a change that must reach the wiki has to be applied there too.
 
 ---
 

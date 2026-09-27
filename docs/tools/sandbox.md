@@ -6,7 +6,7 @@ slug: /tools/sandbox
 # Ubuntu Sandbox (exec-server MCP)
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation)
 [![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 The ubuntu sandbox is a standalone MCP server that runs inside an isolated Docker container and exposes tools over the [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) transport at `/mcp`. It supports optional API key authentication, session state via `mcp-session-id`, and a `/health` endpoint for monitoring.

@@ -23,7 +23,7 @@
 Steerable Harnesses for [DeepAgents](https://docs.langchain.com/oss/python/deepagents/overview)
 
 <a href="https://discord.com/invite/QRfjg4YNzU"><img src="https://img.shields.io/badge/Join-Discord-purple"></a>
-<a href="https://github.com/mifunedev/orchestra/tree/development/docs"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
+<a href="https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation"><img src="https://img.shields.io/badge/View-API Docs-blue"></a>
 <a href="https://mifune.dev/socials"><img src="https://img.shields.io/badge/Follow-Social-black"></a>
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![DCO](https://img.shields.io/badge/DCO-1.1-yellow)](DCO)
@@ -149,7 +149,7 @@ For all commands, see `backend/Makefile`.
 
 ## 📚 Documentation
 
-- [Documentation index](docs/README.md) — full user docs, also published at [https://github.com/mifunedev/orchestra/tree/development/docs](https://github.com/mifunedev/orchestra/tree/development/docs)
+- [Documentation index](docs/README.md) — full user docs, also published at [https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation](https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation)
 - [Orchestra Docs](docs/index.md) — the published documentation home page
 - [Getting Started](docs/getting-started.md) — account, assistant, and first thread
 - [Self-Hosting Guide](docs/self-hosting/index.md) — Docker deployment and AI provider setup

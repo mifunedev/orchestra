@@ -40,7 +40,7 @@ export const DEFAULT_BRANDING: Branding = {
 	urls: {
 		console: "http://localhost:8000",
 		api_base: "http://localhost:8000/api",
-		docs: "https://github.com/mifunedev/orchestra/tree/development/docs",
+		docs: "https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation",
 		website: "https://mifune.dev",
 		blog: "https://mifune.dev/blog",
 		socials: "https://mifune.dev/socials",
