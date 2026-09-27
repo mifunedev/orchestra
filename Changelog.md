@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Fixed
+
+- Link the documentation directory to its documentation heading ([#1006](https://github.com/mifunedev/orchestra/issues/1006)).
+
 ## [4.0.0] - 2026-09-27
 
 ### Changed

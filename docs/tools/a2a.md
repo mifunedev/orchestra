@@ -6,7 +6,7 @@ slug: /tools/a2a
 # Agent-to-Agent [(A2A)](https://github.com/mifunedev/a2a-langgraph)
 
 [![Join Slack](https://img.shields.io/badge/Join-Slack-4A154B?logo=slack&logoColor=white)](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation)
 [![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 :::warning Under Development

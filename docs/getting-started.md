@@ -173,4 +173,4 @@ Now that you're set up, explore these features to get the most out of Orchestra:
 
 -   **[Slack Community](https://join.slack.com/t/ruska-ai/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)** — get help from the community
 -   **[GitHub](https://github.com/mifunedev)** — report bugs or request features
--   **[Docs](https://github.com/mifunedev/orchestra/tree/development/docs)** — full documentation index
+-   **[Docs](https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation)** — full documentation index

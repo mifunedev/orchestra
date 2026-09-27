@@ -30,7 +30,7 @@ export const config = [
 		},
 		documentation: "Currency Agent A2A Server",
 		documentation_url:
-			"https://github.com/mifunedev/orchestra/tree/development/docs",
+			"https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation",
 		public: true,
 		created_at: "2023-02-10T10:45:00Z",
 		updated_at: "2023-05-18T09:20:15Z",

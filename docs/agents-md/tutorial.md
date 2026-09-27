@@ -7,7 +7,7 @@ sidebar_position: 1
 # AGENTS.md Tutorial
 
 [![Join Discord](https://img.shields.io/badge/Join-Discord-purple)](https://discord.com/invite/QRfjg4YNzU)
-[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs)
+[![View API Docs](https://img.shields.io/badge/View-API%20Docs-blue)](https://github.com/mifunedev/orchestra/tree/development/docs#orchestra-documentation)
 [![Follow Social](https://img.shields.io/badge/Follow-Social-black)](https://mifune.dev/socials)
 
 This tutorial walks you through creating an AGENTS.md file to customize your AI agent's behavior in Orchestra. By the end, your agent will follow the persona, rules, and instructions you define in a simple markdown file.
