@@ -14,7 +14,6 @@ from deepagents import SubAgent
 from src.schemas.contexts import ContextSchema
 from src.contexts.service import ServiceContext
 from src.schemas.entities import LLMInput
-from src.constants import APP_LOG_LEVEL
 from src.agents import (
     construct_agent,
     resolve_sandbox_backend,
@@ -31,7 +30,7 @@ from langchain_core.messages import (
     AIMessageChunk,
     ToolMessage,
 )
-from src.utils.logger import log_to_file, logger
+from src.utils.logger import logger
 from src.utils.format import get_time
 
 # Configurable stream timeout (default 60 seconds)
@@ -257,7 +256,6 @@ def _process_and_format_chunk(chunk, agent_model, state: _StreamState) -> str | 
     if stream_type == "values" and "todos" in chunk_data:
         state.todos_list = chunk_data["todos"]
     data = ujson.dumps(stream_chunk)
-    log_to_file(str(data), agent_model) and APP_LOG_LEVEL == "DEBUG"
     logger.debug(f"data: {str(data)}")
     return f"data: {data}\n\n"
 
