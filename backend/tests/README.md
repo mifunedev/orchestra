@@ -50,8 +50,7 @@ uv run pytest-watch
 
 Tests run automatically in GitHub Actions on every push and pull request. The CI environment:
 
--   Uses a PostgreSQL service container (pgvector/pgvector:pg16)
--   Runs database migrations before tests
+-   Starts the same testcontainers PostgreSQL as local runs
 -   Mocks all external HTTP calls (Airtable, LLM APIs)
 -   Uses test credentials: `admin@example.com` / `test1234`
 

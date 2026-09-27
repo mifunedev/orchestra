@@ -5,16 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning: `YYYY.M.D` (date-based, e.g. `2026.2.22`). Multiple releases per day use `-N` suffix (e.g. `2026.2.22-2`).
 
+## Planned
+
+### Added
+  - Human-In-The-Loop — agent control.
+
 ## 2026.9.27
 
 ### Changed
   - task/997-remove-agent-scaffolding (remove agent scaffolding, `examples/` notebooks, and `evals/` probes)
   - bug/1001-remove-stream-file-log (stop writing every stream chunk to `backend/logs/llm_stream/`)
-
-## Planned
-
-### Added
-  - Human-In-The-Loop — agent control.
+  - task/999-testcontainers-postgres (backend tests run against a disposable testcontainers PostgreSQL; retire `.example.env.test`; bootstrap in rootdir `backend/conftest.py` with a DB_URI guard, admin seed and LangGraph table setup; `make test` no longer sources an env file)
 
 ## 2026.9.14
 

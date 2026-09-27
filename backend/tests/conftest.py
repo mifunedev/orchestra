@@ -1,12 +1,12 @@
-import pytest
 import asyncio
+import pytest
 import respx
 from unittest.mock import patch
+
+
 from httpx import AsyncClient, ASGITransport
 from main import app
 from sqlalchemy import text
-from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
 from src.constants import DB_URI
@@ -14,37 +14,6 @@ from src.services.db import get_async_db, get_store, get_store_db, get_checkpoin
 from src.utils.db import get_asyncpg_connect_args, get_asyncpg_url
 from langgraph.store.memory import InMemoryStore
 from taskiq import InMemoryBroker
-
-
-async def ensure_database_exists(db_uri: str) -> None:
-    """Create the database if it doesn't exist."""
-    if "/" not in db_uri:
-        return
-
-    url = make_url(db_uri)
-    db_name = url.database
-    postgres_uri = url.set(database="postgres")
-
-    try:
-        engine = create_async_engine(
-            get_asyncpg_url(postgres_uri),
-            isolation_level="AUTOCOMMIT",
-            connect_args=get_asyncpg_connect_args(postgres_uri, statement_cache_size=None),
-        )
-        async with engine.connect() as conn:
-            result = await conn.execute(
-                text("SELECT 1 FROM pg_database WHERE datname = :dbname"),
-                {"dbname": db_name},
-            )
-            if not result.fetchone():
-                await conn.execute(text(f'CREATE DATABASE "{db_name}"'))
-        await engine.dispose()
-    except (OperationalError, ProgrammingError):
-        pass
-
-
-# Ensure database exists before tests run
-asyncio.run(ensure_database_exists(DB_URI))
 
 
 class TestInMemoryStore(InMemoryStore):
@@ -112,9 +81,7 @@ async def test_engine():
             f"Failed to connect to test database.\n"
             f"Connection string: {url}\n"
             f"Error: {e}\n\n"
-            f"Make sure PostgreSQL is running and accessible.\n"
-            f"For CI: Ensure PostgreSQL service is configured in workflow.\n"
-            f"For local: Run 'docker compose up postgres' or check your .env file."
+            f"The test database is a testcontainers PostgreSQL, or TEST_POSTGRES_CONNECTION_STRING if set."
         )
 
 

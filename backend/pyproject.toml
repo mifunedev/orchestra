@@ -73,6 +73,7 @@ dev = [
     "respx>=0.22.0",
     "pytest-benchmark>=4.0",
     "ruff==0.16.7",
+    "testcontainers[postgres]==4.14.2",
 ]
 
 [tool.ruff]

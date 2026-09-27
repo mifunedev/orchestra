@@ -64,7 +64,8 @@ cd ../frontend && npm install    # install the Node.js dependencies
 ### 2. Start PostgreSQL
 
 Orchestra uses a shared local PostgreSQL container. The container is generic. Any project on the
-host can use it. Orchestra owns only the `orchestra_dev` and `orchestra_test` databases inside it.
+host can use it. Orchestra owns only the `orchestra_dev` database inside it. Tests start their own disposable
+PostgreSQL container through testcontainers.
 
 ```bash
 docker run -d \
@@ -82,11 +83,10 @@ docker run -d \
 The flag `-v pgvector_data:/var/lib/postgresql/data` mounts a named volume. Docker stores the
 data outside the repository.
 
-Create the two databases and the vector extension:
+Create the database and the vector extension:
 
 ```bash
 docker exec pgvector psql -U admin -d postgres -c "CREATE DATABASE orchestra_dev OWNER admin;"
-docker exec pgvector psql -U admin -d postgres -c "CREATE DATABASE orchestra_test OWNER admin;"
 docker exec pgvector psql -U admin -d orchestra_dev -c "CREATE EXTENSION IF NOT EXISTS vector;"
 ```
 
