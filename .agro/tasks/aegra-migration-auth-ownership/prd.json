@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "project": "mifunedev/orchestra",
+  "branchName": "feat/1016-aegra-migration-auth-ownership",
+  "description": "Prove Aegra 0.10.7 schema isolation in one PostgreSQL database, adapt Orchestra auth only after the gate, and map safe replacement of agent state.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Prove one-database schema ownership",
+      "description": "As an operator, I want separate migration schemas in one database so that Aegra can replace agent state without changing Orchestra's revision history.",
+      "acceptanceCriteria": [
+        "An opt-in test creates one database with `public` and `aegra` schemas inside a disposable `pgvector/pgvector:pg17` testcontainer. The test refuses `TEST_POSTGRES_CONNECTION_STRING` and any operator database.",
+        "Orchestra migrates `public` to revision `0001` and seeds one user. Aegra 0.10.7 upgrades only the `aegra` schema through its supported migration entry point.",
+        "A dedicated Aegra role uses a database-scoped `search_path` beginning with `aegra`. The test checks its database name and schema before the upgrade.",
+        "The test compares `public.alembic_version`, the seeded user, and the public table list before and after Aegra upgrade. Both schema-qualified version tables have independent revisions.",
+        "The Aegra role cannot create, alter, or drop `public` objects. A negative preflight rejects a `public` search path before any Aegra migration. Disable automatic startup migrations in this probe."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "backend/tests/integration/test_aegra_schema_ownership.py",
+        "backend/src/integrations/aegra/schema_guard.py"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Check Aegra runtime connections",
+      "description": "As an operator, I want every Aegra connection to use its own schema so that runtime setup cannot modify Orchestra objects.",
+      "acceptanceCriteria": [
+        "The opt-in probe checks the database name and effective schema on Alembic, ORM, checkpoint, and store connections. Every Aegra path resolves to `aegra`.",
+        "The Aegra startup revision precheck reads `aegra.alembic_version` and does not change the `public` revision or table list.",
+        "Aegra checkpoint and store round trips stay in `aegra`. If indexing or an extension needs access outside `aegra`, stop and record the exact blocker without changing public objects."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "backend/tests/integration/test_aegra_schema_runtime.py",
+        "backend/src/integrations/aegra/schema_guard.py"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Share Orchestra credential validation",
+      "description": "As a maintainer, I want one credential resolver so that Orchestra routes and an Aegra adapter use the same user identity and revocation rules.",
+      "acceptanceCriteria": [
+        "Extract request-independent credential validation from `backend/src/utils/auth.py`. Preserve existing JWT, `x-api-key`, user lookup, and token revocation behavior on Orchestra routes.",
+        "For a valid JWT or API token, the resolver returns the database user's stable ID. Invalid, expired, revoked, missing-expiry, and deleted-user credentials fail closed.",
+        "The resolver scopes each user lookup to a short-lived database session. A regression test shows no session remains held during an SSE response.",
+        "Preserve the current API token `last_used_at` update on successful token authentication. Do not log a raw JWT or API key on failure.",
+        "The existing API-token, auth-session, and public-assistant tests pass. The API-token lifecycle test runs without a skip."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "backend/src/utils/auth.py",
+        "backend/tests/unit/utils/test_identity_resolver.py",
+        "backend/tests/unit/utils/test_auth_dependency_scope.py"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Authenticate the isolated Aegra service",
+      "description": "As an operator, I want Aegra to accept Orchestra identities so that a test run does not create a second user authority.",
+      "acceptanceCriteria": [
+        "Aegra 0.10.7 loads the adapter through its supported `auth.path` setting in an opt-in configuration. The production Orchestra app does not mount Aegra routes.",
+        "The adapter maps a verified Orchestra user ID to Aegra `identity`. It ignores client-supplied user and tenant fields.",
+        "Missing, invalid, expired, or revoked credentials return 401 on protected Aegra routes. A missing auth configuration prevents the isolated service from starting; it never falls back to Aegra's shared anonymous identity.",
+        "The adapter uses a separate, least-privilege role in the same database for `public` identity and token lookup. The Aegra migration role cannot create, alter, or drop `public` tables.",
+        "API token lookup and resource streaming do not pin a pooled Orchestra connection for the duration of a run."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        "backend/src/integrations/aegra/auth.py",
+        "backend/tests/integration/test_aegra_auth_adapter.py"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Deny cross-user Aegra resources",
+      "description": "As an operator, I want explicit resource authorization so that an authenticated user cannot read or change another user's runs or data.",
+      "acceptanceCriteria": [
+        "Explicit Aegra auth handlers cover assistant, thread, run-through-thread, and store operations used by the opt-in test. An unhandled operation fails closed.",
+        "Two valid Orchestra users can access their own threads and runs. Cross-user search, read, stream, cancel, and store operations return a denial without exposing another user's data.",
+        "Client-supplied owner metadata and store namespaces do not override the verified user ID.",
+        "Tests exercise missing and revoked API tokens as well as valid JWTs against the adapter. The current Orchestra routes continue to pass their auth tests."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        "backend/src/integrations/aegra/auth.py",
+        "backend/tests/integration/test_aegra_auth_adapter.py"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Map data ownership and retirement",
+      "description": "As an operator, I want a verified ownership map so that Aegra replaces eligible state without deleting Orchestra-specific data.",
+      "acceptanceCriteria": [
+        "Record each current assistant, thread, run, checkpoint, user, API-token, project, file, memory, setting, and schedule persistence path in `.agro/tasks/aegra-migration-auth-ownership/evidence/ownership.md`.",
+        "For each path, state the current owner, candidate Aegra owner or Orchestra retention, field mapping status, and a test required before retirement. Do not claim equivalence from matching names alone.",
+        "Mark assistants, threads, runs, and checkpoints as replacement candidates. Keep user and app-specific data until a separate migration and parity test passes.",
+        "Record the order of data backfill, read-switch, rollback, and deletion for later work. Do not delete any table, namespace, queue, or object in this task."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/aegra-migration-auth-ownership/evidence/ownership.md"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Record manual review evidence",
+      "description": "As an operator, I want a disposable live transcript so that I can decide whether to authorize a later integration.",
+      "acceptanceCriteria": [
+        "After operator approval for disposable local resources, run the opt-in one-database, two-schema, two-user probe. Save a redacted command transcript in `.agro/tasks/aegra-migration-auth-ownership/evidence/manual-review.md`.",
+        "Record exact database image, Aegra version, schema-qualified revisions, effective search paths, credential permissions, route statuses, and failure paths. Mark each untested claim as unverified.",
+        "Stop the probe service and delete only resources created by the review. Record the cleanup commands and observed results.",
+        "Keep PR #1015 draft and unmerged. If a new PR is authorized, base it on `development`; link the transcript, ownership map, risks, and the next decision without merging it."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005",
+        "US-006"
+      ],
+      "files": [
+        ".agro/tasks/aegra-migration-auth-ownership/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
