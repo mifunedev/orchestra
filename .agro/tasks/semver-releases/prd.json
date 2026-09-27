@@ -73,14 +73,15 @@
         "Image tags and the release name use the bare version. Only the git tag and the release title use the `v` prefix."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: on.push.branches [main]. 2 reasoned: reserve needs test-frontend+test-backend (npm test, npm run build, check-version-parity.sh, pytest). 3 reasoned: Read version step uses tomllib on backend/pyproject.toml. 4 reasoned: tag_commit resolves annotated tags; existing != GITHUB_SHA -> noop=true, exit 0; publish-image/finalize gated on noop=='false'. 5 reasoned: existing tag on same SHA skips create; gh release view guards create; finalize uses gh release edit. 6-7 reasoned: api build tagged orchestra-api and orchestra with <version>, sha-<sha>, latest; worker build separate. 8 executed: changelog-section.sh 4.0.0 prints [Unreleased] body on real file and the [4.0.0] section on a temp copy. 9 reasoned: image tags bare; git tag and release title v<version> (GitHub has one name field; matches agro). actionlint exit 0. Unverified until first push to main: docker build/push, gh API calls. Known limit: if tag creation fails for a permission reason, reserve reports noop and ends green.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".github/workflows/release.yml"
-      ]
+      ],
+      "commit": "d3e041b9"
     },
     {
       "id": "US-004",
