@@ -1,4 +1,3 @@
-import os
 import sys
 from loguru import logger
 
@@ -53,19 +52,6 @@ logger.add(
 #     catch=True       # Catch exceptions in file logs
 # )
 
-import time
-
-# Generate a timestamp at module load (i.e., per server run)
-_LLM_STREAM_TIMESTAMP = time.strftime("%Y%m%d_%H%M%S")
-
-
-def log_to_file(message: str, model: str, folder: str = "llm_stream"):
-    logs_dir = os.path.join("logs", folder)
-    os.makedirs(logs_dir, exist_ok=True)
-    log_filename = os.path.join(logs_dir, f"{_LLM_STREAM_TIMESTAMP}_{model.split(':')[0]}.log")
-    with open(log_filename, "a", encoding="utf-8") as log_file:
-        log_file.write(str(message) + "\n")
-
 
 def log_error(message: str, *args, **kwargs):
     """Log an error message. Uses exception() in dev/test for full traceback, error() in production."""
@@ -76,4 +62,4 @@ def log_error(message: str, *args, **kwargs):
 
 
 # Expose the logger for use in other files
-__all__ = ["logger", "log_to_file", "log_error"]
+__all__ = ["logger", "log_error"]
