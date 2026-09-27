@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to deploy (e.g. agent-v1.0.0-rc1)'
+        description: 'SemVer git tag to deploy (e.g. v4.0.0)'
         required: true
         type: string
 
@@ -14,7 +14,6 @@ jobs:
   ###############################################################
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ contains(inputs.tag, 'agent') }}
     environment: Dev
     steps:
     - name: Deploy to VM

@@ -8,15 +8,13 @@ on:
     workflow_dispatch:
         inputs:
             tag:
-                description: "Tag to deploy (e.g. agent-v1.0.0-rc1)"
+                description: "SemVer image tag to deploy (e.g. 4.0.0)"
                 required: true
                 type: string
 
 jobs:
     deploy:
         runs-on: ubuntu-latest
-        # Only run if the input tag contains "rc"
-        if: ${{ contains(inputs.tag, 'rc') }}
         environment: Dev
         steps:
             - name: Deploy to VM
