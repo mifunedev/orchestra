@@ -90,4 +90,4 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+None.
