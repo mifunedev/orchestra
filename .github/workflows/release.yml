@@ -1,0 +1,229 @@
+name: Release
+
+on:
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: read
+
+jobs:
+    test-frontend:
+        runs-on: ubuntu-latest
+        environment: Test
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "22"
+                  cache: "npm"
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: Install dependencies
+              working-directory: ./frontend
+              run: npm ci
+
+            - name: Run tests
+              working-directory: ./frontend
+              run: npm test
+
+            - name: Build frontend
+              working-directory: ./frontend
+              run: npm run build
+
+    test-backend:
+        runs-on: ubuntu-latest
+        environment: Test
+        env:
+            APP_ENV: test
+            APP_LOG_LEVEL: debug
+            APP_SECRET_KEY: ${{ secrets.APP_SECRET_KEY }}
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+            ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+            REDIS_URL: redis://localhost:6379/0
+        services:
+            redis:
+                image: redis:alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+
+            - name: Check version parity
+              run: backend/scripts/check-version-parity.sh
+
+            - name: Install dependencies
+              working-directory: ./backend
+              run: |
+                  mkdir -p src/public/docs src/public/assets
+                  pip install uv
+                  uv sync --frozen --no-cache --dev
+
+            - name: Run tests
+              working-directory: ./backend
+              env:
+                  PYTHONPATH: ./src:.
+              run: uv run pytest -rs
+
+    reserve:
+        needs: [test-frontend, test-backend]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        outputs:
+            version: ${{ steps.version.outputs.version }}
+            noop: ${{ steps.reserve.outputs.noop }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Read version
+              id: version
+              run: |
+                  version="$(python3 -c 'import tomllib; print(tomllib.load(open("backend/pyproject.toml", "rb"))["project"]["version"])')"
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+
+            - name: Reserve tag and draft release
+              id: reserve
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  TAG: v${{ steps.version.outputs.version }}
+              run: |
+                  tag_commit() {
+                    local ref type sha
+                    ref="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" 2>/dev/null)" || return 0
+                    type="$(jq -r .object.type <<<"$ref")"
+                    sha="$(jq -r .object.sha <<<"$ref")"
+                    if [[ "$type" == "tag" ]]; then
+                      sha="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$sha" --jq .object.sha)"
+                    fi
+                    echo "$sha"
+                  }
+
+                  existing="$(tag_commit)"
+                  if [[ -z "$existing" ]]; then
+                    gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA" >/dev/null || true
+                    existing="$(tag_commit)"
+                  fi
+
+                  if [[ "$existing" != "$GITHUB_SHA" ]]; then
+                    echo "$TAG is already released at ${existing:-unknown}; skipping publish." | tee -a "$GITHUB_STEP_SUMMARY"
+                    echo "noop=true" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+
+                  if ! gh release view "$TAG" >/dev/null 2>&1; then
+                    gh release create "$TAG" --draft --verify-tag --title "$TAG" --notes ""
+                  fi
+                  echo "noop=false" >> "$GITHUB_OUTPUT"
+
+    publish-image:
+        needs: reserve
+        if: needs.reserve.outputs.noop == 'false'
+        runs-on: ubuntu-latest
+        environment: Dev
+        permissions:
+            contents: read
+            packages: write
+        concurrency:
+            group: release-${{ needs.reserve.outputs.version }}
+            cancel-in-progress: false
+        env:
+            VERSION: ${{ needs.reserve.outputs.version }}
+            APP_VERSION: ${{ needs.reserve.outputs.version }}
+            VITE_APP_VERSION: ${{ needs.reserve.outputs.version }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "22"
+                  cache: "npm"
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: Install frontend dependencies
+              working-directory: ./frontend
+              run: npm ci
+
+            - name: Create public directory
+              working-directory: ./backend
+              run: mkdir -p src/public
+
+            - name: Build frontend
+              working-directory: ./frontend
+              run: npm run build
+
+            - name: Copy Docker README and LICENSE to backend
+              run: |
+                  cp infra/README.md backend/README.md
+                  cp LICENSE backend/LICENSE
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Login to GitHub Container Registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ secrets.GHCR_USERNAME || github.actor }}
+                  password: ${{ secrets.GHCR_PAT }}
+
+            - name: Build and push API image
+              working-directory: ./backend
+              run: |
+                  tags=()
+                  for image in ghcr.io/mifunedev/orchestra-api ghcr.io/mifunedev/orchestra; do
+                    for tag in "$VERSION" "sha-$GITHUB_SHA" latest; do
+                      tags+=("$image:$tag")
+                    done
+                  done
+                  docker build --target api -f ../infra/backend.Dockerfile "${tags[@]/#/--tag=}" .
+                  for tag in "${tags[@]}"; do docker push "$tag"; done
+
+            - name: Build and push Worker image
+              working-directory: ./backend
+              run: |
+                  tags=()
+                  for tag in "$VERSION" "sha-$GITHUB_SHA" latest; do
+                    tags+=("ghcr.io/mifunedev/orchestra-worker:$tag")
+                  done
+                  docker build --target worker -f ../infra/backend.Dockerfile "${tags[@]/#/--tag=}" .
+                  for tag in "${tags[@]}"; do docker push "$tag"; done
+
+    finalize:
+        needs: [reserve, publish-image]
+        if: needs.reserve.outputs.noop == 'false'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        concurrency:
+            group: release-${{ needs.reserve.outputs.version }}-finalize
+            cancel-in-progress: false
+        env:
+            GH_TOKEN: ${{ github.token }}
+            VERSION: ${{ needs.reserve.outputs.version }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Publish GitHub Release
+              run: |
+                  .github/scripts/changelog-section.sh "$VERSION" > "$RUNNER_TEMP/notes.md"
+                  gh release edit "v$VERSION" --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
