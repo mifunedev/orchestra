@@ -73,12 +73,34 @@ After the operator approved a new disposable probe, a fresh worker ran US-001 on
 
 4. Cleanup check: `docker ps -a --filter 'ancestor=pgvector/pgvector:pg17'` showed only the pre-existing `pgvector` container created at `2026-09-27 09:42:15 -0600 MDT`; `docker ps -a --filter 'label=org.testcontainers'` returned no rows. The worker did not delete the pre-existing container.
 
-Aegra startup, ORM, checkpoint, and store connections remain untested. Do not start the auth adapter until those paths prove schema isolation.
+The worker tested Aegra startup, ORM, checkpoint, and store paths in the next disposable probe. The next section separates those observations from the remaining design blocker.
+
+## Runtime connection proof and blocker
+
+The worker ran the following opt-in command from `.worktrees/task/1016-runtime-schema-proof/backend/`:
+
+```bash
+AEGRA_OWNERSHIP_LIVE=1 uv run pytest -s -q tests/integration/test_aegra_schema_runtime.py
+```
+
+Observed exit status: 0 (`1 passed, 5 warnings`). Aegra 0.10.7's revision precheck, asyncpg ORM, and psycopg checkpoint/store pool reported database `test`, effective schemas `['pg_catalog', 'aegra']`, and revision `a3f7c1d9e2b4`. Checkpoint and non-indexed store round trips passed. The test compared the public revision, seeded user, relations, indexes, and extension catalog after each stage; those snapshots matched the post-admin-setup baseline. A restricted-role `SELECT public.users` failed. The worker did not run Aegra with a `public` search-path fallback.
+
+The worker did **not** test optional semantic indexing or a downgrade. Tagged Aegra 0.10.7 source contains an explicit `public` dependency in the migration downgrade:
+
+```text
+alembic/versions/20260512000000_switch_uuid_defaults_to_gen_random_uuid.py:29-30
+ALTER TABLE assistant ALTER COLUMN assistant_id SET DEFAULT public.uuid_generate_v4()::text
+ALTER TABLE runs ALTER COLUMN run_id SET DEFAULT public.uuid_generate_v4()::text
+```
+
+The worker did not execute this downgrade; the test observed no public access from that code. The source-defined path prevents a blanket claim that every Aegra migration operation avoids `public`. LangGraph's optional indexed store also contains `CREATE EXTENSION vector`; the fixture has `vector` installed in `public` by its admin before the Aegra role connects. The worker did not test indexing or call an external embedding API. The worker did not verify what indexing requires from the isolated role.
+
+The worker committed its bounded runtime test as `57717b6f` on the isolated branch but did not push or integrate it into PR #1017. No US-002 acceptance or auth implementation followed. Pytest's session-finish cleanup stopped its disposable testcontainer; an image-wide Docker check found only the pre-existing `pgvector` container, which the worker did not delete.
 
 ## CI
 
-The initial plan-only commit `1cedf6b6` passed backend and frontend checks in [run 36350139276](https://github.com/mifunedev/orchestra/actions/runs/36350139276); CI skipped E2E. The previous blocker proof ran only in the uncommitted worker worktree. [Run 36350893298](https://github.com/mifunedev/orchestra/actions/runs/36350893298) passed for the evidence-only commit `aef80527`. The new migration proof is not yet pushed or covered by CI.
+The initial plan-only commit `1cedf6b6` passed backend and frontend checks in [run 36350139276](https://github.com/mifunedev/orchestra/actions/runs/36350139276); CI skipped E2E. The previous blocker proof ran only in an uncommitted worker worktree. [Run 36350893298](https://github.com/mifunedev/orchestra/actions/runs/36350893298) passed for the evidence-only commit `aef80527`. The migration commit `221affc4` and runtime worker commit `57717b6f` have no final CI result on PR #1017 yet.
 
-## Next gate
+## Decision needed
 
-The approved `aegra`-only migration proof passed in the disposable fixture. Verify Aegra startup, ORM, checkpoint, store, and extension operations against the same schema boundary before any auth work. If an Aegra runtime connection reaches or changes `public`, stop and report. Do not add a second PostgreSQL database, stamp or clear Orchestra's revision, or cut over production.
+Stop the strict no-`public` proof: Aegra 0.10.7 contains a downgrade that references `public`, and optional indexing remains unverified. The exercised upgrade and non-indexed runtime paths passed, but they cannot certify all migration paths. Request an operator decision before any downgrade, indexing, auth work, second database, or production cutover. Keep PR #1017 draft.
