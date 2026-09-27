@@ -17,6 +17,8 @@ at the top of each file. The prose, code samples, and images are unaffected.
 - [Introduction](./index.md)
 - [Getting Started](./getting-started.md)
 - [Self-Hosting](./self-hosting/index.md)
+- [Releasing](./releasing.md)
+- [Roadmap](./roadmap.md)
 
 ### Core Features
 
