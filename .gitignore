@@ -21,14 +21,10 @@
 **/.playwright*
 **/.backups/
 
-**/.cursor/
 **/.claude/
 **/openspec/
 **/node_modules/
 **/.old/
-**/ralph-loop*
-# Ralph config (may contain API key)
-.cursor/ralph-config.json
 **/.last-branch
 **/.cloudflared/
 **/.images

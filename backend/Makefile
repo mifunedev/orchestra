@@ -1,4 +1,4 @@
-.PHONY: dev claude build run tag seeds seeds.memory test format lint
+.PHONY: dev build run tag seeds seeds.memory test format lint
 
 ENV_FILE ?= ../.env
 
@@ -7,9 +7,6 @@ dev:
 
 dev.worker:
 	@set -a && . $(ENV_FILE) && set +a && uv run taskiq worker src.workers.tasks:broker
-
-dev.claude:
-	uv run uvicorn main:app --reload --host 0.0.0.0 --port 8031 --log-level debug --env-file $(ENV_FILE)
 
 build:
 	bash scripts/build.sh

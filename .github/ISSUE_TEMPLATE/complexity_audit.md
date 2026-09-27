@@ -129,7 +129,7 @@ Create a branch, apply isolated commits for each pattern, run benchmarks, and pu
 ### Commands
 
 ```bash
-# See CLAUDE.md for build, test, and dev commands
+# See README.md, backend/Makefile, and frontend/package.json for build, test, and dev commands
 ```
 
 ---
