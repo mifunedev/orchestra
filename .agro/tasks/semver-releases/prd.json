@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "project": "orchestra",
+  "branchName": "task/1003-semver-releases",
+  "description": "SemVer releases for Orchestra: one version source, Keep a Changelog, release.yml on push to main, retire CalVer tooling.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "One release version for the whole repository",
+      "description": "As a maintainer, I want one file to hold the release version. Then the API, the client, the images, and the tag report the same version.",
+      "acceptanceCriteria": [
+        "`backend/pyproject.toml` `[project] version` holds the release version in `MAJOR.MINOR.PATCH` form.",
+        "`frontend/package.json` `version` equals the `backend/pyproject.toml` version.",
+        "`backend/scripts/check-version-parity.sh` exits 0 when the two versions match and exits 1 with a message that names both files when they differ.",
+        "The `test-backend` job in `.github/workflows/test.yml` runs `backend/scripts/check-version-parity.sh`.",
+        "If `APP_VERSION` is unset, `src.constants.APP_VERSION` equals the `backend/pyproject.toml` version.",
+        "If `VITE_APP_VERSION` is unset, the client build uses the `frontend/package.json` version.",
+        "`backend/tests/unit/test_app_version.py` passes under `make test` and covers the default and the override."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "backend/scripts/check-version-parity.sh",
+        "frontend/package.json",
+        "backend/src/constants/__init__.py",
+        "frontend/vite.config.ts",
+        "frontend/src/",
+        "backend/tests/unit/test_app_version.py",
+        ".github/workflows/test.yml",
+        ".example.env",
+        "docs/environment-variables.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Keep a Changelog format",
+      "description": "As a reader of release notes, I want `Changelog.md` in Keep a Changelog form with an `[Unreleased]` section. Then each release has a section that the release workflow can publish.",
+      "acceptanceCriteria": [
+        "The `Changelog.md` header states Keep a Changelog 1.1.0 and SemVer, and names `backend/pyproject.toml` as the version source.",
+        "`Changelog.md` holds `## [Unreleased]` above every version section.",
+        "`## [Unreleased]` uses only the categories `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, and `### Security`.",
+        "The `## 2026.9.27` entries move under `## [Unreleased]` as one sentence each, with a PR link, at 250 characters or less.",
+        "The CalVer sections from `## 2026.9.14` and older stay unchanged below a `## Legacy CalVer releases` heading.",
+        "The `## Planned` section moves to a GitHub issue or to `docs/`, and `Changelog.md` no longer holds it.",
+        "`CONTRIBUTING.md` states the entry rule: one imperative sentence, 250 characters or less, a PR or issue link, under `## [Unreleased]`."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "Changelog.md",
+        "CONTRIBUTING.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Release workflow on push to main",
+      "description": "As a maintainer, I want a push to `main` to validate the commit, reserve the `v<version>` tag, publish the images, and publish a GitHub Release. Then no person creates a tag by hand.",
+      "acceptanceCriteria": [
+        "`.github/workflows/release.yml` runs on each push to `main`.",
+        "The workflow runs the backend tests, the frontend tests, the frontend build, and `backend/scripts/check-version-parity.sh` before any tag, image, or release changes.",
+        "The workflow reads the version from `backend/pyproject.toml`.",
+        "If tag `v<version>` exists on a different commit, the workflow reports the version as released, skips each publish job, and ends green.",
+        "If tag `v<version>` exists on the same commit, a rerun completes without a duplicate tag or a duplicate release.",
+        "The workflow pushes `ghcr.io/mifunedev/orchestra-api` and `ghcr.io/mifunedev/orchestra-worker` with the tags `<version>`, `sha-<full sha>`, and `latest`.",
+        "The workflow keeps `ghcr.io/mifunedev/orchestra` as an alias of the API image with the same three tags.",
+        "The GitHub Release body is the `Changelog.md` section for `<version>`, or the `## [Unreleased]` body when that section does not exist.",
+        "Image tags and the release name use the bare version. Only the git tag and the release title use the `v` prefix."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".github/workflows/release.yml"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Retire CalVer tooling",
+      "description": "As a maintainer, I want the date-based tooling removed. Then no command creates a CalVer tag or a CalVer changelog header.",
+      "acceptanceCriteria": [
+        "The root `Makefile` targets `changelog` and `tag` no longer exist.",
+        "`backend/scripts/tag.sh` no longer exists.",
+        "`.github/workflows/build.yml` no longer runs on `push: tags: [\"*\"]`. `release.yml` owns image publication.",
+        "`.github/workflows/deploy-docker.yml` and `.github/workflows/deploy-vm.yml` accept a SemVer tag, and the input description shows a SemVer example.",
+        "`git grep -n -E 'YYYY\\.M\\.D|date-based' -- ':!Changelog.md'` prints no line."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        "Makefile",
+        "backend/scripts/tag.sh",
+        ".github/workflows/build.yml",
+        ".github/workflows/deploy-docker.yml",
+        ".github/workflows/deploy-vm.yml"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Release branch and release procedure",
+      "description": "As a maintainer, I want a `main` branch and one documented procedure to promote `development` to `main`. Then each release comes from a validated commit.",
+      "acceptanceCriteria": [
+        "Branch `main` exists on `origin` and starts at the `development` commit that bumps the first SemVer version.",
+        "`docs/releasing.md` states the procedure: bump the version in both files, move `[Unreleased]` to `## [<version>] - <YYYY-MM-DD>`, merge to `development`, fast-forward `main`, and monitor `release.yml`.",
+        "`docs/README.md` links `docs/releasing.md`.",
+        "The first push to `main` publishes release `v4.0.0` with the images and the GitHub Release.",
+        "`gh release view v4.0.0 --repo mifunedev/orchestra` exits 0.",
+        "`git ls-remote --heads origin master` prints no line.",
+        "`docker manifest inspect ghcr.io/mifunedev/orchestra-api:4.0.0` exits 0."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        "docs/releasing.md",
+        "docs/README.md"
+      ]
+    }
+  ]
+}
