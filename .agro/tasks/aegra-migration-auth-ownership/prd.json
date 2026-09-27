@@ -11,7 +11,7 @@
       "acceptanceCriteria": [
         "An opt-in test creates one database with `public` and `aegra` schemas inside a disposable `pgvector/pgvector:pg17` testcontainer. The test refuses `TEST_POSTGRES_CONNECTION_STRING` and any operator database.",
         "Orchestra migrates `public` to revision `0001` and seeds one user. Aegra 0.10.7 upgrades only the `aegra` schema through its supported migration entry point.",
-        "A dedicated Aegra role uses a database-scoped `search_path` beginning with `aegra`. The test checks its database name and schema before the upgrade.",
+        "A dedicated Aegra role uses database-scoped `search_path = aegra`, without a `public` fallback. The test checks the database name, `current_schemas(true)`, and unqualified revision resolution before the upgrade.",
         "The test compares `public.alembic_version`, the seeded user, and the public table list before and after Aegra upgrade. Both schema-qualified version tables have independent revisions.",
         "The Aegra role cannot create, alter, or drop `public` objects. A negative preflight rejects a `public` search path before any Aegra migration. Disable automatic startup migrations in this probe."
       ],

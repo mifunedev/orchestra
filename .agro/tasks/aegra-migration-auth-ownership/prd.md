@@ -12,7 +12,7 @@ Status: DRAFT
 
 - [ ] An opt-in test creates one database with `public` and `aegra` schemas inside a disposable `pgvector/pgvector:pg17` testcontainer. The test refuses `TEST_POSTGRES_CONNECTION_STRING` and any operator database.
 - [ ] Orchestra migrates `public` to revision `0001` and seeds one user. Aegra 0.10.7 upgrades only the `aegra` schema through its supported migration entry point.
-- [ ] A dedicated Aegra role uses a database-scoped `search_path` beginning with `aegra`. The test checks its database name and schema before the upgrade.
+- [ ] A dedicated Aegra role uses database-scoped `search_path = aegra`, without a `public` fallback. The test checks the database name, `current_schemas(true)`, and unqualified revision resolution before the upgrade.
 - [ ] The test compares `public.alembic_version`, the seeded user, and the public table list before and after Aegra upgrade. Both schema-qualified version tables have independent revisions.
 - [ ] The Aegra role cannot create, alter, or drop `public` objects. A negative preflight rejects a `public` search path before any Aegra migration. Disable automatic startup migrations in this probe.
 
@@ -92,7 +92,7 @@ Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a sh
 | File | Function(s) / Symbol(s) | Role |
 |---|---|---|
 | `backend/migrations/env.py` | `run_migrations_online` | Current Orchestra revision ownership. |
-| `backend/src/utils/migrations.py` | `run_migrations`, `_stamp_head_with_clear` | Recovery hazard; never call on the Aegra database. |
+| `backend/src/utils/migrations.py` | `run_migrations`, `_stamp_head_with_clear` | Recovery hazard; never call the clear-and-stamp fallback on the shared database. |
 | `backend/src/utils/auth.py` | `verify_credentials`, `get_optional_user` | Existing credential policy and guest access. |
 | `backend/src/repos/api_token_repo.py` | `get_by_hash_global`, `update_last_used` | Token lookup and usage metadata. |
 | `backend/src/services/db.py` | `AsyncSessionLocal`, `get_shared_store`, `close_shared_store` | Current session and store lifetimes. |
@@ -117,7 +117,7 @@ Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a sh
 
 ## Storage
 
-Use ONE PostgreSQL database in the disposable fixture. Orchestra keeps `public.alembic_version`; Aegra must create `aegra.alembic_version`. Give Aegra a dedicated role with a database-scoped `search_path` that starts with `aegra`. Give the auth adapter another constrained role for Orchestra users and API-token store data in `public`. Prove the token usage update without giving the Aegra migrator write access to `public`. Do not modify an operator database or reset revision history. Redis and MinIO are separate persistence surfaces; this plan does not add a second PostgreSQL database.
+Use ONE PostgreSQL database in the disposable fixture. Orchestra keeps `public.alembic_version`; Aegra must create `aegra.alembic_version`. Give Aegra a dedicated role with database-scoped `search_path = aegra`, without a `public` fallback. Give the auth adapter another constrained role for Orchestra users and API-token store data in `public`. Prove the token usage update without giving the Aegra migrator write access to `public`. Do not modify an operator database or reset revision history. Redis and MinIO are separate persistence surfaces; this plan does not add a second PostgreSQL database.
 
 ## Architectural Decisions
 
