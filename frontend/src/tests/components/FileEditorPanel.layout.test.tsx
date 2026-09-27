@@ -88,7 +88,11 @@ vi.mock("jszip", () => ({
 vi.mock("@/components/inputs/MonacoEditor", () => ({
 	default: () => <textarea aria-label="Monaco editor" />,
 }));
-vi.mock("@/components/cards/MarkdownCard", () => ({ default: () => null }));
+vi.mock("@/components/cards/MarkdownCard", () => ({
+	default: ({ content }: { content: string }) => (
+		<div data-testid="markdown-card">{content}</div>
+	),
+}));
 vi.mock("@/components/tooltips/MainToolTip", () => ({
 	MainToolTip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -162,6 +166,105 @@ describe("FileEditorPanel layout", () => {
 		]);
 		context.openTabs = ["/one.txt"];
 		context.activeFile = "/one.txt";
+	});
+
+	it("opens markdown in preview and toggles to code and back", () => {
+		context.fileSystem.set("/one.md", { content: ["# First document"] });
+		context.openTabs = ["/one.md"];
+		context.activeFile = "/one.md";
+		render(<FileEditorPanel />);
+
+		expect(screen.getByTestId("markdown-card")).toHaveTextContent(
+			"# First document",
+		);
+		expect(screen.queryByLabelText("Monaco editor")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Show code" }));
+		expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
+		expect(screen.queryByTestId("markdown-card")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Preview markdown" }));
+		expect(screen.getByTestId("markdown-card")).toHaveTextContent(
+			"# First document",
+		);
+		expect(screen.queryByLabelText("Monaco editor")).not.toBeInTheDocument();
+	});
+
+	it("starts each newly selected markdown file in preview after viewing code", () => {
+		context.fileSystem.set("/one.md", { content: ["# First document"] });
+		context.fileSystem.set("/two.md", { content: ["# Second document"] });
+		context.openTabs = ["/one.md", "/two.md"];
+		context.activeFile = "/one.md";
+		const { rerender } = render(<FileEditorPanel />);
+
+		fireEvent.click(screen.getByRole("button", { name: "Show code" }));
+		expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
+		context.activeFile = "/two.md";
+		rerender(<FileEditorPanel />);
+		expect(screen.getByTestId("markdown-card")).toHaveTextContent(
+			"# Second document",
+		);
+		expect(screen.queryByLabelText("Monaco editor")).not.toBeInTheDocument();
+		context.activeFile = "/one.md";
+		rerender(<FileEditorPanel />);
+		expect(screen.getByTestId("markdown-card")).toHaveTextContent(
+			"# First document",
+		);
+	});
+
+	it.each(["html", "htm", "mmd"])(
+		"opens .%s in code and permits preview",
+		(extension) => {
+			context.fileSystem.set(`/example.${extension}`, { content: ["sample"] });
+			context.openTabs = [`/example.${extension}`];
+			context.activeFile = `/example.${extension}`;
+			render(<FileEditorPanel />);
+
+			expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
+			const previewName =
+				extension === "mmd" ? "Preview Mermaid diagram" : "Preview HTML";
+			fireEvent.click(screen.getByRole("button", { name: previewName }));
+			if (extension === "mmd") {
+				expect(screen.getByTestId("markdown-card")).toHaveTextContent("sample");
+			} else {
+				expect(
+					screen.getByTitle(`Preview of /example.${extension}`),
+				).toBeInTheDocument();
+			}
+		},
+	);
+
+	it("keeps HTML code-first after previewing markdown and resets markdown after HTML preview", () => {
+		context.fileSystem.set("/one.md", { content: ["# First document"] });
+		context.fileSystem.set("/example.html", { content: ["<p>Example</p>"] });
+		context.openTabs = ["/one.md", "/example.html"];
+		context.activeFile = "/one.md";
+		const { rerender } = render(<FileEditorPanel />);
+
+		expect(screen.getByTestId("markdown-card")).toBeInTheDocument();
+		context.activeFile = "/example.html";
+		rerender(<FileEditorPanel />);
+		expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Preview HTML" }));
+		expect(screen.getByTitle("Preview of /example.html")).toBeInTheDocument();
+		context.activeFile = "/one.md";
+		rerender(<FileEditorPanel />);
+		expect(screen.getByTestId("markdown-card")).toHaveTextContent(
+			"# First document",
+		);
+	});
+
+	it("keeps non-previewable files in the editor after markdown preview", () => {
+		context.fileSystem.set("/one.md", { content: ["# First document"] });
+		context.openTabs = ["/one.md", "/one.txt"];
+		context.activeFile = "/one.md";
+		const { rerender } = render(<FileEditorPanel />);
+
+		context.activeFile = "/one.txt";
+		rerender(<FileEditorPanel />);
+		expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
+		expect(screen.queryByTestId("markdown-card")).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Show code" }),
+		).not.toBeInTheDocument();
 	});
 
 	it("places the editor before the resize handle and explorer on desktop", () => {

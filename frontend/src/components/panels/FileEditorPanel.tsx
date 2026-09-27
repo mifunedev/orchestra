@@ -121,7 +121,10 @@ export default function FileEditorPanel() {
 	};
 
 	const [copied, setCopied] = useState(false);
-	const [showPreview, setShowPreview] = useState(false);
+	const [previewOverride, setPreviewOverride] = useState<{
+		file: string;
+		showPreview: boolean;
+	} | null>(null);
 
 	// Dialog states
 	const [pendingEditorAction, setPendingEditorAction] =
@@ -213,6 +216,10 @@ export default function FileEditorPanel() {
 
 	// Use activeFile from context (no local selectedFile state needed)
 	const selectedFile = activeFile;
+
+	useEffect(() => {
+		setPreviewOverride(null);
+	}, [selectedFile]);
 
 	// Keep editor value ref in sync (ref assignment, not state)
 	latestEditorValueRef.current = selectedFile
@@ -469,7 +476,11 @@ export default function FileEditorPanel() {
 		(isMarkdownFile(selectedFile) ||
 			isHtmlFile(selectedFile) ||
 			isMermaidFile(selectedFile));
-	const effectiveShowPreview = showPreview && canPreview;
+	const effectiveShowPreview =
+		canPreview &&
+		(previewOverride?.file === selectedFile
+			? previewOverride.showPreview
+			: isMarkdownFile(selectedFile ?? ""));
 
 	// Validate file path
 	const validatePath = (path: string, excludePath?: string): string => {
@@ -1079,7 +1090,12 @@ export default function FileEditorPanel() {
 										<Button
 											variant={effectiveShowPreview ? "secondary" : "ghost"}
 											size="sm"
-											onClick={() => setShowPreview(!showPreview)}
+											onClick={() =>
+												setPreviewOverride({
+													file: selectedFile,
+													showPreview: !effectiveShowPreview,
+												})
+											}
 											className="h-8 gap-2"
 											title={
 												effectiveShowPreview
