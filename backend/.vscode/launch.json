@@ -18,7 +18,7 @@
             "args": ["tests/integration/test_project_routes.py", "-v"],
             "console": "integratedTerminal",
             "justMyCode": true,
-            "envFile": "${workspaceFolder}/../.env.test"
+            "envFile": "${workspaceFolder}/../.env"
         },
         {
             "name": "Python: Run Tests",
@@ -28,7 +28,7 @@
             "args": ["tests/", "-v"],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "envFile": "${workspaceFolder}/../.env.test"
+            "envFile": "${workspaceFolder}/../.env"
         },
         {
             "name": "Python: Run Unit Tests Only",
@@ -38,7 +38,7 @@
             "args": ["tests/unit/", "-v"],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "envFile": "${workspaceFolder}/../.env.test"
+            "envFile": "${workspaceFolder}/../.env"
         },
         {
             "name": "Python: Run Integration Tests Only",
@@ -48,7 +48,7 @@
             "args": ["tests/integration/", "-v"],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "envFile": "${workspaceFolder}/../.env.test"
+            "envFile": "${workspaceFolder}/../.env"
         },
         {
             "name": "Python: TaskIQ Worker",

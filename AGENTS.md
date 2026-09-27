@@ -33,8 +33,7 @@ The following properties are non-negotiable.
 
 ### 1. Never read a `.env*` file
 
-Do not read, print, copy, or diff the repository-root `.env`, the repository-root
-`.env.test`, or any other `.env*` path, in exploration or in a fix. These
+Do not read, print, copy, or diff the repository-root `.env`, or any other `.env*` path, in exploration or in a fix. These
 files hold live provider keys and database credentials. `.gitignore` excludes
 `**/.env*` from git, so reading one copies a secret into a transcript that git
 cannot protect.
@@ -44,12 +43,10 @@ Read `.example.env` at the repository root for the key names and
 When a value must change, tell the operator which key to set. Do not set it.
 
 One location holds the development environment. The backend `make` targets
-default to the root `.env`; `backend/Makefile` owns that default. The pre-commit
-test hook runs the suite against the root `.env.test`; `.pre-commit-config.yaml`
-owns that. The frontend dev server loads the root `.env`;
+default to the root `.env`; `backend/Makefile` owns that default. The backend tests
+start their own PostgreSQL container; `backend/tests/conftest.py` owns that. The frontend dev server loads the root `.env`;
 `frontend/package.json` owns that. The compose stack loads the root `.env`;
-`infra/docker-compose.yml` owns that. The test environment stays a separate file
-because it names a separate database.
+`infra/docker-compose.yml` owns that.
 
 ### 2. `AGENTS.md` is the canonical instruction file
 

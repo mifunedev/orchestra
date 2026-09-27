@@ -257,8 +257,8 @@ check "agents-md-no-image-pin" "AGENTS.md transcribes a pgvector image pin; infr
 # --- claims AGENTS.md makes, asserted against their owning files -------------
 check "backend-env-default" "backend/Makefile no longer defaults ENV_FILE to ../.env" \
   file_has_line backend/Makefile 'ENV_FILE ?= ../.env'
-check "precommit-test-env" ".pre-commit-config.yaml no longer runs the backend suite against ../.env.test" \
-  file_has .pre-commit-config.yaml 'ENV_FILE=../.env.test'
+check "test-db-container" "backend/tests/conftest.py no longer starts a testcontainers PostgreSQL" \
+  file_has backend/tests/conftest.py 'PostgresContainer'
 check "frontend-env" "frontend/package.json no longer loads the dev server env with 'dotenv -e ../.env'" \
   file_has frontend/package.json 'dotenv -e ../.env'
 check "compose-env-file" "infra/docker-compose.yml no longer loads the root .env" \

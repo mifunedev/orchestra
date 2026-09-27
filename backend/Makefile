@@ -30,7 +30,7 @@ lint:
 	uv run ruff check
 
 test:
-	@set -a && . $(ENV_FILE) && set +a && uv run pytest
+	@set -a && { [ ! -f $(ENV_FILE) ] || . $(ENV_FILE); } && set +a && uv run pytest
 
 migrate.up:
 	ENV_FILE=$(ENV_FILE) uv run alembic upgrade head

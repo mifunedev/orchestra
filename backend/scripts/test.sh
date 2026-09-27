@@ -1,10 +1,10 @@
 #!/bin/bash
 
-ENV_FILE=.env.test
+ENV_FILE=../.env
 
 ### Set Environment Variables
 set -a # automatically export all variables
-source $ENV_FILE
+[ -f $ENV_FILE ] && source $ENV_FILE
 set +a
 
 APP_VERSION=$(git rev-parse --short HEAD)

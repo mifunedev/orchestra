@@ -1,50 +1,83 @@
-import pytest
 import asyncio
+import os
+import socket
+from pathlib import Path
+
+import pytest
 import respx
 from unittest.mock import patch
-from httpx import AsyncClient, ASGITransport
-from main import app
-from sqlalchemy import text
-from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import OperationalError, ProgrammingError
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.pool import NullPool
-from src.constants import DB_URI
-from src.services.db import get_async_db, get_store, get_store_db, get_checkpoint_db
-from src.utils.db import get_asyncpg_connect_args, get_asyncpg_url
-from langgraph.store.memory import InMemoryStore
-from taskiq import InMemoryBroker
 
 
-async def ensure_database_exists(db_uri: str) -> None:
-    """Create the database if it doesn't exist."""
-    if "/" not in db_uri:
-        return
+def _start_test_postgres():
+    import docker
+    from docker.errors import NotFound
+    from testcontainers.postgres import PostgresContainer
 
-    url = make_url(db_uri)
-    db_name = url.database
-    postgres_uri = url.set(database="postgres")
-
+    os.environ.setdefault("TESTCONTAINERS_RYUK_DISABLED", "true")
     try:
-        engine = create_async_engine(
-            get_asyncpg_url(postgres_uri),
-            isolation_level="AUTOCOMMIT",
-            connect_args=get_asyncpg_connect_args(postgres_uri, statement_cache_size=None),
+        network = next(
+            iter(docker.from_env().containers.get(socket.gethostname()).attrs["NetworkSettings"]["Networks"])
         )
-        async with engine.connect() as conn:
-            result = await conn.execute(
-                text("SELECT 1 FROM pg_database WHERE datname = :dbname"),
-                {"dbname": db_name},
-            )
-            if not result.fetchone():
-                await conn.execute(text(f'CREATE DATABASE "{db_name}"'))
-        await engine.dispose()
-    except (OperationalError, ProgrammingError):
-        pass
+    except NotFound:
+        network = None
+
+    container = PostgresContainer("pgvector/pgvector:pg17", driver=None, tmpfs={"/var/lib/postgresql/data": "rw"})
+    if network:
+        container.with_kwargs(network=network)
+    container.start()
+    if network:
+        container.reload()
+        host = container._container.attrs["NetworkSettings"]["Networks"][network]["IPAddress"]
+        port = 5432
+    else:
+        host = container.get_container_host_ip()
+        port = container.get_exposed_port(5432)
+    container.exec(
+        ["psql", "-U", container.username, "-d", container.dbname, "-c", "CREATE EXTENSION IF NOT EXISTS vector"]
+    )
+    uri = f"postgresql://{container.username}:{container.password}@{host}:{port}/{container.dbname}?sslmode=disable"
+    return container, uri
 
 
-# Ensure database exists before tests run
-asyncio.run(ensure_database_exists(DB_URI))
+def _migrate():
+    from alembic import command
+    from alembic.config import Config
+
+    backend_dir = Path(__file__).resolve().parent.parent
+    config = Config(str(backend_dir / "alembic.ini"))
+    config.set_main_option("script_location", str(backend_dir / "migrations"))
+    command.upgrade(config, "head")
+
+
+_test_postgres = None
+_test_uri = os.environ.get("TEST_POSTGRES_CONNECTION_STRING")
+if not _test_uri:
+    _test_postgres, _test_uri = _start_test_postgres()
+os.environ["POSTGRES_CONNECTION_STRING"] = _test_uri
+os.environ.pop("POSTGRES_CONNECTION_STRING_SESSION", None)
+try:
+    _migrate()
+except BaseException:
+    if _test_postgres:
+        _test_postgres.stop()
+    raise
+
+
+def pytest_sessionfinish(session, exitstatus):
+    if _test_postgres:
+        _test_postgres.stop()
+
+
+from httpx import AsyncClient, ASGITransport  # noqa: E402
+from main import app  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker  # noqa: E402
+from sqlalchemy.pool import NullPool  # noqa: E402
+from src.constants import DB_URI  # noqa: E402
+from src.services.db import get_async_db, get_store, get_store_db, get_checkpoint_db  # noqa: E402
+from src.utils.db import get_asyncpg_connect_args, get_asyncpg_url  # noqa: E402
+from langgraph.store.memory import InMemoryStore  # noqa: E402
+from taskiq import InMemoryBroker  # noqa: E402
 
 
 class TestInMemoryStore(InMemoryStore):
@@ -112,9 +145,7 @@ async def test_engine():
             f"Failed to connect to test database.\n"
             f"Connection string: {url}\n"
             f"Error: {e}\n\n"
-            f"Make sure PostgreSQL is running and accessible.\n"
-            f"For CI: Ensure PostgreSQL service is configured in workflow.\n"
-            f"For local: Run 'docker compose up postgres' or check your .env file."
+            f"The test database is a testcontainers PostgreSQL, or TEST_POSTGRES_CONNECTION_STRING if set."
         )
 
 
