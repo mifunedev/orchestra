@@ -25,3 +25,7 @@ git checkout -b my-feature
 git commit -s -a -m "feat: amazing improvement"
 git push --set-upstream origin my-feature
 ```
+
+### Changelog entries
+
+Add one entry to `Changelog.md` under `## [Unreleased]` for each user-visible change. Put the entry under one of `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, or `### Security`. Write one imperative sentence of 250 characters or less that ends with a PR or issue link, for example `([#1003](https://github.com/mifunedev/orchestra/issues/1003))`.

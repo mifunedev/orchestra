@@ -1,4 +1,4 @@
-.PHONY: dev build run tag seeds seeds.memory test format lint
+.PHONY: dev build run seeds seeds.memory test format lint
 
 ENV_FILE ?= ../.env
 
@@ -10,9 +10,6 @@ dev.worker:
 
 build:
 	bash scripts/build.sh
-
-tag:
-	bash scripts/tag.sh
 
 seeds.user:
 	uv run python -m seeds.user_seeder --env-file $(ENV_FILE)
