@@ -74,7 +74,6 @@ file never reach the browser.
 | `VITE_API_URL` | API base the client calls. Keep `/api` for local development; the dev server proxies that prefix to `VITE_PROXY_TARGET`. |
 | `VITE_PROXY_TARGET` | Origin the dev-server proxy forwards `/api` to, normally `http://localhost:8000`. Read through `process.env` in `frontend/vite.config.ts`, so only the dotenv-wrapped `npm run dev` scripts see it. |
 | `VITE_APP_ENV` | Current environment name reported by the client. |
-| `VITE_APP_VERSION` | Version string the client displays. |
 | `VITE_ORCHESTRA_LOGO_URL` | Logo the client renders. Override it to brand a self-hosted instance. |
 
 ## Optional configuration
@@ -87,6 +86,8 @@ default.
 
 ```dotenv
 # APP_LOG_LEVEL=INFO
+# APP_VERSION=
+# VITE_APP_VERSION=
 # USER_AGENT=orchestra-dev
 # COMPACTION_TOKEN_THRESHOLD=170000
 # COMPACTION_RECENT_MESSAGES=6
@@ -110,6 +111,10 @@ default.
 # CHECKPOINT_USE_RESILIENT=false
 # CHECKPOINT_ENABLE_FALLBACK=false
 ```
+
+`APP_VERSION` defaults to the `[project] version` in `backend/pyproject.toml`.
+`VITE_APP_VERSION` defaults to the `version` in `frontend/package.json`. The
+release workflow sets both to the release tag.
 
 ### Optional providers and integrations
 

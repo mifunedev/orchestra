@@ -1,8 +1,11 @@
+import { readFileSync } from "fs";
 import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA, VitePWAOptions } from "vite-plugin-pwa";
 
+const appVersion = process.env.VITE_APP_VERSION ||
+	JSON.parse(readFileSync(path.resolve(__dirname, "package.json"), "utf8")).version;
 const proxyTarget = process.env.VITE_PROXY_TARGET || "http://localhost:8000";
 
 const MANIFEST: Partial<VitePWAOptions> = {
@@ -54,6 +57,9 @@ const MANIFEST: Partial<VitePWAOptions> = {
 
 export default defineConfig({
 	plugins: [react(), VitePWA(MANIFEST)],
+	define: {
+		"import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
+	},
 	build: {
 		outDir: "../backend/src/public",
 		emptyOutDir: true,

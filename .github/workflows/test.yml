@@ -109,6 +109,9 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-pip-
 
+            - name: Check version parity
+              run: backend/scripts/check-version-parity.sh
+
             - name: Install dependencies
               working-directory: ./backend
               run: |
