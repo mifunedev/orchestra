@@ -9,6 +9,7 @@ Versioning: `YYYY.M.D` (date-based, e.g. `2026.2.22`). Multiple releases per day
 
 ### Changed
   - task/997-remove-agent-scaffolding (remove agent scaffolding, `examples/` notebooks, and `evals/` probes)
+  - bug/1001-remove-stream-file-log (stop writing every stream chunk to `backend/logs/llm_stream/`)
 
 ## Planned
 
