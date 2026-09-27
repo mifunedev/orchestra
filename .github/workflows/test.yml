@@ -13,7 +13,6 @@ on:
             - ".dockerignore"
             - "README.md"
             - "deployment/**"
-            - "examples/**"
             - "openspec/**"
             - "cli/**"
             - "website/**"
