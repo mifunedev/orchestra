@@ -1,0 +1,8 @@
+{
+  "graphs": {
+    "probe": "./aegra_probe_graph.py:graph"
+  },
+  "auth": {
+    "path": "./aegra_probe_auth.py:auth"
+  }
+}
