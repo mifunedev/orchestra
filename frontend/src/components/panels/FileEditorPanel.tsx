@@ -1025,12 +1025,16 @@ export default function FileEditorPanel() {
 
 							<div className="flex items-center px-2 border-l border-border">
 								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
+									<DropdownMenuTrigger
+										asChild
+										disabled={!selectedFile && allFilePaths.length <= 1}
+									>
 										<Button
 											variant="ghost"
 											size="sm"
 											className="h-8 w-8 p-0"
 											aria-label="File actions"
+											disabled={!selectedFile && allFilePaths.length <= 1}
 										>
 											<MoreHorizontal className="h-4 w-4" />
 										</Button>

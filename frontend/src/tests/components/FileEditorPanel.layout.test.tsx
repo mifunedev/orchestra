@@ -440,25 +440,50 @@ describe("FileEditorPanel layout", () => {
 		expect(fixture.toggleInferenceMode).toHaveBeenCalledOnce();
 	});
 
-	it("shows only applicable actions when there is no selected file or one file", () => {
+	it("disables the action menu without a selected file or a ZIP to download", () => {
 		context.activeFile = null;
 		context.openTabs = [];
 		context.fileSystem = new Map();
 		const { rerender } = render(<FileEditorPanel />);
-		fireEvent.pointerDown(
-			screen.getByRole("button", { name: "File actions" }),
-			{ button: 0, ctrlKey: false, pointerType: "mouse" },
-		);
-		expect(screen.queryAllByRole("menuitem")).toHaveLength(0);
+		const trigger = screen.getByRole("button", { name: "File actions" });
+		expect(trigger).toBeDisabled();
+		fireEvent.pointerDown(trigger, {
+			button: 0,
+			ctrlKey: false,
+			pointerType: "mouse",
+		});
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+		context.fileSystem = new Map([["/one.txt", { content: ["one"] }]]);
+		rerender(<FileEditorPanel />);
+		expect(trigger).toBeDisabled();
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+		context.fileSystem = new Map(context.fileSystem).set("/two.txt", {
+			content: ["two"],
+		});
+		rerender(<FileEditorPanel />);
+		expect(trigger).toBeEnabled();
+		fireEvent.pointerDown(trigger, {
+			button: 0,
+			ctrlKey: false,
+			pointerType: "mouse",
+		});
+		expect(
+			screen.getAllByRole("menuitem").map((item) => item.textContent),
+		).toEqual(["Download all files as ZIP"]);
 		fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+
 		context.fileSystem = new Map([["/one.txt", { content: ["one"] }]]);
 		context.activeFile = "/one.txt";
 		context.openTabs = ["/one.txt"];
 		rerender(<FileEditorPanel />);
-		fireEvent.pointerDown(
-			screen.getByRole("button", { name: "File actions" }),
-			{ button: 0, ctrlKey: false, pointerType: "mouse" },
-		);
+		expect(trigger).toBeEnabled();
+		fireEvent.pointerDown(trigger, {
+			button: 0,
+			ctrlKey: false,
+			pointerType: "mouse",
+		});
 		expect(
 			screen.queryByRole("menuitem", { name: "Download all files as ZIP" }),
 		).not.toBeInTheDocument();
