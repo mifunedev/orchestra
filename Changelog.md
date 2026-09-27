@@ -8,7 +8,7 @@ Versioning: `YYYY.M.D` (date-based, e.g. `2026.2.22`). Multiple releases per day
 ## 2026.9.27
 
 ### Changed
-  - task/997-remove-agent-scaffolding
+  - task/997-remove-agent-scaffolding (remove agent scaffolding and `examples/` notebooks)
 
 ## Planned
 
