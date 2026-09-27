@@ -6,6 +6,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-09-27
+
 ### Changed
 
 - Switch releases to SemVer and keep this changelog in Keep a Changelog form ([#1003](https://github.com/mifunedev/orchestra/issues/1003)).
