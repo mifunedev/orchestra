@@ -80,11 +80,11 @@ An isolated compatibility probe precedes any Aegra cutover. Do not share `alembi
 |---|---|---|
 | `backend/tests/unit/utils/test_aegra_migration_probe.py` | Revision and record snapshots detect mutation. | Migration ownership hazard. |
 | `backend/tests/integration/test_distributed_stream.py` | Current response and replay contract remains unchanged. | Legacy contract regression. |
-| `frontend/src/tests/services/threadService.test.ts` | Sync and distributed initiation cases stay green. | Current client path. |
+| `frontend/src/tests/integration/distributedStream.test.ts` | Sync and distributed initiation cases stay green. | Current client path. |
 | `frontend/src/tests/services/aegraEventCompatibility.test.ts` | Captured Aegra events map or fail explicitly against `StreamEvent`. | Client event feasibility without active chat wiring. |
 | `.agro/tasks/aegra-compatibility-probe/evidence/manual-review.md` | Live commands, responses, database preservation, and cleanup. | Live compatibility or a precise blocker. |
 
-Run `uv run pytest tests/unit/utils/test_aegra_migration_probe.py tests/integration/test_distributed_stream.py` from `backend/`. Run `npm test -- src/tests/services/threadService.test.ts src/tests/services/aegraEventCompatibility.test.ts` from `frontend/`. Run `uv run ruff check` from `backend/` and `npm run build` from `frontend/` after the focused tests.
+Run `uv run pytest tests/unit/utils/test_aegra_migration_probe.py tests/integration/test_distributed_stream.py` from `backend/`. Run `npm test -- src/tests/integration/distributedStream.test.ts src/tests/services/aegraEventCompatibility.test.ts` from `frontend/`. Run `uv run ruff check` from `backend/` and `npm run build` from `frontend/` after the focused tests.
 
 ## Design Principles
 
