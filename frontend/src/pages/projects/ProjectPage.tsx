@@ -192,17 +192,11 @@ export default function ProjectPage() {
 					</div>
 				) : (
 					<>
-						{/* Desktop: ResizablePanel split view (unchanged behavior) */}
+						{/* Desktop: ResizablePanel split view */}
 						<ResizablePanelGroup
 							direction="horizontal"
 							className="hidden md:flex flex-1"
 						>
-							<ResizablePanel defaultSize={60} minSize={50} maxSize={80}>
-								<FileEditorPanel />
-							</ResizablePanel>
-
-							<ResizableHandle withHandle />
-
 							<ResizablePanel defaultSize={40} minSize={20} maxSize={50}>
 								<div className="flex flex-col h-full min-h-0 overflow-hidden">
 									<ChatNav sidebarTrigger={<SidebarTrigger />} />
@@ -217,6 +211,12 @@ export default function ProjectPage() {
 										</div>
 									</div>
 								</div>
+							</ResizablePanel>
+
+							<ResizableHandle withHandle />
+
+							<ResizablePanel defaultSize={60} minSize={50} maxSize={80}>
+								<FileEditorPanel />
 							</ResizablePanel>
 						</ResizablePanelGroup>
 

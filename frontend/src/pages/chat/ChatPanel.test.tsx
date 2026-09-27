@@ -65,12 +65,29 @@ vi.mock("@/components/lists/ChatMessages", () => ({
 
 vi.mock("@/components/ui/resizable", () => ({
 	ResizablePanelGroup: ({ children }: { children: ReactNode }) => (
-		<div>{children}</div>
+		<div data-testid="desktop-panels">{children}</div>
 	),
-	ResizablePanel: ({ children }: { children: ReactNode }) => (
-		<div>{children}</div>
+	ResizablePanel: ({
+		children,
+		defaultSize,
+		minSize,
+		maxSize,
+	}: {
+		children: ReactNode;
+		defaultSize: number;
+		minSize: number;
+		maxSize: number;
+	}) => (
+		<div
+			data-testid="desktop-panel"
+			data-size={defaultSize}
+			data-min={minSize}
+			data-max={maxSize}
+		>
+			{children}
+		</div>
 	),
-	ResizableHandle: () => <div />,
+	ResizableHandle: () => <div data-testid="desktop-handle" />,
 }));
 
 vi.mock("@/components/ui/sheet", () => ({
@@ -144,6 +161,29 @@ describe("ChatPanel", () => {
 			"data-show-agent-menu",
 			"false",
 		);
+	});
+
+	it("shows open files to the right of chat in the desktop split view", () => {
+		mockUseChatContext.mockReturnValue({
+			messages: [{ id: "msg-1", content: "Hello" }],
+			viewMode: "files",
+			setViewMode: vi.fn(),
+		});
+
+		render(<ChatPanel chatNav={<div data-testid="chat-nav" />} />);
+
+		const [chat, handle, files] = Array.from(
+			screen.getByTestId("desktop-panels").children,
+		);
+		expect(chat).toContainElement(screen.getAllByTestId("chat-nav")[0]);
+		expect(chat).toHaveAttribute("data-size", "40");
+		expect(chat).toHaveAttribute("data-min", "20");
+		expect(chat).toHaveAttribute("data-max", "50");
+		expect(handle).toHaveAttribute("data-testid", "desktop-handle");
+		expect(files).toContainElement(screen.getByTestId("file-editor-panel"));
+		expect(files).toHaveAttribute("data-size", "60");
+		expect(files).toHaveAttribute("data-min", "50");
+		expect(files).toHaveAttribute("data-max", "80");
 	});
 
 	it("renders AgentSection without ChatComposer on initial empty state", () => {

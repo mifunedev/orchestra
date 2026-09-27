@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Fixed
 
+- Show chat on the left and files on the right in desktop split view ([#1010](https://github.com/mifunedev/orchestra/issues/1010)).
 - Link the documentation directory to its documentation heading ([#1006](https://github.com/mifunedev/orchestra/issues/1006)).
 
 ## [4.0.0] - 2026-09-27
