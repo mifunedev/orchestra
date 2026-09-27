@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "project": "orchestra",
+  "branchName": "task/1014-aegra-compatibility-probe",
+  "description": "Test Aegra migration, protocol, auth and client stream boundaries without replacing the active runtime.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Check migration ownership",
+      "description": "As a maintainer, I want an isolated database probe so that I can assess whether Aegra preserves Orchestra revisions and existing data.",
+      "acceptanceCriteria": [
+        "Record the selected Aegra release, SDK release, Python requirements, and package source in the task evidence. Do not reuse the pins from closed PR #977 without verification.",
+        "Seed a disposable PostgreSQL database with an existing Orchestra revision and one data record before the probe.",
+        "Run the Aegra migration path against the disposable database. Assert that the existing record and Orchestra revision remain intact, or record the exact failed assertion and stop before any cutover claim.",
+        "Add a focused probe test that detects a changed revision or seeded record. Do not run `backend/src/utils/migrations.py` against an operator database.",
+        "Compare package requirements with the pg16 Compose image and pg17 test image. Mark an untested database version as unverified. Do not change `infra/docker-compose.yml` or `README.md` in this PR."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "backend/tests/unit/utils/test_aegra_migration_probe.py",
+        "backend/tests/integration/test_aegra_compatibility.py"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Probe protocol and client stream contracts",
+      "description": "As a maintainer, I want an isolated Aegra request path so that I can compare its behavior with Orchestra without changing the active app.",
+      "acceptanceCriteria": [
+        "Use a disposable Aegra process and database. Keep `backend/main.py`, `backend/src/routes/v0/llm.py`, and `frontend/src/hooks/useChat.ts` unchanged.",
+        "Record the Aegra route paths and HTTP results for one health or metadata request and one Agent Protocol run request. Compare them with `/api/llm/stream` and `/api/threads/{thread_id}/stream`.",
+        "Exercise missing, valid, and cross-user credentials on the available probe routes. Record status codes and identify any route that cannot enforce current tenant rules.",
+        "Exercise one streamed run, cancellation, and reconnect or replay. Record the emitted event names, terminal signal, cursor behavior, and errors. State when the installed release lacks a capability.",
+        "Add focused, fixture-based tests for the observed event mapping against `frontend/src/lib/entities/stream.ts`. Do not wire the SDK into production chat."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "frontend/src/tests/services/aegraEventCompatibility.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Record live manual review",
+      "description": "As an operator, I want a reproducible review so that I can decide whether to fund a later integration step.",
+      "acceptanceCriteria": [
+        "With operator approval for disposable local resources, run the probe and save a redacted command transcript to `.agro/tasks/aegra-compatibility-probe/evidence/manual-review.md`.",
+        "Record exact package versions, database image, result or blocker for each boundary, and the cleanup command in the transcript.",
+        "Delete every database, process, and file created outside the worktree for the probe. Record the cleanup result.",
+        "The draft PR links the evidence, states what remains unverified, identifies the highest migration or auth risk, and recommends one next decision."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/aegra-compatibility-probe/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
