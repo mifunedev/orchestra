@@ -60,15 +60,16 @@
         "Verify in browser using agent-browser skill."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Single three-dot menu, action labels and applicable conditions, preview/code toggle, disabled recording states and tab controls, keyboard access: executed npm test -- src/tests/components/FileEditorPanel.layout.test.tsx src/tests/components/FileEditorPanel.manual-save.test.tsx src/tests/components/FileEditorPanel.delete-flow.test.tsx (exit 0, 23 passed). Browser: executed agent-browser focus File actions + Enter, observed menu screenshot .claude/screenshots/file-actions-menu-us003.png; selected Show code and reopened to observe Preview markdown; Escape closes. Deleted browser scratch file (Files count reset). Full suite, lint and build rerun before release.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         "frontend/src/components/panels/FileEditorPanel.tsx",
         "frontend/src/tests/components/FileEditorPanel.layout.test.tsx"
-      ]
+      ],
+      "commit": "c2349ae8,e204edf1"
     }
   ]
 }
