@@ -168,6 +168,6 @@ None. The operator selected these decisions on 2026-09-27:
 
 ## Lessons
 
-1. Claim: `release.yml` reports a green no-op when tag creation fails for a reason other than an existing tag. Evidence: the `reserve` step ignores the exit status of the tag-create call and then compares an empty commit with `GITHUB_SHA`. Outcome: proposed issue, pending operator approval.
+1. Claim: `release.yml` reports a green no-op when tag creation fails for a reason other than an existing tag. Evidence: the `reserve` step ignores the exit status of the tag-create call. The step compares an empty commit with `GITHUB_SHA`. Outcome: proposed issue, pending operator approval.
 2. Claim: the deploy workflows carry shellcheck findings (SC2086, SC2140). Evidence: actionlint with shellcheck reports 5 findings in `deploy-docker.yml` and 3 in `deploy-vm.yml`, the same counts as before this PR. Outcome: proposed issue, pending operator approval.
 3. Claim: tag pushes no longer deploy to the Dev VM. Evidence: this PR deletes `build.yml`, which held the automatic deploy job. `deploy-docker.yml` remains for manual deploys. Outcome: fixed in this PR. The PR body states the change.
