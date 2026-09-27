@@ -95,8 +95,8 @@
         "`git grep -n -E 'YYYY\\.M\\.D|date-based' -- ':!Changelog.md'` prints no line."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits 7bdbb7d5 + c14cd09b. 1 executed: make -qp shows no changelog/tag targets (root and backend). 2 executed: backend/scripts/tag.sh not tracked. 3 executed: build.yml deleted (duplicated release.yml publish; its auto-deploy on tag is dropped, manual deploy-docker.yml remains). 4 executed: deploy-docker input 'e.g. 4.0.0', deploy-vm input 'e.g. v4.0.0'; rc/agent gates removed; actionlint -shellcheck= exit 0 (pre-existing shellcheck findings unchanged). 5 executed: grep for YYYY.M.D|date-based|tag.sh|make changelog|make tag outside Changelog.md and .agro/tasks exit 1; hits inside .agro/tasks are the plan quoting the pattern.",
       "dependsOn": [
         "US-003"
       ],
@@ -106,7 +106,8 @@
         ".github/workflows/build.yml",
         ".github/workflows/deploy-docker.yml",
         ".github/workflows/deploy-vm.yml"
-      ]
+      ],
+      "commit": "c14cd09b"
     },
     {
       "id": "US-005",
@@ -123,7 +124,7 @@
       ],
       "priority": 5,
       "passes": false,
-      "notes": "",
+      "notes": "Docs part accepted at b26a33bf: docs/releasing.md states bump (3 files), parity check, changelog move, PR merge, fast-forward main, monitoring, no-op meaning, images/tags, verification; ste-check exit 0. docs/README.md links releasing.md (and roadmap.md). Live criteria pending post-merge with operator consent: create main, first release v4.0.0, gh release view, docker manifest inspect, delete origin/master.",
       "dependsOn": [
         "US-002",
         "US-003"
