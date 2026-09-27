@@ -1,6 +1,6 @@
 ## Manual review
 
-Operator approval covered disposable local resources only. The redacted transcript records 2026-09-27 UTC at worker commit `980d391ac2e11522b962632739b790937b1c4552`. Run all commands in the local sandbox at `/home/sandbox/harness/projects/mifunedev/orchestra/.worktrees/task/1014-aegra-review`. Never set `TEST_POSTGRES_CONNECTION_STRING` to an operator database. The tests use the fresh `pgvector/pgvector:pg17` testcontainers fixture, not the running `pgvector` service. The image digest observed with `docker image inspect pgvector/pgvector:pg17 --format '{{index .RepoDigests 0}}'` was `pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f` (exit 0). The initial `docker ps -a` contained the existing `pgvector`, `postgres`, `mongo`, `pgadmin`, `exec_server`, and `agro-sbx-local` containers. The initial `tmux list-sessions` contained `us002-port22`.
+Operator approval covered disposable local resources only. The redacted transcript records 2026-09-27 UTC at worker commit `980d391ac2e11522b962632739b790937b1c4552`. Run the commands in a fresh isolated checkout of PR #1015 inside the local sandbox. The recorded worker path `.worktrees/task/1014-aegra-review` was temporary. Never set `TEST_POSTGRES_CONNECTION_STRING` to an operator database. The tests use the fresh `pgvector/pgvector:pg17` testcontainers fixture, not the running `pgvector` service. The image digest observed with `docker image inspect pgvector/pgvector:pg17 --format '{{index .RepoDigests 0}}'` was `pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f` (exit 0). The initial `docker ps -a` contained the existing `pgvector`, `postgres`, `mongo`, `pgadmin`, `exec_server`, and `agro-sbx-local` containers. The initial `tmux list-sessions` contained `us002-port22`.
 
 **A. Guard the database boundary**
 
@@ -50,7 +50,7 @@ The completed stream has named `metadata`, `values`, `updates`, `values`, and `e
 
 **C. Check the client contract**
 
-Prerequisites: Node and npm; the worker checkout initially had no `frontend/node_modules`. Run in the local sandbox, from `frontend/`. Install only in this worker checkout. Do not install in or edit the main task worktree.
+Prerequisites: Node and npm; the worker checkout initially had no `frontend/node_modules`. Run in the local sandbox, from `frontend/`. Install only in the isolated review checkout. Do not install in or edit another checkout.
 
 1. Run the focused test and clean up the worker-local dependencies:
 
@@ -62,7 +62,7 @@ Prerequisites: Node and npm; the worker checkout initially had no `frontend/node
 
 **D. Verify cleanup**
 
-Prerequisites: steps B and C have ended. Run in the local sandbox, from the worker checkout. The backend fixture calls `stop()` at pytest session end. The protocol fixture kills its unique tmux session and drops its unique database in `finally`. The npm command removed its two worker-local directories. Do not remove `us002-port22` or any pre-existing Docker container.
+Prerequisites: steps B and C have ended. Run in the local sandbox, from the isolated review checkout. The backend fixture calls `stop()` at pytest session end. The protocol fixture kills its unique tmux session and drops its unique database in `finally`. The npm command removed its two worker-local directories. Do not remove `us002-port22` or any pre-existing Docker container.
 
 1. Check worker-local disposable paths and shared resource names:
 

@@ -108,4 +108,7 @@ Do not replace Orchestra routes, scheduler, workers, auth, or streaming. Do not 
 
 ## Lessons
 
-The advisor fills this section after the probe and before PR review.
+- Aegra rejects Orchestra revision `0001` ([migration evidence](evidence/migration.md)). Outcome: dropped from this PR because production migration ownership is outside the approved probe scope.
+- Orchestra's reader drops Aegra's named SSE frames ([protocol evidence](evidence/protocol.md)). Outcome: dropped from this PR because production client adaptation is outside the approved probe scope.
+
+PR #1015 records the next decision.

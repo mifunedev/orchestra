@@ -58,8 +58,9 @@
         "The draft PR links the evidence, states what remains unverified, identifies the highest migration or auth risk, and recommends one next decision."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: operator approved disposable local resources; env -u TEST_POSTGRES_CONNECTION_STRING AEGRA_PROBE_LIVE=1 uv run pytest -q --disable-warnings tests/unit/utils/test_aegra_migration_probe.py tests/integration/test_aegra_compatibility.py tests/integration/test_aegra_protocol_probe.py tests/integration/test_distributed_stream.py: exit 0, 18 passed, 5 warnings; redacted command transcript in evidence/manual-review.md. 2 executed: transcript records Aegra 0.10.7, SDK 1.12.0 metadata, pgvector/pgvector:pg17 image digest, revision 0001 rejection, routes, fixture auth, streaming, unsupported v2 replay and pg16 image. 3 executed: pytest fixture stopped its container, context manager dropped unique DB and killed probe tmux session, scratch SDK and generated files removed; Docker filtered list empty and no probe tmux session remains. 4 executed: PR #1015 body links manual-review.md, migration.md and protocol.md, names unverified boundaries, migration/auth risk and next decision; PR remains draft. Worker commit 564ff16f; integrated commit a9adeee7.",
+      "commit": "a9adeee7",
       "dependsOn": [
         "US-002"
       ],
