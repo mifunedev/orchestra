@@ -37,8 +37,9 @@
         "Add focused, fixture-based tests for the observed event mapping against `frontend/src/lib/entities/stream.ts`. Do not wire the SDK into production chat."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: isolated_aegra creates a fresh pg17 database and named tmux session; finally drops DB and kills only its session. Production files unchanged. 2 executed: GET /health 200; POST /threads/{id}/runs/stream 200 SSE, Orchestra POST /api/llm/stream and GET /api/threads/{id}/stream return 404; full route table in evidence/protocol.md. 3 executed: fixture missing credentials 401 on protected routes; Alice 200; Bob 404 on Alice run, replay, cancel and v2 events; shared assistant search 200 for Bob; fixture does not prove Orchestra auth integration. 4 executed: named metadata/values/updates/end frames, Last-Event-ID replay, cancelled run ends interrupted; v2 endpoint 200 heartbeat only, v1 cursor in since 422, v2 replay unverified. 5 executed: frontend fixture tests prove current tuple reader drops Aegra frames and cursor; integrated checks exit 0: live backend 18 passed, Ruff pass, frontend 22 passed, lint 0 errors/3 warnings, build pass. Worker commit 63c3db4f; integrated commit 66dd441e.",
+      "commit": "66dd441e",
       "dependsOn": [
         "US-001"
       ],
