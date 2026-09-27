@@ -33,7 +33,14 @@ On 2026-09-27, a bounded worker attempted US-001 in a disposable `pgvector/pgvec
    test -z "${TEST_POSTGRES_CONNECTION_STRING:-}" && printf 'TEST_POSTGRES_CONNECTION_STRING unset\n'
    ```
 
-   Observed output: no matching containers; `TEST_POSTGRES_CONNECTION_STRING unset`. The testcontainer's `pytest_sessionfinish` cleanup stopped its container. The worker did not start an Aegra server or named tmux session. The worker did not use an operator database.
+   Observed output: no matching containers; `TEST_POSTGRES_CONNECTION_STRING unset`. The testcontainer's `pytest_sessionfinish` cleanup stopped its container. A separate read-only check used:
+
+   ```bash
+   docker ps -a --filter 'ancestor=pgvector/pgvector:pg17' --format '{{.ID}} {{.Image}} {{.Names}} {{.CreatedAt}} {{.Status}}'
+   docker ps -a --filter 'label=org.testcontainers' --format '{{.ID}} {{.Image}} {{.Names}} {{.CreatedAt}} {{.Status}}'
+   ```
+
+   The image query showed one pre-existing `pgvector` container, created at `2026-09-27 09:42:15 -0600 MDT`; the label query returned no rows. The worker did not delete the pre-existing container. The worker did not start an Aegra server or named tmux session. The worker did not use an operator database.
 
 ## What remains unverified
 
