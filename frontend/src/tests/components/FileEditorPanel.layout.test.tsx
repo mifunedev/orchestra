@@ -4,7 +4,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import FileEditorPanel from "@/components/panels/FileEditorPanel";
 
-const fixture = vi.hoisted(() => ({ mobile: false }));
+const fixture = vi.hoisted(() => ({
+	mobile: false,
+	inferenceMode: false,
+	isGenerating: false,
+	isRecording: false,
+	toggleInferenceMode: vi.fn(),
+	startRecording: vi.fn(),
+	stopRecording: vi.fn(),
+	writeText: vi.fn(),
+	zipFile: vi.fn(),
+	generateZip: vi.fn(),
+}));
 const context = vi.hoisted(() => ({
 	fileSystem: new Map<string, { content: string[] }>(),
 	openTabs: [] as string[],
@@ -26,16 +37,18 @@ vi.mock("@/context/ChatContext", () => ({ useChatContext: () => context }));
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => fixture.mobile }));
 vi.mock("@/hooks/useInferenceDictation", () => ({
 	default: () => ({
-		inferenceMode: false,
-		toggleInferenceMode: vi.fn(),
-		isGenerating: false,
+		inferenceMode: fixture.inferenceMode,
+		toggleInferenceMode: fixture.toggleInferenceMode,
+		isGenerating: fixture.isGenerating,
 		setIsGenerating: vi.fn(),
 	}),
 }));
 vi.mock("@/lib/utils/apiClient", () => ({ default: { post: vi.fn() } }));
 vi.mock("react-voice-visualizer", () => ({
 	useVoiceVisualizer: () => ({
-		isRecordingInProgress: false,
+		isRecordingInProgress: fixture.isRecording,
+		startRecording: fixture.startRecording,
+		stopRecording: fixture.stopRecording,
 		recordedBlob: null,
 	}),
 	VoiceVisualizer: () => null,
@@ -75,14 +88,13 @@ vi.mock("lucide-react", () => {
 		PanelLeft: Icon,
 		Sparkles: Icon,
 		Loader2: Icon,
+		MoreHorizontal: Icon,
 	};
 });
 vi.mock("jszip", () => ({
 	default: class {
-		file() {}
-		generateAsync() {
-			return Promise.resolve(new Blob());
-		}
+		file = fixture.zipFile;
+		generateAsync = fixture.generateZip;
 	},
 }));
 vi.mock("@/components/inputs/MonacoEditor", () => ({
@@ -160,6 +172,14 @@ describe("FileEditorPanel layout", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fixture.mobile = false;
+		fixture.inferenceMode = false;
+		fixture.isGenerating = false;
+		fixture.isRecording = false;
+		fixture.generateZip.mockResolvedValue(new Blob());
+		Object.defineProperty(navigator, "clipboard", {
+			configurable: true,
+			value: { writeText: fixture.writeText.mockResolvedValue(undefined) },
+		});
 		context.fileSystem = new Map([
 			["/one.txt", { content: ["one"] }],
 			["/two.txt", { content: ["two"] }],
@@ -178,10 +198,18 @@ describe("FileEditorPanel layout", () => {
 			"# First document",
 		);
 		expect(screen.queryByLabelText("Monaco editor")).not.toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Show code" }));
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		fireEvent.click(screen.getByRole("menuitem", { name: "Show code" }));
 		expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
 		expect(screen.queryByTestId("markdown-card")).not.toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Preview markdown" }));
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		fireEvent.click(screen.getByRole("menuitem", { name: "Preview markdown" }));
 		expect(screen.getByTestId("markdown-card")).toHaveTextContent(
 			"# First document",
 		);
@@ -195,7 +223,11 @@ describe("FileEditorPanel layout", () => {
 		context.activeFile = "/one.md";
 		const { rerender } = render(<FileEditorPanel />);
 
-		fireEvent.click(screen.getByRole("button", { name: "Show code" }));
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		fireEvent.click(screen.getByRole("menuitem", { name: "Show code" }));
 		expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
 		context.activeFile = "/two.md";
 		rerender(<FileEditorPanel />);
@@ -221,7 +253,11 @@ describe("FileEditorPanel layout", () => {
 			expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
 			const previewName =
 				extension === "mmd" ? "Preview Mermaid diagram" : "Preview HTML";
-			fireEvent.click(screen.getByRole("button", { name: previewName }));
+			fireEvent.pointerDown(
+				screen.getByRole("button", { name: "File actions" }),
+				{ button: 0, ctrlKey: false, pointerType: "mouse" },
+			);
+			fireEvent.click(screen.getByRole("menuitem", { name: previewName }));
 			if (extension === "mmd") {
 				expect(screen.getByTestId("markdown-card")).toHaveTextContent("sample");
 			} else {
@@ -243,7 +279,11 @@ describe("FileEditorPanel layout", () => {
 		context.activeFile = "/example.html";
 		rerender(<FileEditorPanel />);
 		expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Preview HTML" }));
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		fireEvent.click(screen.getByRole("menuitem", { name: "Preview HTML" }));
 		expect(screen.getByTitle("Preview of /example.html")).toBeInTheDocument();
 		context.activeFile = "/one.md";
 		rerender(<FileEditorPanel />);
@@ -263,8 +303,184 @@ describe("FileEditorPanel layout", () => {
 		expect(screen.getByLabelText("Monaco editor")).toBeInTheDocument();
 		expect(screen.queryByTestId("markdown-card")).not.toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", { name: "Show code" }),
+			screen.queryByRole("menuitem", { name: "Show code" }),
 		).not.toBeInTheDocument();
+	});
+
+	it("shows one file-actions trigger beside the tabs while keeping new-file and tab-close controls", () => {
+		render(<FileEditorPanel />);
+		expect(
+			screen.getAllByRole("button", { name: "File actions" }),
+		).toHaveLength(1);
+		expect(
+			screen.getByRole("button", { name: "Create new file" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Close /one.txt tab" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Toggle inference mode" }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Start dictation" }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Download current file" }),
+		).not.toBeInTheDocument();
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		expect(
+			screen.getAllByRole("menuitem").map((item) => item.textContent),
+		).toEqual([
+			"Inference mode: Off",
+			"Start dictation",
+			"Copy current file",
+			"Download current file",
+			"Download all files as ZIP",
+		]);
+	});
+
+	it("runs inference, dictation, copy, single-file download, and ZIP actions", async () => {
+		const createObjectURL = vi.fn().mockReturnValue("blob:fixture");
+		const revokeObjectURL = vi.fn();
+		Object.defineProperty(URL, "createObjectURL", {
+			configurable: true,
+			value: createObjectURL,
+		});
+		Object.defineProperty(URL, "revokeObjectURL", {
+			configurable: true,
+			value: revokeObjectURL,
+		});
+		const click = vi
+			.spyOn(HTMLAnchorElement.prototype, "click")
+			.mockImplementation(() => {});
+		try {
+			render(<FileEditorPanel />);
+			const select = (name: string) => {
+				fireEvent.pointerDown(
+					screen.getByRole("button", { name: "File actions" }),
+					{ button: 0, ctrlKey: false, pointerType: "mouse" },
+				);
+				fireEvent.click(screen.getByRole("menuitem", { name }));
+			};
+			select("Inference mode: Off");
+			expect(fixture.toggleInferenceMode).toHaveBeenCalledOnce();
+			select("Start dictation");
+			expect(fixture.startRecording).toHaveBeenCalledOnce();
+			select("Copy current file");
+			expect(fixture.writeText).toHaveBeenCalledWith("one");
+			select("Download current file");
+			expect(click).toHaveBeenCalledOnce();
+			expect(createObjectURL).toHaveBeenCalledOnce();
+			select("Download all files as ZIP");
+			await vi.waitFor(() => expect(click).toHaveBeenCalledTimes(2));
+			expect(fixture.zipFile).toHaveBeenCalledWith("/one.txt", "one");
+			expect(fixture.zipFile).toHaveBeenCalledWith("/two.txt", "two");
+			expect(fixture.generateZip).toHaveBeenCalledWith({ type: "blob" });
+			expect(revokeObjectURL).toHaveBeenCalledTimes(2);
+		} finally {
+			click.mockRestore();
+		}
+	});
+
+	it("shows stop dictation and active inference, and disables mode changes during recording", () => {
+		fixture.isRecording = true;
+		fixture.inferenceMode = true;
+		render(<FileEditorPanel />);
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		expect(
+			screen.getByRole("menuitem", { name: "Inference mode: On" }),
+		).toHaveAttribute("data-disabled");
+		fireEvent.click(
+			screen.getByRole("menuitem", { name: "Inference mode: On" }),
+		);
+		expect(fixture.toggleInferenceMode).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("menuitem", { name: "Stop dictation" }));
+		expect(fixture.stopRecording).toHaveBeenCalledOnce();
+	});
+
+	it("disables dictation and inference while generating", () => {
+		fixture.isGenerating = true;
+		render(<FileEditorPanel />);
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		expect(
+			screen.getByRole("menuitem", { name: "Inference mode: Off" }),
+		).toHaveAttribute("data-disabled");
+		expect(
+			screen.getByRole("menuitem", { name: "Start dictation" }),
+		).toHaveAttribute("data-disabled");
+		fireEvent.click(screen.getByRole("menuitem", { name: "Start dictation" }));
+		expect(fixture.startRecording).not.toHaveBeenCalled();
+	});
+
+	it("opens the menu with a keyboard, selects an action, and dismisses with Escape", () => {
+		render(<FileEditorPanel />);
+		const trigger = screen.getByRole("button", { name: "File actions" });
+		trigger.focus();
+		fireEvent.keyDown(trigger, { key: "ArrowDown" });
+		expect(
+			screen.getByRole("menuitem", { name: "Inference mode: Off" }),
+		).toBeInTheDocument();
+		fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		trigger.focus();
+		fireEvent.keyDown(trigger, { key: "Enter" });
+		fireEvent.keyDown(
+			screen.getByRole("menuitem", { name: "Inference mode: Off" }),
+			{ key: "Enter" },
+		);
+		expect(fixture.toggleInferenceMode).toHaveBeenCalledOnce();
+	});
+
+	it("shows only applicable actions when there is no selected file or one file", () => {
+		context.activeFile = null;
+		context.openTabs = [];
+		context.fileSystem = new Map();
+		const { rerender } = render(<FileEditorPanel />);
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		expect(screen.queryAllByRole("menuitem")).toHaveLength(0);
+		fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+		context.fileSystem = new Map([["/one.txt", { content: ["one"] }]]);
+		context.activeFile = "/one.txt";
+		context.openTabs = ["/one.txt"];
+		rerender(<FileEditorPanel />);
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		expect(
+			screen.queryByRole("menuitem", { name: "Download all files as ZIP" }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("menuitem", { name: /Preview|Show code/ }),
+		).not.toBeInTheDocument();
+	});
+
+	it("exposes the same action menu on mobile while keeping explorer navigation", () => {
+		fixture.mobile = true;
+		render(<FileEditorPanel />);
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "File actions" }),
+			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		);
+		expect(
+			screen.getByRole("menuitem", { name: "Start dictation" }),
+		).toBeInTheDocument();
+		fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+		expect(
+			screen.getByRole("button", { name: "Show file explorer" }),
+		).toBeInTheDocument();
 	});
 
 	it("places the editor before the resize handle and explorer on desktop", () => {
