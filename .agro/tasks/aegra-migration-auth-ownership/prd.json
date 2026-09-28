@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "project": "mifunedev/orchestra",
+  "branchName": "feat/1016-aegra-migration-auth-ownership",
+  "description": "Prove Aegra 0.10.7 schema isolation in one PostgreSQL database, adapt Orchestra auth only after the gate, and map safe replacement of agent state.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Prove one-database schema ownership",
+      "description": "As an operator, I want separate migration schemas in one database so that Aegra can replace agent state without changing Orchestra's revision history.",
+      "acceptanceCriteria": [
+        "An opt-in test creates one database with `public` and `aegra` schemas inside a disposable `pgvector/pgvector:pg17` testcontainer. The test refuses `TEST_POSTGRES_CONNECTION_STRING` and any operator database.",
+        "Orchestra migrates `public` to revision `0001` and seeds one user. Aegra 0.10.7 upgrades only the `aegra` schema through its supported migration entry point.",
+        "A dedicated Aegra role uses database-scoped `search_path = aegra`, without a `public` fallback. The test checks the database name, `current_schemas(true)`, and unqualified revision resolution before the upgrade.",
+        "The test compares `public.alembic_version`, the seeded user, and the public table list before and after Aegra upgrade. Both schema-qualified version tables have independent revisions.",
+        "The Aegra role cannot create, alter, or drop `public` objects. A negative preflight rejects a `public` search path before any Aegra migration. Disable automatic startup migrations in this probe."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: integrated opt-in disposable pg17 test exit 0; dummy TEST_POSTGRES_CONNECTION_STRING refused before migration (pytest exit 4). 2 executed: public revision 0001 and seeded user, aegra revision a3f7c1d9e2b4 after bundled 0.10.7 upgrade. 3 executed: role-scoped search_path=aegra, current_schemas(true) excludes public, unqualified to_regclass null before upgrade. 4 executed: public revision, all user rows, and public table-name list match before/after Aegra upgrade; catalog objects and ACLs not compared. Fixture admin revoked public CREATE before the baseline, not Aegra. 5 executed: public CREATE/ALTER/DROP denied, forced public path rejected by guard, startup migration disabled. Ruff and compileall exit 0. This accepts migration ownership only; Aegra runtime connections and universal public-read exclusion remain unverified for US-002.",
+      "commit": "221affc4",
+      "dependsOn": [],
+      "files": [
+        "backend/tests/integration/test_aegra_schema_ownership.py",
+        "backend/src/integrations/aegra/schema_guard.py",
+        "backend/conftest.py"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Prove supported Aegra runtime and rollback paths",
+      "description": "As an operator, I want Aegra's upgrade-only, non-indexed runtime and a schema-scoped rollback method to leave Orchestra-owned objects unchanged.",
+      "acceptanceCriteria": [
+        "An opt-in disposable probe checks database name and effective schema on Alembic, ORM, checkpoint, and non-indexed store connections. Each exercised Aegra path resolves to `aegra` without a `public` fallback.",
+        "Aegra's startup revision precheck reads `aegra.alembic_version` and does not change the `public` revision or table list. Startup migrations stay disabled.",
+        "Checkpoint and non-indexed store round trips stay in `aegra`. Do not run Aegra Alembic downgrade or indexed Store; Orchestra keeps its indexed Store in `public`.",
+        "In the disposable database only, back up `aegra` schema and data, preflight the archive's schema scope, change only Aegra-owned data, restore the archive, and prove the Aegra revision and stored data return while snapshots of Orchestra's `public` rows and catalog objects remain unchanged. Refuse any operator database, keep secrets out of output, and clean up the testcontainer.",
+        "Record that this is an upgrade-only, non-indexed pilot with a tested schema-scoped restore, not support for Aegra downgrades, indexed Store, production rollback, or universal absence of public access."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "1 executed: standalone integrated opt-in pg17 runtime test exit 0 (1 passed, 5 warnings); precheck, asyncpg ORM, psycopg checkpoint/non-indexed Store reported database test and schemas ['pg_catalog', 'aegra']. 2 executed: startup migration disabled; aegra revision a3f7c1d9e2b4, public revision 0001 and snapshots unchanged. 3 executed: checkpoint/Store round trips passed; no Aegra downgrade or indexed Store called. 4 executed: inside disposable container pg_dump -n aegra -Fc, archive TOC preflight and verified internal-only pg_toast exemptions, Aegra-only revision/checkpoint/Store mutation, pg_restore --schema=aegra --clean --if-exists, exact revision and data recovery, public rows/relations/indexes/extensions/ACLs unchanged at each stage; dummy operator URL refused before migration (pytest exit 4), no testcontainers remain. 5 executed: evidence/manual-review.md and ownership.md record pilot limits and a concurrent Docker-container lifecycle change of unknown actor; no production rollback or all-paths guarantee. Targeted Ruff/compileall exit 0. Ownership probe passed separately; running both in one pytest process fails on duplicate aegra schema, so PRD requires separate processes. Evidence commit e14e0a60; runtime commit 614e15e7; restore commit 1a2ebe4a. Local only, not pushed or CI-verified.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "backend/tests/integration/test_aegra_schema_runtime.py",
+        "backend/src/integrations/aegra/schema_guard.py"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Share Orchestra credential validation",
+      "description": "As a maintainer, I want one credential resolver so that Orchestra routes and an Aegra adapter use the same user identity and revocation rules.",
+      "acceptanceCriteria": [
+        "Extract request-independent credential validation from `backend/src/utils/auth.py`. Preserve existing JWT, `x-api-key`, user lookup, and token revocation behavior on Orchestra routes.",
+        "For a valid JWT or API token, the resolver returns the database user's stable ID. Invalid, expired, revoked, missing-expiry, and deleted-user credentials fail closed.",
+        "The resolver scopes each user lookup to a short-lived database session. A regression test shows no session remains held during an SSE response.",
+        "Preserve the current API token `last_used_at` update on successful token authentication. Do not log a raw JWT or API key on failure.",
+        "The existing API-token, auth-session, and public-assistant tests pass. The API-token lifecycle test runs without a skip."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "1 executed: e40cf7b5 extracts resolve_identity(headers, bearer_token, store, session_factory) and keeps verify_credentials as a thin FastAPI wrapper. Integrated JWT/API-token/public-assistant integration tests pass. 2 executed: unit tests reject missing, malformed, expired, missing-expiry, mismatched-ID, revoked, and deleted-user credentials with 401; verified identity uses persisted user ID. 3 executed: async with session_factory scopes lookup and unit SSE response probe asserts session closes before streaming. 4 executed: API token last_used_at update occurs after session closure; failure logs do not include raw bearer/API credentials; unit redaction and integration lifecycle checks pass. 5 executed: env -u TEST_POSTGRES_CONNECTION_STRING uv run --no-sync pytest -q tests/unit/utils/test_identity_resolver.py tests/unit/utils/test_auth_dependency_scope.py tests/integration/test_api_tokens.py tests/integration/test_public_assistants.py on integrated task branch exited 0: 29 passed, 5 warnings, 0 skipped. Targeted Ruff, compileall and git diff --check exited 0. Disposable Testcontainers-label query returned no rows. Local only; no Aegra adapter, production wiring, push, or CI result.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "backend/src/utils/auth.py",
+        "backend/tests/unit/utils/test_identity_resolver.py",
+        "backend/tests/unit/utils/test_auth_dependency_scope.py"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Authenticate the isolated Aegra service",
+      "description": "As an operator, I want Aegra to accept Orchestra identities so that a test run does not create a second user authority.",
+      "acceptanceCriteria": [
+        "Aegra 0.10.7 loads the adapter through its supported auth.path in an opt-in configuration. A guarded opt-in launcher requires that path before starting Aegra; raw aegra serve falls back to shared anonymous without auth. The production Orchestra app does not mount Aegra routes.",
+        "The adapter forwards only the supplied Bearer token or x-api-key to Orchestra's existing GET /api/auth/user at a fixed internal URL. It maps the returned persisted user ID to Aegra identity and ignores client-supplied user and tenant fields.",
+        "Missing, invalid, expired, or revoked credentials return 401 on protected Aegra routes. A missing auth configuration prevents the isolated service from starting. An unavailable, redirected, malformed, or non-200 Orchestra auth response fails closed.",
+        "Aegra's migrator, ORM, checkpoint, and Store connections use the aegra-only role. The adapter receives no public database URL or role and opens no PostgreSQL connection to public. Orchestra's separate HTTP service owns user lookup and API-token Store updates in the same database. Stop if an Aegra-owned connection reaches public directly.",
+        "The adapter completes its HTTP credential lookup before resource streaming. Orchestra closes its own pooled lookup session before returning /api/auth/user; no raw credential reaches logs or an untrusted URL. API-token last_used_at and revocation behavior stay intact."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Accepted locally for the disposable API-backed pilot after independent review of 666acac2, c6448b18, and 7b551ee6. Aegra auth imports no Orchestra DB or Store; the guarded launcher checks exact auth.path, disabled automatic migrations, aegra_migrator search_path=aegra, denied public table privileges and public schema CREATE, and rejects a public POSTGRES_CONNECTION_STRING. The separate Orchestra HTTP process serves the existing GET /api/auth/user in the same disposable PostgreSQL database; valid JWT/API key identify the persisted user and update API-token last_used_at through Orchestra. Missing, invalid, expired, revoked, redirect, malformed, non-200, and unreachable cases fail closed. The integrated cleanup-aware opt-in ASGI test exited 0: 1 passed, 5 warnings, 0 skipped. Existing integrated Orchestra auth tests exited 0: 29 passed, 5 warnings. Operator-URL refusal exited 4 before migrations; targeted Ruff, compileall and diff check passed. Testcontainers-label query and owned tmux socket search returned no rows; two sockets from earlier reruns were manually removed after confirming no server, and the final test cleans its socket. No full network Aegra stream, unexercised Aegra paths, production deployment, push, or CI proof. US-005 resource authorization is still required before any service use.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        "backend/src/integrations/aegra/auth.py",
+        "backend/src/integrations/aegra/launch.py",
+        "backend/tests/integration/test_aegra_auth_adapter.py",
+        "backend/tests/fixtures/aegra_auth.json",
+        "backend/tests/fixtures/aegra_auth_graph.py",
+        "backend/tests/fixtures/orchestra_auth_server.py"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Deny cross-user Aegra resources",
+      "description": "As an operator, I want explicit resource authorization so that an authenticated user cannot read or change another user's runs or data.",
+      "acceptanceCriteria": [
+        "Explicit Aegra auth handlers cover tested assistants create/search/read/update/delete, threads create/search/read/update/delete/create_run, and store put/get/delete/search/list_namespaces actions. Aegra exposes no runs hook; run routes dispatch through thread actions. An unhandled action fails closed.",
+        "Two valid Orchestra users can access their own threads and runs. Cross-user search, read, stream, cancel, and store operations return a denial without exposing another user's data.",
+        "Client-supplied owner metadata and store namespaces do not override the verified user ID.",
+        "Tests exercise missing and revoked API tokens as well as valid JWTs against the adapter. The current Orchestra routes continue to pass their auth tests."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Advisor accepted only the exercised disposable two-user authorization proof after reviewing worker 1ab8974a and integrating it as 7b34b30a. The first uncommitted attempt failed: Aegra 0.10.7 passes a COPY to threads.create_run and persists original client metadata; a handler mutation did not change run metadata. The accepted handler instead rejects forged metadata.owner with 403, also rejects forged assistant/thread updates, and checks successful runs use Aegra's persisted verified user_id. A global fallback denies unhandled actions; specific assistant, thread/create_run, and Store handlers scope tested actions to the verified identity. Integrated standalone Aegra 0.10.7 disposable ASGI test exited 0: 1 passed, 5 warnings in 10.01s. It tested two persisted users via Orchestra's separate HTTP service, own assistant/thread/run/Store access, cross-user search/read/stream/cancel/update/delete denial or filtered empty results, Store namespace forgery, missing/revoked keys and JWTs. Integrated Orchestra auth regressions exited 0: 29 passed, 5 warnings; dummy operator URL refusal exited 4; full Ruff, compileall, and diff check passed. No labeled Testcontainer or owned tmux socket remained. Tests do not cover every Aegra route, full network stream, upstream fixes, indexed Store, downgrade, production isolation or cutover. No push or CI result; PR stays draft.",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        "backend/src/integrations/aegra/auth.py",
+        "backend/tests/integration/test_aegra_auth_adapter.py"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Map data ownership and retirement",
+      "description": "As an operator, I want a verified ownership map so that Aegra replaces eligible state without deleting Orchestra-specific data.",
+      "acceptanceCriteria": [
+        "Record each current assistant, thread, run, checkpoint, user, API-token, project, file, memory, setting, and schedule persistence path in `.agro/tasks/aegra-migration-auth-ownership/evidence/ownership.md`.",
+        "For each path, state the current owner, candidate Aegra owner or Orchestra retention, field mapping status, and a test required before retirement. Do not claim equivalence from matching names alone.",
+        "Mark assistants, threads, runs, and checkpoints as replacement candidates. Keep user and app-specific data until a separate migration and parity test passes.",
+        "Record the order of data backfill, read-switch, rollback, and deletion for later work. Do not delete any table, namespace, queue, or object in this task."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Advisor accepted the candidate map after checking source paths and reviewing the bounded evidence commits a76fd87d and d31332c6. The map separates users, API-token Store rows, legacy third-party tokens, objects, context files, trajectories, distillation metadata, prompts, schedules, Redis, and candidate assistants/threads/runs/checkpoints. Each surface names missing field mapping and a parity/retirement test; future backfill, read-switch, reversal, and deletion remain conditional. STE, all 36 referenced paths, and git diff --check passed. No live rows, production rollback, data migration, push, or CI result.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/aegra-migration-auth-ownership/evidence/ownership.md"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Record manual review evidence",
+      "description": "As an operator, I want a disposable live transcript so that I can decide whether to authorize a later integration.",
+      "acceptanceCriteria": [
+        "After operator approval for disposable local resources, run the opt-in one-database, two-schema, two-user probe. Save a redacted command transcript in `.agro/tasks/aegra-migration-auth-ownership/evidence/manual-review.md`.",
+        "Record exact database image, Aegra version, schema-qualified revisions, effective search paths, credential permissions, route statuses, and failure paths. Mark each untested claim as unverified.",
+        "Stop the probe service and delete only resources created by the review. Record the cleanup commands and observed results.",
+        "Keep PR #1015 draft and unmerged. If a new PR is authorized, base it on `development`; link the transcript, ownership map, risks, and the next decision without merging it."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Advisor accepted the redacted manual transcript from worker fd0ca67f/8a7c5945, integrated as 58a139bf/542145b8. The worker's first fresh-venv command exited 2 before pytest because pytest was missing; after uv sync --group dev it reran ownership, runtime/restore, auth/two-user and 29 Orchestra auth tests in four SEPARATE processes, all exit 0. Advisor independently repeated those four on the integrated branch: ownership 1 passed/5 warnings (0.90s), runtime/restore 1 passed/5 warnings (4.01s), auth/two-user 1 passed/5 warnings (10.62s), regressions 29 passed/5 warnings (1.40s), all exit 0. STE, JSON, Ruff and diff checks passed. Docker Testcontainers-label query and owned aegra-auth tmux socket search returned no rows. The transcript distinguishes the initial uncommitted failed run metadata mutation from accepted fail-closed forged-owner rejection. No direct public Aegra access observed in exercised paths; untested routes, indexed Store, downgrade, full network stream, and production rollback/isolation remain unverified. No operator database, production wiring, data cutover, push or CI result. PR #1017 remains draft/unmerged.",
+      "dependsOn": [
+        "US-005",
+        "US-006"
+      ],
+      "files": [
+        ".agro/tasks/aegra-migration-auth-ownership/evidence/manual-review.md"
+      ]
+    }
+  ]
+}

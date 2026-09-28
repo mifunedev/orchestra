@@ -49,6 +49,8 @@ def _migrate():
 
 _test_postgres = None
 _test_uri = os.environ.get("TEST_POSTGRES_CONNECTION_STRING")
+if os.environ.get("AEGRA_OWNERSHIP_LIVE") == "1" and _test_uri:
+    pytest.exit("Aegra ownership probe refuses TEST_POSTGRES_CONNECTION_STRING before migrations", returncode=3)
 if not _test_uri:
     _test_postgres, _test_uri = _start_test_postgres()
 os.environ["POSTGRES_CONNECTION_STRING"] = _test_uri
