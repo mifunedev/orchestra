@@ -125,6 +125,28 @@ Docker events showed removal of our labeled testcontainer. During the same perio
 
 The initial plan-only commit `1cedf6b6` passed backend and frontend checks in [run 36350139276](https://github.com/mifunedev/orchestra/actions/runs/36350139276); CI skipped E2E. The previous blocker proof ran only in an uncommitted worker worktree. [Run 36350893298](https://github.com/mifunedev/orchestra/actions/runs/36350893298) passed for the evidence-only commit `aef80527`. The migration commit `221affc4` and runtime worker commit `57717b6f` had no final CI result at the time of the earlier review. This document records no CI verdict for integrated commit `1a2ebe4a`.
 
+## US-004: isolated Aegra authentication pilot
+
+The advisor ran the accepted US-004 test from the integrated task branch's `backend/` directory. The opt-in fixture used one disposable `pgvector/pgvector:pg17` database. The test installed Aegra 0.10.7 through `uv run --no-sync --with aegra-api==0.10.7` in child processes. Orchestra kept its revision `public.alembic_version=0001`; Aegra migrated to `aegra.alembic_version=a3f7c1d9e2b4`. The Aegra `aegra_migrator` role used database-scoped `search_path=aegra`. The Aegra role's effective schemas excluded `public`. Role checks denied `SELECT` on `public.users` and `public.store` and denied `CREATE` on schema `public`. The fixture served Orchestra's existing `GET /api/auth/user` from a separate HTTP process with the public database role. The Aegra adapter forwarded credentials to that fixed loopback endpoint. The Aegra process received no Orchestra public database URL. The test asserted that the process did not import `src.services.db`.
+
+```bash
+env -u TEST_POSTGRES_CONNECTION_STRING AEGRA_OWNERSHIP_LIVE=1 uv run --no-sync pytest -q -s tests/integration/test_aegra_auth_adapter.py
+```
+
+The advisor observed exit 0: `1 passed, 5 warnings in 9.44s`. The hardened test had also passed in `10.85s` before the cleanup patch `7b551ee6`. The runs are local integration results, not CI results. Through Aegra's ASGI transport, `/assistants/search` returned 401 for missing, invalid, expired, and revoked credentials. Valid JWT and API-key requests returned 200. `/runs/stream` returned 200 and yielded a proof event. The direct authentication handler used the persisted user ID despite a forged `x-user-id` header. The search requests included forged `user_id` and `tenant_id` JSON fields; their HTTP statuses alone do not prove resource ownership or namespace isolation. No forged tenant header was separately asserted. Mocked redirect, malformed, and non-200 auth responses, plus an unreachable auth port, failed authentication with 401. The test asserted that Orchestra updated the valid API key's `public.store` token `last_used_at`. Non-token Store rows, public table rows, revision, user rows, and public catalog snapshots matched their baselines. The test assertions do not audit every database operation.
+
+The guarded launcher refused missing or unloadable `auth.path`, a public database URL in Aegra's environment, and temporarily granted `CREATE` on `public`. A separate run set a dummy `TEST_POSTGRES_CONNECTION_STRING`; pytest exited 4 before migrations or a database connection. The integrated Orchestra auth regression ran separately from `backend/`:
+
+```bash
+env -u TEST_POSTGRES_CONNECTION_STRING uv run --no-sync pytest -q tests/unit/utils/test_identity_resolver.py tests/unit/utils/test_auth_dependency_scope.py tests/integration/test_api_tokens.py tests/integration/test_public_assistants.py
+```
+
+The advisor observed exit 0: `29 passed, 5 warnings in 1.91s`.
+
+For the final cleanup check, `docker ps -a --filter label=org.testcontainers` returned no rows. The advisor's final `find` search for owned `aegra-auth-*` tmux sockets returned no matches. Two earlier integrated reruns left `/tmp/tmux-1000/aegra-auth-503614` and `/tmp/tmux-1000/aegra-auth-489270`. The advisor used `tmux -L <socket-name> list-sessions` to verify no server remained, then removed only those exact sockets. The final test version in `7b551ee6` removes its own socket. This review does not assign unrelated Docker events to the auth test.
+
+The pilot did not run a full network Aegra stream. The pilot did not prove cross-user authorization, client-supplied resource-owner safety, or Store namespace isolation. The pilot did not exercise other Aegra paths, indexed Store, or downgrade. The pilot did not prove production isolation or rollback. US-005 must test two users and resource ownership before service use.
+
 ## Next decision
 
-The operator approved only the narrow upgrade and non-indexed pilot with disposable schema restore. Aegra downgrade, Aegra indexed Store, auth, a second database, and production cutover remain outside this proof. Keep PR #1017 draft pending separate review. Do not treat the disposable restore as production rollback evidence.
+The advisor accepted US-004 locally for this disposable API-backed pilot. US-005 resource authorization and US-007 manual-review acceptance remain pending. Keep PR #1017 draft pending separate review. Do not treat the disposable restore or this auth pilot as production isolation or rollback proof.
