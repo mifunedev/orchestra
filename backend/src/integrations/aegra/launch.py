@@ -37,6 +37,8 @@ def validate(config_path: Path) -> None:
                 raise ValueError("Aegra database role must resolve only to aegra")
             revision = connection.execute(text("SELECT version_num FROM aegra.alembic_version")).scalar_one()
             require_aegra_schema(connection, url.database, revision)
+            if connection.execute(text("SELECT has_schema_privilege(current_user, 'public', 'CREATE')")).scalar_one():
+                raise ValueError("Aegra role can create public objects")
             public_access = connection.execute(
                 text(
                     "SELECT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "

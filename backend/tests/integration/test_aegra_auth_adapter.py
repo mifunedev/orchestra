@@ -194,6 +194,28 @@ def test_aegra_auth_adapter(tmp_path):
         with migrator.connect() as conn:
             revision = conn.execute(text("SELECT version_num FROM aegra.alembic_version")).scalar_one()
             require_aegra_schema(conn, database, revision)
+        with owner.begin() as conn:
+            conn.execute(text("GRANT CREATE ON SCHEMA public TO aegra_migrator"))
+        try:
+            with migrator.connect() as conn:
+                assert conn.execute(text("SELECT has_schema_privilege(current_user, 'public', 'CREATE')")).scalar_one()
+            refused = invoke(["-m", "src.integrations.aegra.launch", str(CONFIG), "--check"], environment, valid=False)
+            assert refused.returncode == 1
+            assert "Aegra guarded startup refused" in refused.stderr
+        finally:
+            with owner.begin() as conn:
+                conn.execute(text("REVOKE CREATE ON SCHEMA public FROM aegra_migrator"))
+        with migrator.connect() as conn:
+            assert not conn.execute(text("SELECT has_schema_privilege(current_user, 'public', 'CREATE')")).scalar_one()
+        public_url_environment = {
+            **environment,
+            "POSTGRES_CONNECTION_STRING": owner_url.render_as_string(hide_password=False),
+        }
+        refused = invoke(
+            ["-m", "src.integrations.aegra.launch", str(CONFIG), "--check"], public_url_environment, valid=False
+        )
+        assert refused.returncode == 1
+        assert "Aegra guarded startup refused" in refused.stderr
         with owner.connect() as conn:
             assert before == (
                 tuple(conn.execute(text("SELECT * FROM public.users ORDER BY id"))),
