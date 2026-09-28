@@ -58,7 +58,7 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] Explicit Aegra auth handlers cover assistant, thread, run-through-thread, and store operations used by the opt-in test. An unhandled operation fails closed.
+- [ ] Explicit Aegra auth handlers cover the tested `assistants` create/search/read/update/delete, `threads` create/search/read/update/delete/create_run, and `store` put/get/delete/search/list_namespaces actions. Aegra exposes no separate `runs` hook; run routes dispatch through thread actions. An unhandled action fails closed.
 - [ ] Two valid Orchestra users can access their own threads and runs. Cross-user search, read, stream, cancel, and store operations return a denial without exposing another user's data.
 - [ ] Client-supplied owner metadata and store namespaces do not override the verified user ID.
 - [ ] Tests exercise missing and revoked API tokens as well as valid JWTs against the adapter. The current Orchestra routes continue to pass their auth tests.
@@ -151,7 +151,7 @@ Do not merge or modify PR #1015. Do not add a second PostgreSQL database. Do not
 
 ## Open Questions
 
-- Which exact Aegra 0.10.7 auth resource actions must the adapter register for the selected probe routes? Enumerate them from the tagged route map before implementation. Default-deny the remaining actions.
+- The tagged [Aegra auth registry](https://github.com/aegra/aegra/blob/v0.10.7/libs/aegra-api/src/aegra_api/core/auth_registry.py) maps tested resource actions to `assistants`, `threads`, and `store`; there is no `runs` hook. Missing authorization handlers allow access by default. Register the tested actions and default-deny other actions. Tagged middleware falls back to shared `anonymous` when auth configuration is absent or invalid; guard startup before serving requests.
 - Which minimum store grants permit token lookup and `last_used_at` updates without Aegra migration access to `public`? Prove the grants in the disposable database.
 - Do the exercised Aegra 0.10.7 ORM, Alembic upgrade, checkpoint, and non-indexed store operations honor the dedicated role's `search_path`? Do not infer indexed Store or downgrade support from this proof; defer those paths to a separate decision.
 
