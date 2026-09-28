@@ -16,10 +16,11 @@
         "No new-thread request invokes Orchestra `stream_generator` or `LLMController.llm_stream`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "2bd7b50abb9d8e42534485604add0af9df6ae7c3",
+      "notes": "1 executed: test module-load failed before implementation, exit 1. 2 executed: bash backend/scripts/test-aegra-chat-stream.sh exit 0, 3 passed; real graph/tool/result/second-turn state asserted. 3 executed: same test covers missing, invalid, revoked, unknown-tool, spoofed identity, and second-user thread/run/stream denials. 4 executed: test asserts native thread/run/checkpoint rows and no Orchestra thread row or store entry; disposable DB dropped and absent. 5 executed: test failure sentinels assert legacy stream_generator and LLMController.llm_stream uncalled. Advisor independently reran the runner: exit 0, 3 passed, disposable DB dropped and absent. README trim commit 061fe8a6 passed STE checker and git diff --check.",
       "dependsOn": [],
-      "files": ["backend/src/integrations/aegra/", "backend/tests/integration/test_aegra_chat_stream.py"]
+      "files": ["backend/src/integrations/aegra/", "backend/tests/integration/test_aegra_chat_stream.py", "backend/pyproject.toml", "backend/uv.lock", "backend/scripts/test-aegra-chat-stream.sh"]
     },
     {
       "id": "US-002",

@@ -56,6 +56,7 @@ The existing New Thread control clears the current chat state. The first message
 | `backend/src/routes/v0/auth.py` | `read_user_details` | Existing credential authority at `/api/auth/user`. |
 | `backend/src/routes/v0/llm.py` | `llm_stream` | Existing route for old threads; not the new-thread stream owner. |
 | `backend/src/utils/stream.py` | `stream_generator` | Existing SSE loop; do not copy it. |
+| `backend/src/integrations/aegra/` | `create_app`, `graph`, `auth` | New isolated Aegra service, real graph, and Orchestra identity boundary. |
 
 ## Interface Integration Points
 
@@ -79,11 +80,12 @@ Use Aegra's native thread and run-stream API. Add one client event mapper, not a
 | Test File | Case(s) | Validates |
 |---|---|---|
 | `backend/tests/integration/test_aegra_chat_stream.py` (new) | New thread, two turns, deterministic tool, credential failure, cross-user denial. | Aegra runtime and isolation. |
+| `backend/scripts/test-aegra-chat-stream.sh` (new) | Create and drop one fresh Aegra database in the existing container. | Repeatable vector-free backend test. |
 | `frontend/src/tests/utils/aegraStream.test.ts` (new) | Tool event mapping, reply, error, completion. | Client transport. |
 | `frontend/src/hooks/useChat.test.tsx` | New-thread dispatch, second turn, legacy route unchanged. | UI routing. |
 | `.agro/tasks/aegra-stream-api/evidence/manual-review.md` (new) | Browser journey, API response, resource cleanup. | Manual review. |
 
-Run `uv run pytest tests/integration/test_aegra_chat_stream.py` from `backend/`. Run `npm test -- src/tests/utils/aegraStream.test.ts src/hooks/useChat.test.tsx` and `npm run build` from `frontend/`. Use only disposable local state in integration tests.
+Run `bash backend/scripts/test-aegra-chat-stream.sh` from the repository root. The runner excludes the vector-dependent Orchestra test fixtures. Run `npm test -- src/tests/utils/aegraStream.test.ts src/hooks/useChat.test.tsx` and `npm run build` from `frontend/`. Use only disposable local state in integration tests.
 
 ## Design Principles
 
@@ -91,7 +93,7 @@ Keep one stream owner for each thread. Reuse the existing identity authority and
 
 ## Out of Scope
 
-Do not support distributed workers or Redis stream polling. Do not migrate old threads, replace existing-thread streams, or change their API. Do not support public assistants, files, MCP, subagents, or production deployment in this task. Do not import or finish a prior Aegra attempt.
+Do not add vector or support distributed workers or Redis stream polling. Do not migrate old threads, replace existing-thread streams, or change their API. Do not support public assistants, files, MCP, subagents, or production deployment in this task. Do not import or finish a prior Aegra attempt.
 
 ## Open Questions
 
