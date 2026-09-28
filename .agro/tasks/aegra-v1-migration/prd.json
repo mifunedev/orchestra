@@ -93,8 +93,9 @@
       ],
       "description": "As an operator, I want observed v0 and v1 journeys so that I can decide whether the experiment is ready for further parity work.",
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "f81102a9444acd726cc60ff6f05e08e28b560fe8",
+      "notes": "1 executed: under approved disposable database scope, evidence/manual-review.md records redacted commands, observed HTTP statuses, and two annotated browser screenshots; STE check and git diff --check exit 0. 2 executed: v1 browser created thread, invoked math_calculator 9 * 9 = 81, displayed tool result and streamed reply, and answered a second turn on the same engine. 3 executed: new chat with uploaded valid red PNG routed to v0 and answered Red; controlled blue image retry confirmed one human and one assistant for one click. 4 executed: fresh browser with auth only and no aegra-thread keys reloaded both task-owned thread IDs from their original server; browser v1 route XHR trace showed zero legacy checkpoint-search calls. 5 executed: stopped only named review tmux sessions (ports 5174 and 2027 now closed), deleted only three task-created legacy review threads (204 then 404), dropped only aegra_v1_review_5160189ff5fc8c8e3c678b35499fdc97 and independently verified database absence. Existing 5173, 8000, and 2026 services remain online.",
       "dependsOn": [
         "US-003"
       ],
