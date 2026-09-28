@@ -101,11 +101,15 @@ None. The implementation selects the local Aegra browser route and records it in
 
 ## Acceptance Criteria
 
-- [ ] New Thread in the current UI creates an Aegra-owned thread after the first message.
-- [ ] The UI shows an authorized Orchestra tool call, its result, and an Aegra-streamed reply.
-- [ ] A second message uses the same Aegra thread and its prior context.
-- [ ] Cross-user access fails, existing-thread behavior stays unchanged, and the browser journey has annotated screenshots.
+- [x] New Thread in the current UI creates an Aegra-owned thread after the first message.
+- [x] The UI shows an authorized Orchestra tool call, its result, and an Aegra-streamed reply.
+- [x] A second message uses the same Aegra thread and its prior context.
+- [x] Cross-user access fails in the two-identity integration test, existing-thread behavior stays unchanged, and the browser journey has annotated screenshots.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+The seeded local account includes passive context files. Distinguish those files from explicit attachments before rejecting unsupported Aegra inputs.
+
+Aegra emits `Overwrite` updates that differ from Orchestra SSE events. Parse native updates before merging messages.
+
+After the first Aegra run, keep the new thread on `/chat`. The legacy `/thread/{id}` route requires Orchestra checkpoints.

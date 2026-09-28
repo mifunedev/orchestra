@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ## [Unreleased]
 
+### Added
+
+- Route new UI chats through Aegra to stream Orchestra tool calls, results, and follow-up replies while existing threads keep their current stream path ([#1019](https://github.com/mifunedev/orchestra/issues/1019)).
+
 ### Changed
 
 - Place the file explorer to the right of the editor in the Files panel, open Markdown files in preview by default, and consolidate file actions into a three-dot menu ([#1012](https://github.com/mifunedev/orchestra/issues/1012)).
