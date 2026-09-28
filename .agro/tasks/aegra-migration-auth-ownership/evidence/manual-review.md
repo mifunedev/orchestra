@@ -147,6 +147,54 @@ For the final cleanup check, `docker ps -a --filter label=org.testcontainers` re
 
 The pilot did not run a full network Aegra stream. The pilot did not prove cross-user authorization, client-supplied resource-owner safety, or Store namespace isolation. The pilot did not exercise other Aegra paths, indexed Store, or downgrade. The pilot did not prove production isolation or rollback. US-005 must test two users and resource ownership before service use.
 
-## Next decision
+## Earlier decision
 
-The advisor accepted US-004 locally for this disposable API-backed pilot. US-005 resource authorization and US-007 manual-review acceptance remain pending. Keep PR #1017 draft pending separate review. Do not treat the disposable restore or this auth pilot as production isolation or rollback proof.
+The advisor accepted US-004 locally for this disposable API-backed pilot. At that review, US-005 resource authorization and US-007 manual-review acceptance remained pending. Keep PR #1017 draft pending separate review. Do not treat the disposable restore or this auth pilot as production isolation or rollback proof.
+
+## US-007: final disposable review on `768b62d1`
+
+The operator approved local disposable resources. This worker ran the tests from `backend/` in `.worktrees/task/1016-aegra-final-evidence`. Each live probe ran in a separate pytest process. Every command below removed `TEST_POSTGRES_CONNECTION_STRING` from its environment. No command used an operator database. The fixture used one `pgvector/pgvector:pg17` database per process, with Orchestra in `public` and Aegra 0.10.7 in `aegra`. These runs did not change production wiring.
+
+The first ownership command exited 2 before pytest started. `uv run --no-sync` created an empty `.venv` and reported `Failed to spawn: pytest` and `No such file or directory (os error 2)`. No test ran. The immediate cleanup queries returned no Testcontainers-labeled container and no owned `aegra-auth-*` tmux socket. The worker stopped before running another probe. After the operator classified this as environment setup, the worker ran `env -u TEST_POSTGRES_CONNECTION_STRING uv sync --group dev` from `backend/`; it exited 0. `env -u TEST_POSTGRES_CONNECTION_STRING uv run --no-sync pytest --version` exited 0 and reported `pytest 9.1.0`. The tracked lockfile did not change.
+
+The worker then ran the following commands in this order from `backend/`:
+
+```bash
+env -u TEST_POSTGRES_CONNECTION_STRING AEGRA_OWNERSHIP_LIVE=1 uv run --no-sync pytest -q -s tests/integration/test_aegra_schema_ownership.py
+env -u TEST_POSTGRES_CONNECTION_STRING AEGRA_OWNERSHIP_LIVE=1 uv run --no-sync pytest -q -s tests/integration/test_aegra_schema_runtime.py
+env -u TEST_POSTGRES_CONNECTION_STRING AEGRA_OWNERSHIP_LIVE=1 uv run --no-sync pytest -q -s tests/integration/test_aegra_auth_adapter.py
+env -u TEST_POSTGRES_CONNECTION_STRING uv run --no-sync pytest -q tests/unit/utils/test_identity_resolver.py tests/unit/utils/test_auth_dependency_scope.py tests/integration/test_api_tokens.py tests/integration/test_public_assistants.py
+```
+
+| Process | Exit | Pytest result | Observed scope |
+|---|---:|---|---|
+| Schema ownership | 0 | 1 passed, 5 warnings in 1.64s | `public.alembic_version=0001`, `aegra.alembic_version=a3f7c1d9e2b4`, `public_unchanged=True`. |
+| Schema runtime and restore | 0 | 1 passed, 5 warnings in 4.02s | Database `test`; Alembic, startup precheck, asyncpg ORM, psycopg checkpoint, and non-indexed Store reported `['pg_catalog', 'aegra']` and Aegra revision `a3f7c1d9e2b4`. The test verified the checkpoint/Store round trips and schema-only archive/restore assertions. |
+| Auth adapter and two-user authorization | 0 | 1 passed, 5 warnings in 9.98s | The test asserted the route statuses, identity mapping, namespace scoping, token update, and public snapshots described below. |
+| Orchestra auth regressions | 0 | 29 passed, 5 warnings in 1.41s | Identity resolver, auth dependency scope, API-token lifecycle, and public-assistant tests. No tests skipped. |
+
+The fixture set the dedicated Aegra role's database-scoped `search_path` to `aegra` only. The effective schemas excluded `public`. The Aegra role could not `SELECT public.users` or `public.store` and could not `CREATE` on schema `public`. The ownership test also denied public DDL and rejected a forced public search path. The auth test checked both revisions and kept the Aegra process free of the Orchestra public database URL. A separate Orchestra HTTP process served `GET /api/auth/user` on the same disposable database. Orchestra alone updated the API token's `public.store` `last_used_at`; the test verified the update. The auth test compared public user rows, revision, tables, catalog, other table rows, and non-token Store rows with their baselines. No exercised Aegra-owned connection showed direct access to `public`. These assertions do not audit every query or every Aegra route.
+
+The auth test asserted these protected `/assistants/search` statuses: missing, invalid, expired, and revoked credentials each returned 401; valid JWT and API key each returned 200. A forged `x-user-id` header did not change the persisted identity. The client also sent forged `user_id` and `tenant_id` search fields; the response status alone does not prove isolation. Mocked redirect, malformed, and non-200 Orchestra auth responses failed with 401. An unreachable Orchestra auth port also failed with 401. The guarded launcher refused missing or invalid `auth.path`, a public database URL, and a temporary public `CREATE` grant. The run did not repeat the earlier dummy operator-URL refusal test; earlier evidence records pytest exit 4 before migration.
+
+The two-user assertions covered these outcomes:
+
+- The first user created and read an assistant and a thread with persisted first-user owner metadata, despite forged second-user metadata in the create requests. First-user assistant and thread updates with forged second-user owner returned 403. Correct-owner updates returned 200.
+- The second user's assistant and thread searches returned 200 with results that excluded the first user's IDs. These are **filtered results**, not HTTP 403. Cross-user assistant and thread reads, updates, and deletes returned 404.
+- The first user's forged `metadata.owner` on `threads.create_run` returned 403. A valid run creation returned 200, and the returned and later read `run.user_id` matched the persisted first-user identity. The second user's own thread and run creation, read, and run cancellation returned 200; the second user's run also carried the second user's persisted `user_id`.
+- The second user's cross-user run list returned 200 without the first user's run ID. Cross-user run read and stream returned 403 or 404, and cancel returned 403 or 404. The assertions checked that denial responses did not contain the first user's private message. The first user's own run stream returned 200.
+- First-user Store put and delete returned 204; own get and search returned 200; own namespace listing returned 200. Second-user reads of the first user's item returned 404. Second-user Store search and namespace listing returned 200 without first-user data. A forged first-user namespace in a second-user put remained scoped to the second user: second-user get returned 200 and first-user get returned 404. A second-user delete against the first user's logical key returned 204 without deleting the first user's value. First-user delete removed that value; the later get returned 404.
+- The fallback auth handler denied an unhandled cron search with 403. A separate `/runs/stream` ASGI request returned 200 and yielded the proof event. This test did not run a full network Aegra stream.
+
+The first uncommitted US-005 `create_run` mutation attempt **failed**. Aegra 0.10.7 copied the handler value and did not apply mutated run owner metadata. The accepted handler rejects forged `metadata.owner` with 403 instead of relying on mutation. The accepted test also verifies that a successful run's `user_id` equals the persisted authenticated identity. Do not treat the failed mutation as an accepted protection.
+
+After **each** probe, the worker ran these read-only cleanup commands and saw no output rows or paths:
+
+```bash
+docker ps -a --filter 'label=org.testcontainers' --format '{{.ID}} {{.Image}} {{.Names}} {{.Status}}'
+find /tmp/tmux-$(id -u) -maxdepth 1 -type s -name 'aegra-auth-*' -print 2>/dev/null
+```
+
+The same checks returned no matches after the initial exit 2 and after the regression process. The auth test's `finally` block killed its named Orchestra auth tmux session, checked that no server remained, and removed its own socket if present. The pytest session fixture stopped each disposable testcontainer. The worker deleted no unrelated container. The label query does not establish the state or actor of any unlabeled container.
+
+The final review did not test every Aegra route, full network streaming, semantic indexing, Alembic downgrade, production rollback, or cutover. The review did not prove universal absence of Aegra access to `public`. No production data moved. US-007 acceptance and any later integration decision remain with the advisor and operator. Keep the PR draft and unmerged; this worker did not push or change a PR.
