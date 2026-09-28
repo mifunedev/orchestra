@@ -91,7 +91,10 @@ export type ChatContextType = {
 	filesMap: Map<string, any>;
 	setFilesMap: (filesMap: Map<string, any>) => void;
 	submissionFiles: Record<string, any> | null;
-	setSubmissionFiles: (files: Record<string, any> | null) => void;
+	setSubmissionFiles: (
+		files: Record<string, any> | null,
+		hasExplicitAttachments?: boolean,
+	) => void;
 	todos: Todo[];
 	setTodos: (todos: Todo[]) => void;
 	viewMode: "chat" | "editor";
@@ -198,8 +201,13 @@ export default function useChat(): ChatContextType {
 	const [submitStartTime, setSubmitStartTime] = useState<number | null>(null);
 	const submitStartTimeRef = useRef<number | null>(null);
 
+	const hasExplicitAttachmentsRef = useRef(false);
 	const setSubmissionFiles = useCallback(
-		(files: Record<string, any> | null) => {
+		(
+			files: Record<string, any> | null,
+			hasExplicitAttachments = Object.keys(files ?? {}).length > 0,
+		) => {
+			hasExplicitAttachmentsRef.current = hasExplicitAttachments;
 			setSubmissionFilesState(files ? { ...files } : null);
 		},
 		[],
@@ -642,11 +650,7 @@ export default function useChat(): ChatContextType {
 		setController(abortController);
 		try {
 			const unsupported = [
-				[
-					"files",
-					images.length > 0 ||
-						Object.keys(getResolvedSubmissionFiles()).length > 0,
-				],
+				["files", images.length > 0 || hasExplicitAttachmentsRef.current],
 				["public assistants", agent.public],
 				["MCP", Object.keys(agent.mcp ?? {}).length > 0],
 				["A2A", Object.keys(agent.a2a ?? {}).length > 0],
@@ -708,12 +712,16 @@ export default function useChat(): ChatContextType {
 			);
 			if (!abortController.signal.aborted) setQuery("");
 		} catch (error) {
-			if (!abortController.signal.aborted)
+			if (!abortController.signal.aborted) {
+				const message = error instanceof Error ? error.message : String(error);
 				setRunError({
 					runId: metadataRef.current.run_id ?? "",
-					message: error instanceof Error ? error.message : String(error),
+					message,
 					recoverable: false,
 				});
+				toast.error(message);
+				setQuery((current) => current || content);
+			}
 		} finally {
 			if (aegraControllerRef.current === abortController) {
 				aegraControllerRef.current = null;

@@ -668,7 +668,12 @@ export default function ChatProvider({
 				modified_at: data.modified_at,
 			};
 		});
-		setSubmissionFiles(contextFiles);
+		setSubmissionFiles(
+			contextFiles,
+			Array.from(fileSystem.values()).some(
+				(file) => file.source === USER_FILES_SOURCE,
+			),
+		);
 
 		const hasContextFiles = Object.keys(contextFiles).length > 0;
 		const prevContextFiles = filesMap.get(CONTEXT_FILES_KEY) as

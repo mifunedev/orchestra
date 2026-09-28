@@ -298,6 +298,10 @@ describe("useChat Aegra routing", () => {
 				await result.current.handleSubmit("hello");
 			});
 			expect(result.current.runError?.message).toMatch(/does not support/);
+			expect(toast.error).toHaveBeenCalledWith(
+				result.current.runError?.message,
+			);
+			expect(result.current.query).toBe("hello");
 			expect(fetchMock).not.toHaveBeenCalled();
 			expect(mockInitiateStream).not.toHaveBeenCalled();
 			expect(streamThread).not.toHaveBeenCalled();
@@ -341,23 +345,59 @@ describe("useChat Aegra routing", () => {
 			vi.unstubAllGlobals();
 		},
 	);
-	it("rejects files before creation or execution", async () => {
-		const fetchMock = vi.fn();
+	it("does not treat passive legacy filesMap entries as attachments", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ thread_id: "passive" })),
+			)
+			.mockResolvedValueOnce(new Response("event: end\ndata: {}\n\n"));
 		vi.stubGlobal("fetch", fetchMock);
 		const { result } = renderHook(() => useChat());
 		act(() => {
 			result.current.clearMessages();
-			result.current.setSubmissionFiles({ "a.txt": {} });
+			result.current.setFilesMap(
+				new Map([["passive", { "context.md": { content: ["context"] } }]]),
+			);
 		});
 		await act(async () => {
 			await result.current.handleSubmit("hello");
 		});
-		expect(result.current.runError?.message).toMatch(/files/i);
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(JSON.parse(fetchMock.mock.calls[1][1].body).input).toEqual({
+			messages: [{ role: "user", content: "hello" }],
+		});
 		expect(mockInitiateStream).not.toHaveBeenCalled();
 		expect(streamThread).not.toHaveBeenCalled();
 		vi.unstubAllGlobals();
 	});
+	it.each(["file", "image"])(
+		"visibly rejects explicit %s before creation or execution",
+		async (kind) => {
+			const fetchMock = vi.fn();
+			vi.stubGlobal("fetch", fetchMock);
+			const { result } = renderHook(() => useChat());
+			act(() => {
+				result.current.clearMessages();
+				if (kind === "file") result.current.setSubmissionFiles({ "a.txt": {} });
+			});
+			await act(async () => {
+				await result.current.handleSubmit(
+					"hello",
+					kind === "image" ? [new File(["image"], "image.png")] : [],
+				);
+			});
+			expect(result.current.runError?.message).toMatch(/files/i);
+			expect(toast.error).toHaveBeenCalledWith(
+				result.current.runError?.message,
+			);
+			expect(result.current.query).toBe("hello");
+			expect(fetchMock).not.toHaveBeenCalled();
+			expect(mockInitiateStream).not.toHaveBeenCalled();
+			expect(streamThread).not.toHaveBeenCalled();
+			vi.unstubAllGlobals();
+		},
+	);
 });
 
 describe("useChat submission files", () => {
