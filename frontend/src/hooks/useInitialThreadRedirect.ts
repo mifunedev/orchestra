@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { isAegraThread } from "@/lib/services/threadService";
 
 type UseInitialThreadRedirectOptions = {
 	threadId?: string;
@@ -23,7 +24,7 @@ export default function useInitialThreadRedirect({
 			return;
 		}
 
-		if (!hasMessages) {
+		if (!hasMessages || isAegraThread(threadId)) {
 			return;
 		}
 

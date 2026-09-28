@@ -20,9 +20,41 @@ vi.mock("react-router-dom", async () => {
 
 describe("useInitialThreadRedirect", () => {
 	beforeEach(() => {
+		localStorage.clear();
 		mockNavigate.mockReset();
 		mockUseLocation.mockReset();
 		mockUseLocation.mockReturnValue({ state: null });
+	});
+
+	it("keeps Aegra conversations on /chat while Orchestra conversations still redirect", () => {
+		mockUseLocation.mockReturnValue({ pathname: "/chat", state: null });
+		localStorage.setItem("aegra-thread:aegra-123", "1");
+		const { rerender } = renderHook(
+			({
+				threadId,
+				hasMessages,
+			}: {
+				threadId?: string;
+				hasMessages: boolean;
+			}) => useInitialThreadRedirect({ threadId, hasMessages }),
+			{
+				initialProps: {
+					threadId: undefined as string | undefined,
+					hasMessages: false,
+				},
+			},
+		);
+
+		rerender({ threadId: "aegra-123", hasMessages: true });
+		rerender({ threadId: "aegra-123", hasMessages: true });
+		expect(mockNavigate).not.toHaveBeenCalled();
+
+		rerender({ threadId: undefined, hasMessages: false });
+		rerender({ threadId: "orchestra-123", hasMessages: true });
+		expect(mockNavigate).toHaveBeenCalledTimes(1);
+		expect(mockNavigate).toHaveBeenCalledWith("/thread/orchestra-123", {
+			replace: true,
+		});
 	});
 
 	it("does not navigate when threadId is missing", () => {
