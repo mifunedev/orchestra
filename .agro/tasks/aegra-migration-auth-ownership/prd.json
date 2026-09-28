@@ -28,12 +28,14 @@
     },
     {
       "id": "US-002",
-      "title": "Check Aegra runtime connections",
-      "description": "As an operator, I want every Aegra connection to use its own schema so that runtime setup cannot modify Orchestra objects.",
+      "title": "Prove supported Aegra runtime and rollback paths",
+      "description": "As an operator, I want Aegra's upgrade-only, non-indexed runtime and a schema-scoped rollback method to leave Orchestra-owned objects unchanged.",
       "acceptanceCriteria": [
-        "The opt-in probe checks the database name and effective schema on Alembic, ORM, checkpoint, and store connections. Every Aegra path resolves to `aegra`.",
-        "The Aegra startup revision precheck reads `aegra.alembic_version` and does not change the `public` revision or table list.",
-        "Aegra checkpoint and store round trips stay in `aegra`. If indexing or an extension needs access outside `aegra`, stop and record the exact blocker without changing public objects."
+        "An opt-in disposable probe checks database name and effective schema on Alembic, ORM, checkpoint, and non-indexed store connections. Each exercised Aegra path resolves to `aegra` without a `public` fallback.",
+        "Aegra's startup revision precheck reads `aegra.alembic_version` and does not change the `public` revision or table list. Startup migrations stay disabled.",
+        "Checkpoint and non-indexed store round trips stay in `aegra`. Do not run Aegra Alembic downgrade or indexed Store; Orchestra keeps its indexed Store in `public`.",
+        "In the disposable database only, back up `aegra` schema and data, preflight the archive's schema scope, change only Aegra-owned data, restore the archive, and prove the Aegra revision and stored data return while snapshots of Orchestra's `public` rows and catalog objects remain unchanged. Refuse any operator database, keep secrets out of output, and clean up the testcontainer.",
+        "Record that this is an upgrade-only, non-indexed pilot with a tested schema-scoped restore, not support for Aegra downgrades, indexed Store, production rollback, or universal absence of public access."
       ],
       "priority": 2,
       "passes": false,
@@ -43,6 +45,7 @@
       ],
       "files": [
         "backend/tests/integration/test_aegra_schema_runtime.py",
+        "backend/tests/integration/test_aegra_schema_rollback.py",
         "backend/src/integrations/aegra/schema_guard.py"
       ]
     },

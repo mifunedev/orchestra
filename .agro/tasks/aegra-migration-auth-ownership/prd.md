@@ -16,15 +16,17 @@ Status: DRAFT
 - [ ] The test compares `public.alembic_version`, the seeded user, and the public table list before and after Aegra upgrade. Both schema-qualified version tables have independent revisions.
 - [ ] The Aegra role cannot create, alter, or drop `public` objects. A negative preflight rejects a `public` search path before any Aegra migration. Disable automatic startup migrations in this probe.
 
-### US-002: Check Aegra runtime connections
+### US-002: Prove supported Aegra runtime and rollback paths
 
-**Description:** As an operator, I want every Aegra connection to use its own schema so that runtime setup cannot modify Orchestra objects.
+**Description:** As an operator, I want Aegra's upgrade-only, non-indexed runtime and a schema-scoped rollback method to leave Orchestra-owned objects unchanged.
 
 **Acceptance Criteria:**
 
-- [ ] The opt-in probe checks the database name and effective schema on Alembic, ORM, checkpoint, and store connections. Every Aegra path resolves to `aegra`.
-- [ ] The Aegra startup revision precheck reads `aegra.alembic_version` and does not change the `public` revision or table list.
-- [ ] Aegra checkpoint and store round trips stay in `aegra`. If indexing or an extension needs access outside `aegra`, stop and record the exact blocker without changing public objects.
+- [ ] An opt-in disposable probe checks database name and effective schema on Alembic, ORM, checkpoint, and non-indexed store connections. Each exercised Aegra path resolves to `aegra` without a `public` fallback.
+- [ ] Aegra's startup revision precheck reads `aegra.alembic_version` and does not change the `public` revision or table list. Startup migrations stay disabled.
+- [ ] Checkpoint and non-indexed store round trips stay in `aegra`. Do not run Aegra Alembic downgrade or indexed Store; Orchestra keeps its indexed Store in `public`.
+- [ ] In the disposable database only, back up `aegra` schema and data, preflight the archive's schema scope, change only Aegra-owned data, restore the archive, and prove the Aegra revision and stored data return while snapshots of Orchestra's `public` rows and catalog objects remain unchanged. Refuse any operator database, keep secrets out of output, and clean up the testcontainer.
+- [ ] Record that this is an upgrade-only, non-indexed pilot with a tested schema-scoped restore, not support for Aegra downgrades, indexed Store, production rollback, or universal absence of public access.
 
 ### US-003: Share Orchestra credential validation
 
@@ -85,7 +87,7 @@ Status: DRAFT
 
 ## Summary
 
-Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a shared database. PR #1015's fixture-only auth denied cross-user runs, but did not use Orchestra credentials. Current `backend/src/utils/migrations.py` can clear an unknown revision. Aegra reads an unqualified `alembic_version` table and runs bundled migrations on startup by default. Orchestra validates JWTs and API tokens through `backend/src/utils/auth.py`. This plan uses one PostgreSQL database with separate `public` and `aegra` migration schemas. Aegra can own agent state after migration and parity tests; Orchestra keeps user and app-specific state where Aegra has no proven replacement. This bounded stage proves the single-database boundary and maps later replacements. The stage does not switch live data. The new task does not depend on merging or cherry-picking PR #1015.
+Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a shared database. PR #1015's fixture-only auth denied cross-user runs, but did not use Orchestra credentials. Current `backend/src/utils/migrations.py` can clear an unknown revision. Aegra reads an unqualified `alembic_version` table and runs bundled migrations on startup by default. Orchestra validates JWTs and API tokens through `backend/src/utils/auth.py`. This plan uses one PostgreSQL database with separate `public` and `aegra` migration schemas. The operator approved an upgrade-only, non-indexed Aegra pilot; the rollback gate uses a disposable `aegra`-schema backup/restore instead of Alembic downgrade. Aegra can own agent state after migration and parity tests; Orchestra keeps user and app-specific state where Aegra has no proven replacement. This bounded stage proves the single-database boundary and maps later replacements. The stage does not switch live data. The new task does not depend on merging or cherry-picking PR #1015.
 
 ## Key Integration Points
 
@@ -121,14 +123,15 @@ Use ONE PostgreSQL database in the disposable fixture. Orchestra keeps `public.a
 
 ## Architectural Decisions
 
-Treat schema isolation as an unproven candidate until a disposable upgrade, startup precheck, ORM query, and checkpoint/store round trip all resolve inside `aegra`. Aegra 0.10.7 has no verified version-table override. Set `RUN_MIGRATIONS_ON_STARTUP=false` for the opt-in sidecar and run an explicit Aegra upgrade with its restricted role. If a connection resolves to `public` or requires writes there, stop; do not create a second database as a fallback. Keep Orchestra's migration configuration unchanged. Map credentials to the persisted Orchestra user ID and use explicit Aegra authorization hooks. Preserve guest access only on Orchestra routes. Move eligible agent data in later tested steps; retire old storage only after backfill, parity, read-switch, and rollback proof.
+Keep schema isolation unverified until the disposable upgrade, startup precheck, ORM query, and checkpoint/non-indexed store round trip preserve the tested `public` baseline. Require an `aegra`-only backup/restore to preserve that baseline too. Do not run Alembic downgrade or indexed Store in this stage. The tagged downgrade references `public.uuid_generate_v4()`; the installed vector extension in `public` prevents an `aegra`-only indexed Store with the resolved LangGraph migrations. Aegra 0.10.7 has no verified version-table override. Set `RUN_MIGRATIONS_ON_STARTUP=false` for the opt-in sidecar and run an explicit Aegra upgrade with its restricted role. If a connection resolves to `public` or requires writes there, stop; do not create a second database as a fallback. Keep Orchestra's migration configuration unchanged. Map credentials to the persisted Orchestra user ID and use explicit Aegra authorization hooks. Preserve guest access only on Orchestra routes. Move eligible agent data in later tested steps; retire old storage only after backfill, parity, read-switch, and rollback proof.
 
 ## Test Plan (TDD)
 
 | Test File | Case(s) | Validates |
 |---|---|---|
 | `backend/tests/integration/test_aegra_schema_ownership.py` (new) | One database, two schemas, separate revisions, role search paths, and denied public DDL. | Migration ownership. |
-| `backend/tests/integration/test_aegra_schema_runtime.py` (new) | Aegra connection paths, startup precheck, checkpoint and store round trips. | Runtime schema isolation. |
+| `backend/tests/integration/test_aegra_schema_runtime.py` (new) | Aegra upgrade, startup precheck, ORM, checkpoint and non-indexed store round trips. | Exercised runtime schema isolation. |
+| `backend/tests/integration/test_aegra_schema_rollback.py` (new) | Aegra-only archive, preflight, restore, and unchanged public snapshots in one disposable database. | Pilot rollback boundary without Alembic downgrade. |
 | `backend/tests/unit/utils/test_identity_resolver.py` (new) | JWT, API token, expiry, deleted user, revocation, redaction, and short session. | Shared identity policy. |
 | `backend/tests/integration/test_api_tokens.py` | Create, use, revoke, and `last_used_at`. | Orchestra route parity. |
 | `backend/tests/unit/utils/test_auth_dependency_scope.py` | No session held across streaming. | Pool safety. |
@@ -137,7 +140,7 @@ Treat schema isolation as an unproven candidate until a disposable upgrade, star
 | `.agro/tasks/aegra-migration-auth-ownership/evidence/ownership.md` (new) | Current and candidate owners, mapping gaps, and retirement gates. | Replacement sequence. |
 | `.agro/tasks/aegra-migration-auth-ownership/evidence/manual-review.md` (new) | Live commands, failures, and cleanup. | Reproducible decision evidence. |
 
-Run `uv run pytest tests/unit/utils/test_identity_resolver.py tests/unit/utils/test_auth_dependency_scope.py tests/integration/test_api_tokens.py tests/integration/test_public_assistants.py` from `backend/`. Require `test_api_token_lifecycle` to execute without a skip. Run the opt-in Aegra tests with `AEGRA_OWNERSHIP_LIVE=1 uv run pytest tests/integration/test_aegra_schema_ownership.py tests/integration/test_aegra_schema_runtime.py tests/integration/test_aegra_auth_adapter.py` from `backend/`. Run `uv run ruff check` from `backend/`. Do not run a live test with `TEST_POSTGRES_CONNECTION_STRING` set.
+Run `uv run pytest tests/unit/utils/test_identity_resolver.py tests/unit/utils/test_auth_dependency_scope.py tests/integration/test_api_tokens.py tests/integration/test_public_assistants.py` from `backend/`. Require `test_api_token_lifecycle` to execute without a skip. Run the opt-in Aegra tests with `AEGRA_OWNERSHIP_LIVE=1 uv run pytest tests/integration/test_aegra_schema_ownership.py tests/integration/test_aegra_schema_runtime.py tests/integration/test_aegra_schema_rollback.py tests/integration/test_aegra_auth_adapter.py` from `backend/` only after each prerequisite story passes. Run `uv run ruff check` from `backend/`. Do not run a live test with `TEST_POSTGRES_CONNECTION_STRING` set.
 
 ## Design Principles
 
@@ -151,7 +154,7 @@ Do not merge or modify PR #1015. Do not add a second PostgreSQL database. Do not
 
 - Which exact Aegra 0.10.7 auth resource actions must the adapter register for the selected probe routes? Enumerate them from the tagged route map before implementation. Default-deny the remaining actions.
 - Which minimum store grants permit token lookup and `last_used_at` updates without Aegra migration access to `public`? Prove the grants in the disposable database.
-- Do Aegra 0.10.7 ORM, Alembic, checkpoint, store, and extension operations honor the dedicated role's `search_path`? If any path fails, stop and seek a new single-database design.
+- Do the exercised Aegra 0.10.7 ORM, Alembic upgrade, checkpoint, and non-indexed store operations honor the dedicated role's `search_path`? Do not infer indexed Store or downgrade support from this proof; defer those paths to a separate decision.
 
 ## Acceptance Criteria
 
