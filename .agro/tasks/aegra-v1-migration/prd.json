@@ -17,8 +17,9 @@
       ],
       "description": "As an API client, I want Aegra threads and runs under `/api/v1` so that I can distinguish them from legacy `/api` operations.",
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "d7c8c5cbf48934cbd8cad1a6ba61abb3c429ac5c",
+      "notes": "1 executed: worker red route test exit 1 before implementation. 2 executed: advisor independently ran bash backend/scripts/test-aegra-chat-stream.sh on the integrated task branch, exit 0, 3 passed; task-created database dropped and absence verified. 3 executed: focused test asserts unauthenticated 401 and second-user read/run denial. 4 reasoned: git diff against experiment/aegra changes no legacy route or payload files; full backend CI will verify before PR ready. 5 reasoned: reviewed Vite proxy ordering: /api/v1 targets port 2026 before /api targets Orchestra; browser route review remains in US-002 and US-004. 6 executed: focused test asserts old /api/aegra route returns 404. README STE check and git diff --check passed. Implementation commit d7c8c5cb; documentation fix f39157a1.",
       "dependsOn": [],
       "files": [
         "backend/src/integrations/aegra/app.py",
