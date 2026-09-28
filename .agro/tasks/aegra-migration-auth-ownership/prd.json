@@ -83,8 +83,8 @@
         "The adapter completes its HTTP credential lookup before resource streaming. Orchestra closes its own pooled lookup session before returning /api/auth/user; no raw credential reaches logs or an untrusted URL. API-token last_used_at and revocation behavior stay intact."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted locally for the disposable API-backed pilot after independent review of 666acac2, c6448b18, and 7b551ee6. Aegra auth imports no Orchestra DB or Store; the guarded launcher checks exact auth.path, disabled automatic migrations, aegra_migrator search_path=aegra, denied public table privileges and public schema CREATE, and rejects a public POSTGRES_CONNECTION_STRING. The separate Orchestra HTTP process serves the existing GET /api/auth/user in the same disposable PostgreSQL database; valid JWT/API key identify the persisted user and update API-token last_used_at through Orchestra. Missing, invalid, expired, revoked, redirect, malformed, non-200, and unreachable cases fail closed. The integrated cleanup-aware opt-in ASGI test exited 0: 1 passed, 5 warnings, 0 skipped. Existing integrated Orchestra auth tests exited 0: 29 passed, 5 warnings. Operator-URL refusal exited 4 before migrations; targeted Ruff, compileall and diff check passed. Testcontainers-label query and owned tmux socket search returned no rows; two sockets from earlier reruns were manually removed after confirming no server, and the final test cleans its socket. No full network Aegra stream, unexercised Aegra paths, production deployment, push, or CI proof. US-005 resource authorization is still required before any service use.",
       "dependsOn": [
         "US-003"
       ],
