@@ -290,6 +290,8 @@ def test_aegra_auth_adapter(tmp_path):
         service_env["POSTGRES_CONNECTION_STRING"] = conftest._test_uri
         service_env["ORCHESTRA_AEGRA_AUTH_PORT"] = str(port)
         service_env["PYTHONPATH"] = str(BACKEND)
+        socket_path = Path(service_env.get("TMUX_TMPDIR", "/tmp")) / f"tmux-{os.getuid()}" / socket_name
+        assert not socket_path.exists()
         subprocess.run(
             [
                 "tmux",
@@ -388,8 +390,16 @@ def test_aegra_auth_adapter(tmp_path):
     finally:
         if service_created:
             subprocess.run(
-                ["tmux", "-L", socket_name, "kill-session", "-t", session], check=True, capture_output=True, timeout=10
+                ["tmux", "-L", socket_name, "kill-session", "-t", session], check=False, capture_output=True, timeout=10
             )
+            stopped = subprocess.run(
+                ["tmux", "-L", socket_name, "list-sessions"], check=False, capture_output=True, timeout=10
+            )
+            assert stopped.returncode != 0
+            if socket_path.exists():
+                assert socket_path.is_socket()
+                socket_path.unlink()
+            assert not socket_path.exists()
         if migrator is not None:
             migrator.dispose()
         owner.dispose()
