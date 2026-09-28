@@ -168,4 +168,7 @@ Do not merge or modify PR #1015. Do not add a second PostgreSQL database. Do not
 
 ## Lessons
 
-The advisor fills this section after implementation and before review.
+- Keep Aegra's own database connections in the `aegra` schema. Use Orchestra's existing HTTP auth route for user lookup and API-token usage updates in `public`.
+- Reject forged run-owner metadata. Aegra 0.10.7 copies the `threads.create_run` handler input and does not apply its metadata changes to the persisted run.
+- Treat the disposable `aegra` archive/restore as an upgrade-only, non-indexed pilot check. It does not prove Alembic downgrade, indexed Store, or production rollback.
+- Run the ownership, runtime, and auth probes in separate pytest processes. Stop each named tmux service and remove only its owned socket.
