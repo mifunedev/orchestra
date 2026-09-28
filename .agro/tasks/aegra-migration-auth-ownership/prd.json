@@ -129,8 +129,8 @@
         "Record the order of data backfill, read-switch, rollback, and deletion for later work. Do not delete any table, namespace, queue, or object in this task."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor accepted the candidate map after checking source paths and reviewing the bounded evidence commits a76fd87d and d31332c6. The map separates users, API-token Store rows, legacy third-party tokens, objects, context files, trajectories, distillation metadata, prompts, schedules, Redis, and candidate assistants/threads/runs/checkpoints. Each surface names missing field mapping and a parity/retirement test; future backfill, read-switch, reversal, and deletion remain conditional. STE, all 36 referenced paths, and git diff --check passed. No live rows, production rollback, data migration, push, or CI result.",
       "dependsOn": [
         "US-002"
       ],
