@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -137,7 +138,6 @@ def test_aegra_runtime_schema_ownership(tmp_path):
             assert conn.execute(text("SELECT current_database() ")).scalar_one() == database
             assert conn.execute(text("SELECT version_num FROM public.alembic_version")).scalar_one() == "0001"
             conn.execute(text("CREATE SCHEMA aegra"))
-            conn.execute(text("REVOKE CREATE ON SCHEMA public FROM PUBLIC"))
             conn.execute(text("CREATE ROLE aegra_migrator LOGIN PASSWORD 'disposable_aegra_migrator'"))
             quoted_database = conn.dialect.identifier_preparer.quote(database)
             conn.execute(text(f"GRANT CONNECT ON DATABASE {quoted_database} TO aegra_migrator"))
@@ -173,6 +173,13 @@ def test_aegra_runtime_schema_ownership(tmp_path):
                         )
                     ),
                     tuple(conn.execute(text("SELECT oid, extname, extnamespace FROM pg_extension ORDER BY oid"))),
+                    tuple(conn.execute(text("SELECT oid, nspacl FROM pg_namespace WHERE nspname = 'public'"))),
+                    tuple(
+                        conn.execute(
+                            text("SELECT oid, relacl FROM pg_class "
+                                 "WHERE relnamespace = 'public'::regnamespace ORDER BY oid")
+                        )
+                    ),
                     tuple(
                         conn.execute(
                             text(
@@ -239,6 +246,82 @@ def test_aegra_runtime_schema_ownership(tmp_path):
             assert evidence, f"STOP: no connection evidence for {stage}"
             print(f"runtime proof {stage}: {evidence}")
         assert snapshot() == before
+
+        with restricted.connect() as conn:
+            checkpoint_rows = tuple(conn.execute(text(
+                "SELECT * FROM aegra.checkpoints WHERE thread_id = 'aegra-proof' ORDER BY checkpoint_id"
+            )))
+            store_rows = tuple(conn.execute(text("SELECT * FROM aegra.store WHERE key = 'item' ORDER BY key")))
+            assert checkpoint_rows and store_rows
+
+        archive = "/tmp/aegra-schema-restore.dump"
+
+        def container_command(command):
+            result = container.exec_run(command)
+            if result.exit_code:
+                pytest.fail(f"STOP: disposable container command failed: {command[0]} exit={result.exit_code}")
+            assert snapshot() == before, f"STOP: public changed after {command[0]}"
+            return result.output.decode()
+
+        container_command([
+            "pg_dump", "-U", conftest._test_postgres.username, "-d", database,
+            "--format=custom", "--schema=aegra", f"--file={archive}",
+        ])
+        container_command(["test", "-s", archive])
+        toc = container_command(["pg_restore", "--list", archive])
+        entries = [line.split(";", 1)[1].strip() for line in toc.splitlines() if re.match(r"^\d+;", line)]
+        assert entries, "STOP: archive has no entries"
+        assert all(re.search(r"\b(?:aegra|SCHEMA - aegra)\b", entry) for entry in entries), (
+            "STOP: archive contains objects outside aegra"
+        )
+        assert not any(re.search(r"\bpublic\b", entry) for entry in entries), (
+            "STOP: archive contains public objects"
+        )
+        for object_type in ("SCHEMA - aegra", "TABLE aegra alembic_version", "TABLE DATA aegra alembic_version",
+                            "TABLE DATA aegra checkpoints", "TABLE DATA aegra store"):
+            assert any(object_type in entry for entry in entries), f"STOP: archive lacks {object_type}"
+        with owner.connect() as conn:
+            dependents = conn.execute(text(
+                "SELECT d.deptype, dependent.type, dependent.schema, dependent.identity, "
+                "referenced.type, referenced.schema, referenced.identity "
+                "FROM pg_depend d "
+                "LEFT JOIN pg_class dep ON dep.oid = d.refobjid AND d.refclassid = 'pg_class'::regclass "
+
+                "CROSS JOIN LATERAL pg_identify_object(d.classid, d.objid, d.objsubid) dependent "
+                "CROSS JOIN LATERAL pg_identify_object(d.refclassid, d.refobjid, d.refobjsubid) referenced "
+                "WHERE referenced.schema = 'aegra' AND dependent.schema IS NOT NULL "
+                "AND dependent.schema <> 'aegra' "
+                "AND NOT (d.deptype = 'i' AND dependent.type = 'toast table' "
+                "AND dependent.schema = 'pg_toast' "
+                "AND d.classid = 'pg_class'::regclass AND d.refclassid = 'pg_class'::regclass "
+                "AND dep.relnamespace = 'aegra'::regnamespace "
+                "AND dep.reltoastrelid = d.objid AND dep.relowner = 'aegra_migrator'::regrole)"
+            )).all()
+            assert not dependents, f"STOP: cross-schema dependents prevent restore: {dependents}"
+        assert snapshot() == before, "STOP: public changed during archive preflight"
+        with restricted.begin() as conn:
+            assert conn.execute(text("SELECT version_num FROM aegra.alembic_version")).scalar_one() == revision
+            assert conn.execute(
+                text("SELECT count(*) FROM aegra.checkpoints WHERE thread_id = 'aegra-proof'")
+            ).scalar_one() > 0
+            assert conn.execute(text("SELECT count(*) FROM aegra.store WHERE key = 'item'")).scalar_one() > 0
+            conn.execute(text("UPDATE aegra.alembic_version SET version_num = 'rollback_probe'"))
+            assert conn.execute(text("DELETE FROM aegra.checkpoints WHERE thread_id = 'aegra-proof'")).rowcount > 0
+            assert conn.execute(text("DELETE FROM aegra.store WHERE key = 'item'")).rowcount > 0
+        assert snapshot() == before, "STOP: public changed after Aegra-only destructive change"
+        container_command([
+            "pg_restore", "-U", conftest._test_postgres.username, "-d", database,
+            "--exit-on-error", "--clean", "--if-exists", "--schema=aegra", archive,
+        ])
+        with restricted.connect() as conn:
+            require_aegra_schema(conn, database, revision)
+            assert conn.execute(text("SELECT version_num FROM aegra.alembic_version")).scalar_one() == revision
+            assert tuple(conn.execute(text(
+                "SELECT * FROM aegra.checkpoints WHERE thread_id = 'aegra-proof' ORDER BY checkpoint_id"
+            ))) == checkpoint_rows
+            assert tuple(conn.execute(text("SELECT * FROM aegra.store WHERE key = 'item' ORDER BY key"))) == store_rows
+        assert snapshot() == before, "STOP: public changed after restore"
+        container_command(["rm", archive])
     finally:
         if restricted is not None:
             restricted.dispose()
