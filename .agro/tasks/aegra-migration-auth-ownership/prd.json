@@ -98,7 +98,7 @@
       "title": "Deny cross-user Aegra resources",
       "description": "As an operator, I want explicit resource authorization so that an authenticated user cannot read or change another user's runs or data.",
       "acceptanceCriteria": [
-        "Explicit Aegra auth handlers cover assistant, thread, run-through-thread, and store operations used by the opt-in test. An unhandled operation fails closed.",
+        "Explicit Aegra auth handlers cover tested assistants create/search/read/update/delete, threads create/search/read/update/delete/create_run, and store put/get/delete/search/list_namespaces actions. Aegra exposes no runs hook; run routes dispatch through thread actions. An unhandled action fails closed.",
         "Two valid Orchestra users can access their own threads and runs. Cross-user search, read, stream, cancel, and store operations return a denial without exposing another user's data.",
         "Client-supplied owner metadata and store namespaces do not override the verified user ID.",
         "Tests exercise missing and revoked API tokens as well as valid JWTs against the adapter. The current Orchestra routes continue to pass their auth tests."
