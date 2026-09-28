@@ -1,13 +1,8 @@
 import os
 from collections.abc import Mapping
 
+import httpx
 from langgraph_sdk import Auth
-from langgraph.store.postgres.aio import AsyncPostgresStore
-from sqlalchemy.engine import make_url
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-
-from src.utils.auth import resolve_identity
-from src.utils.db import get_asyncpg_connect_args, get_asyncpg_url
 
 
 auth = Auth()
@@ -15,26 +10,29 @@ auth = Auth()
 
 @auth.authenticate
 async def authenticate(headers: Mapping[str, str]) -> dict:
-    database_url = os.environ["DATABASE_URL"]
-    auth_url = os.environ["ORCHESTRA_AEGRA_AUTH_DATABASE_URL"]
-    aegra_db = make_url(database_url)
-    orchestra_db = make_url(auth_url)
-    if (aegra_db.host, aegra_db.port, aegra_db.database) != (
-        orchestra_db.host,
-        orchestra_db.port,
-        orchestra_db.database,
-    ) or aegra_db.username == orchestra_db.username:
-        raise ValueError("Auth requires a separate role in the same database")
+    authorization = headers.get("authorization", "")
+    api_key = headers.get("x-api-key", "")
+    forwarded = {}
+    if api_key:
+        forwarded["x-api-key"] = api_key
+    elif authorization.lower().startswith("bearer ") and authorization[7:].strip():
+        forwarded["authorization"] = authorization
+    else:
+        raise Auth.exceptions.HTTPException(status_code=401, detail="Unauthorized")
 
-    engine = create_async_engine(
-        get_asyncpg_url(orchestra_db), connect_args=get_asyncpg_connect_args(orchestra_db), pool_pre_ping=True
-    )
+    port = os.environ.get("ORCHESTRA_AEGRA_AUTH_PORT", "8000")
+    if not port.isdecimal() or not 0 < int(port) < 65536:
+        raise Auth.exceptions.HTTPException(status_code=401, detail="Unauthorized")
+    url = f"http://127.0.0.1:{port}/api/auth/user"
     try:
-        session_factory = async_sessionmaker(engine, expire_on_commit=False)
-        authorization = headers.get("authorization", "")
-        bearer = authorization[7:] if authorization.lower().startswith("bearer ") else None
-        async with AsyncPostgresStore.from_conn_string(auth_url) as store:
-            user = await resolve_identity(headers, bearer, store, session_factory)
-        return {"identity": str(user.id), "display_name": user.name or user.username}
-    finally:
-        await engine.dispose()
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=False, trust_env=False) as client:
+            response = await client.get(url, headers=forwarded)
+        if response.status_code != 200:
+            raise Auth.exceptions.HTTPException(status_code=401, detail="Unauthorized")
+        payload = response.json()
+        identity = payload["user"]["id"]
+        if not isinstance(identity, str) or not identity.strip():
+            raise ValueError("Invalid identity")
+    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        raise Auth.exceptions.HTTPException(status_code=401, detail="Unauthorized") from None
+    return {"identity": identity}
