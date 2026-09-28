@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { toast } from "sonner";
 import { streamThread } from "@/lib/services";
+import apiClient from "@/lib/utils/apiClient";
+import { resolveThreadOwner } from "@/lib/services/threadService";
 
 vi.mock("@/lib/services/userSettingsService", () => ({
 	getSettings: async () => ({ defaults: {} }),
@@ -262,6 +264,9 @@ describe("useChat Aegra routing", () => {
 			)
 			.mockResolvedValueOnce(new Response("event: end\ndata: {}\n\n"));
 		vi.stubGlobal("fetch", fetchMock);
+		const legacySearch = vi
+			.spyOn(apiClient, "post")
+			.mockResolvedValue({ data: { threads: [] } });
 		const { result } = renderHook(() => useChat());
 		act(() => result.current.setMetadata({ thread_id: "remembered" }));
 		localStorage.clear();
@@ -273,6 +278,12 @@ describe("useChat Aegra routing", () => {
 			"/api/v1/threads/remembered/runs/stream",
 		);
 		expect(mockInitiateStream).not.toHaveBeenCalled();
+		expect(legacySearch).toHaveBeenCalledWith("/threads/search", {
+			limit: 100,
+			offset: 0,
+			filter: {},
+		});
+		legacySearch.mockRestore();
 		vi.unstubAllGlobals();
 	});
 
@@ -527,6 +538,93 @@ describe("useChat Aegra routing", () => {
 			vi.unstubAllGlobals();
 		},
 	);
+});
+
+describe("server-owned engine resolution", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	it("expands legacy list pages without requesting checkpoints", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify([])));
+		vi.stubGlobal("fetch", fetchMock);
+		const rows = Array.from({ length: 100 }, (_, index) => ({
+			key: `other-${index}`,
+		}));
+		const post = vi.spyOn(apiClient, "post").mockImplementation(
+			async (_path, payload: any) =>
+				({
+					data: {
+						threads: [...rows, { value: { thread_id: "legacy-101" } }].slice(
+							0,
+							payload.limit,
+						),
+					},
+				}) as any,
+		);
+		expect(await resolveThreadOwner("legacy-101")).toBe("legacy");
+		expect(post.mock.calls.map(([, payload]: any[]) => payload)).toEqual([
+			{ limit: 100, offset: 0, filter: {} },
+			{ limit: 200, offset: 0, filter: {} },
+		]);
+		expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads/search");
+	});
+
+	it("keeps unknown ids off legacy checkpoint search", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response(JSON.stringify([]))),
+		);
+		const post = vi
+			.spyOn(apiClient, "post")
+			.mockResolvedValue({ data: { threads: [] } });
+		await expect(resolveThreadOwner("unknown")).rejects.toThrow(
+			/could not be verified/i,
+		);
+		expect(post).toHaveBeenCalledWith("/threads/search", {
+			limit: 100,
+			offset: 0,
+			filter: {},
+		});
+	});
+
+	it("fails closed on native and legacy identifier collision", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValue(
+					new Response(JSON.stringify([{ thread_id: "collision" }])),
+				),
+		);
+		const post = vi
+			.spyOn(apiClient, "post")
+			.mockResolvedValue({ data: { threads: [{ key: "collision" }] } });
+		await expect(resolveThreadOwner("collision")).rejects.toThrow(/ambiguous/i);
+		expect(post).toHaveBeenCalledWith("/threads/search", {
+			limit: 100,
+			offset: 0,
+			filter: {},
+		});
+	});
+
+	it("fails closed if the legacy list ignores an increased limit", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue(new Response(JSON.stringify([]))),
+		);
+		const rows = Array.from({ length: 100 }, (_, index) => ({
+			key: `other-${index}`,
+		}));
+		const post = vi
+			.spyOn(apiClient, "post")
+			.mockResolvedValue({ data: { threads: rows } });
+		await expect(resolveThreadOwner("unseen")).rejects.toThrow(/pagination/i);
+		expect(post).toHaveBeenCalledTimes(2);
+	});
 });
 
 describe("useChat submission files", () => {
