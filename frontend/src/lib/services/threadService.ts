@@ -17,10 +17,62 @@ import {
 } from "@/lib/utils/streamSource";
 import { isDistributedResponse } from "@/lib/entities/stream";
 
-export function isAegraThread(threadId?: string): boolean {
-	return Boolean(
-		threadId && localStorage.getItem(`aegra-thread:${threadId}`) === "1",
+export type ThreadOwner = "aegra" | "legacy";
+
+type AegraThread = {
+	thread_id: string;
+	updated_at?: string;
+	metadata?: Record<string, any>;
+};
+
+export async function searchAegraThreads(
+	limit = 100,
+	offset = 0,
+): Promise<AegraThread[]> {
+	const response = await fetch("/api/v1/threads/search", {
+		method: "POST",
+		headers: aegraHeaders(),
+		body: JSON.stringify({ limit, offset }),
+	});
+	if (!response.ok) throw new Error(`Aegra search failed (${response.status})`);
+	const threads = await response.json();
+	if (!Array.isArray(threads)) throw new Error("Invalid Aegra search response");
+	return threads;
+}
+
+export async function getAegraState(threadId: string): Promise<any> {
+	const response = await fetch(
+		`/api/v1/threads/${encodeURIComponent(threadId)}/state`,
+		{
+			headers: aegraHeaders(),
+		},
 	);
+	if (!response.ok) throw new Error(`Aegra state failed (${response.status})`);
+	return response.json();
+}
+
+export async function resolveThreadOwner(
+	threadId: string,
+): Promise<ThreadOwner> {
+	const limit = 100;
+	for (let offset = 0; ; offset += limit) {
+		const page = await searchAegraThreads(limit, offset);
+		if (page.some((thread) => thread.thread_id === threadId)) return "aegra";
+		if (page.length < limit) break;
+	}
+	const response = await apiClient.post("/threads/search", {
+		limit: 1,
+		offset: 0,
+		filter: { thread_id: threadId },
+	});
+	if (
+		response.data?.threads?.some(
+			(thread: any) =>
+				thread.key === threadId || thread.value?.thread_id === threadId,
+		)
+	)
+		return "legacy";
+	throw new Error("Thread ownership could not be verified");
 }
 
 export async function createAegraThread(signal: AbortSignal): Promise<string> {
@@ -35,7 +87,6 @@ export async function createAegraThread(signal: AbortSignal): Promise<string> {
 	const thread = await response.json();
 	if (typeof thread.thread_id !== "string" || !thread.thread_id)
 		throw new Error("Missing Aegra thread id");
-	localStorage.setItem(`aegra-thread:${thread.thread_id}`, "1");
 	return thread.thread_id;
 }
 
@@ -281,12 +332,6 @@ export const searchThreads = async (
 	limit: number = 20,
 	offset: number = 0,
 ) => {
-	if (isAegraThread(filter.thread_id)) {
-		if (action === "list_checkpoints") return [];
-		throw new Error(
-			"Aegra history is not available through Orchestra checkpoints",
-		);
-	}
 	let payload;
 	if (action === "list_threads") {
 		payload = {
@@ -328,6 +373,8 @@ export const searchThreads = async (
 
 export const deleteThread = async (threadId: string, assistantId?: string) => {
 	try {
+		if ((await resolveThreadOwner(threadId)) !== "legacy")
+			throw new Error("Native thread deletion is unavailable");
 		let url = `/threads/${threadId}`;
 		if (assistantId) {
 			url = `/a/${assistantId}/threads/${threadId}`;
@@ -376,6 +423,8 @@ export const updateThreadProject = async (
 	projectId: string | null,
 ) => {
 	try {
+		if ((await resolveThreadOwner(threadId)) !== "legacy")
+			throw new Error("Native projects are unavailable");
 		const response = await apiClient.patch(
 			`/threads/${threadId}`,
 			{ project_id: projectId },

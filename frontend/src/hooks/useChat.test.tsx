@@ -237,10 +237,10 @@ describe("useChat Aegra routing", () => {
 		expect(streamThread).not.toHaveBeenCalled();
 		expect(result.current.controller).toBeNull();
 		act(() =>
-			result.current.setMetadata((previous: any) => ({
-				...previous,
+			result.current.setMetadata({
 				thread_id: "legacy-2",
-			})),
+				stream_owner: "legacy",
+			}),
 		);
 		mockInitiateStream.mockResolvedValue(new MockStreamSource());
 		await act(async () => {
@@ -254,20 +254,38 @@ describe("useChat Aegra routing", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(3);
 		vi.unstubAllGlobals();
 	});
-	it("keeps remembered Aegra ids off legacy routes after metadata reload", async () => {
-		localStorage.setItem("aegra-thread:remembered", "1");
-		const fetchMock = vi.fn().mockRejectedValue(new Error("offline"));
+	it("recovers v1 ownership after clearing browser storage before submitting", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify([{ thread_id: "remembered" }])),
+			)
+			.mockResolvedValueOnce(new Response("event: end\ndata: {}\n\n"));
 		vi.stubGlobal("fetch", fetchMock);
 		const { result } = renderHook(() => useChat());
 		act(() => result.current.setMetadata({ thread_id: "remembered" }));
+		localStorage.clear();
 		await act(async () => {
 			await result.current.handleSubmit("again");
 		});
-		expect(fetchMock.mock.calls[0][0]).toBe(
+		expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads/search");
+		expect(fetchMock.mock.calls[1][0]).toBe(
 			"/api/v1/threads/remembered/runs/stream",
 		);
 		expect(mockInitiateStream).not.toHaveBeenCalled();
+		vi.unstubAllGlobals();
+	});
+
+	it("fails closed if server ownership cannot be resolved before a send", async () => {
+		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+		const { result } = renderHook(() => useChat());
+		act(() => result.current.setMetadata({ thread_id: "unknown" }));
+		await act(async () => {
+			await result.current.handleSubmit("again");
+		});
+		expect(mockInitiateStream).not.toHaveBeenCalled();
 		expect(streamThread).not.toHaveBeenCalled();
+		expect(result.current.runError?.message).toMatch(/offline|ownership/i);
 		vi.unstubAllGlobals();
 	});
 	it.each([false, true])(
@@ -538,7 +556,10 @@ describe("useChat submission files", () => {
 					],
 				]),
 			);
-			result.current.setMetadata({ thread_id: "legacy-1" });
+			result.current.setMetadata({
+				thread_id: "legacy-1",
+				stream_owner: "legacy",
+			});
 			result.current.setSubmissionFiles({
 				"/current.md": {
 					content: ["current"],
@@ -571,7 +592,10 @@ describe("useChat submission files", () => {
 		const { result } = renderHook(() => useChat());
 
 		act(() => {
-			result.current.setMetadata({ thread_id: "legacy-1" });
+			result.current.setMetadata({
+				thread_id: "legacy-1",
+				stream_owner: "legacy",
+			});
 			result.current.setFilesMap(
 				new Map([
 					[

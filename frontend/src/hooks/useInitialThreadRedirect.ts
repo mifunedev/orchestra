@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { isAegraThread } from "@/lib/services/threadService";
+import { resolveThreadOwner } from "@/lib/services/threadService";
 
 type UseInitialThreadRedirectOptions = {
 	threadId?: string;
@@ -24,8 +24,24 @@ export default function useInitialThreadRedirect({
 			return;
 		}
 
-		if (!hasMessages || isAegraThread(threadId)) {
-			return;
+		if (!hasMessages) {
+			let active = true;
+			resolveThreadOwner(threadId)
+				.then((owner) => {
+					if (
+						active &&
+						owner === "aegra" &&
+						threadId !== staleThreadId &&
+						lastNavigatedThreadIdRef.current !== threadId
+					) {
+						lastNavigatedThreadIdRef.current = threadId;
+						navigate(`/thread/${threadId}`, { replace: true });
+					}
+				})
+				.catch(() => {});
+			return () => {
+				active = false;
+			};
 		}
 
 		// Skip redirect when the threadId matches the stale one we just left

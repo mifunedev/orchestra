@@ -1,5 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { searchThreads } from "@/lib/services/threadService";
+import {
+	searchThreads,
+	searchAegraThreads,
+	resolveThreadOwner,
+	getAegraState,
+} from "@/lib/services/threadService";
 import { formatMessages } from "@/lib/utils/format";
 import { latestHumanMessage } from "@/lib/utils/message";
 import type { Todo } from "@/components/lists/TodoList";
@@ -72,6 +77,22 @@ export default function useThread(): ThreadContextType {
 			setThreadError(null);
 
 			try {
+				if ((await resolveThreadOwner(threadId)) === "aegra") {
+					const state = await getAegraState(threadId);
+					const messages = formatMessages(state.values?.messages ?? []);
+					return {
+						checkpoints: [],
+						messages,
+						metadata: {
+							...state.metadata,
+							thread_id: threadId,
+							stream_owner: "aegra",
+						},
+						todos: [],
+						filesMap: new Map(),
+						model: latestHumanMessage(messages)?.model,
+					};
+				}
 				// Load checkpoints directly for this specific thread
 				// Backend returns checkpoints when thread_id is passed
 				const checkpointsData = await searchThreads("list_checkpoints", {
@@ -106,7 +127,11 @@ export default function useThread(): ThreadContextType {
 				const messages = formatMessages(checkpointsData[0].values.messages);
 
 				// Build metadata including thread_id
-				const metadata = { ...threadData, thread_id: threadId };
+				const metadata = {
+					...threadData,
+					thread_id: threadId,
+					stream_owner: "legacy",
+				};
 
 				return {
 					checkpoints: checkpointsData,
@@ -193,10 +218,34 @@ export default function useThread(): ThreadContextType {
 		} = {},
 	) => {
 		// Always pass limit and offset (defaults: 20, 0) to searchThreads
+		if (action !== "list_threads" && filter.thread_id) {
+			if ((await resolveThreadOwner(filter.thread_id)) === "aegra") {
+				if (action === "list_checkpoints") setCheckpoints([]);
+				return;
+			}
+		}
 		const data = await searchThreads(action, filter, LIMIT, 0);
 
 		if (action === "list_threads") {
-			setThreads(data);
+			let native: Awaited<ReturnType<typeof searchAegraThreads>> = [];
+			if (Object.keys(filter).length === 0) {
+				try {
+					native = await searchAegraThreads();
+				} catch (error) {
+					console.error("Failed to list native threads:", error);
+				}
+			}
+			setThreads([
+				...data,
+				...native.map((thread) => ({
+					key: thread.thread_id,
+					updated_at: thread.updated_at,
+					value: {
+						thread_id: thread.thread_id,
+						title: thread.metadata?.thread_name,
+					},
+				})),
+			]);
 			// Extract cursor from last thread for pagination
 			if (data.length > 0) {
 				const lastThread = data[data.length - 1];

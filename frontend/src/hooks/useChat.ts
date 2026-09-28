@@ -10,7 +10,7 @@ import apiClient from "@/lib/utils/apiClient";
 import {
 	createAegraThread,
 	streamAegraThread,
-	isAegraThread,
+	resolveThreadOwner,
 } from "@/lib/services/threadService";
 import { consumeAegraStream } from "@/lib/utils/aegraStream";
 import { getAuthToken } from "@/lib/utils/auth";
@@ -154,10 +154,13 @@ export default function useChat(): ChatContextType {
 	metadataRef.current = metadata;
 	const setMetadata = useCallback((update: any) => {
 		const previous = metadataRef.current;
-		const next = {
-			...(typeof update === "function" ? update(previous) : update),
-		};
-		if (typeof update === "function" && next.thread_id !== previous.thread_id) {
+		const change = typeof update === "function" ? update(previous) : update;
+		const next = { ...change };
+		if (
+			typeof update === "function" &&
+			next.thread_id !== previous.thread_id &&
+			change.stream_owner === previous.stream_owner
+		) {
 			delete next.stream_owner;
 		}
 		metadataRef.current = next;
@@ -228,11 +231,7 @@ export default function useChat(): ChatContextType {
 	const abortQuery = async () => {
 		// Send abort signal to backend for distributed mode (fire-and-forget for responsive UX)
 		const threadId = metadata?.thread_id;
-		if (
-			threadId &&
-			metadata?.stream_owner !== "aegra" &&
-			!isAegraThread(threadId)
-		) {
+		if (threadId && metadata?.stream_owner === "legacy") {
 			import("@/lib/services/threadService")
 				.then(({ abortThread }) => abortThread(threadId))
 				.then(() => console.log("Backend abort signal sent"))
@@ -756,10 +755,20 @@ export default function useChat(): ChatContextType {
 
 		const queryToSubmit = argQuery || query;
 
+		if (metadataRef.current.thread_id && !metadataRef.current.stream_owner) {
+			try {
+				const owner = await resolveThreadOwner(metadataRef.current.thread_id);
+				setMetadata({ ...metadataRef.current, stream_owner: owner });
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				setRunError({ runId: "", message, recoverable: false });
+				setLoading(false);
+				setLoadingMessage("");
+				return;
+			}
+		}
 		if (
-			(metadataRef.current.thread_id &&
-				(metadataRef.current.stream_owner === "aegra" ||
-					isAegraThread(metadataRef.current.thread_id))) ||
+			metadataRef.current.stream_owner === "aegra" ||
 			(!metadataRef.current.thread_id && supportsAegra(images))
 		) {
 			await handleAegraSubmit(queryToSubmit, images);
@@ -912,6 +921,7 @@ export default function useChat(): ChatContextType {
 				run_id: metadataPayload.run_id ?? prev?.run_id,
 				assistant_id: metadataPayload.assistant_id,
 				project_id: metadataPayload.project_id,
+				stream_owner: "legacy",
 			}));
 			return;
 		}
@@ -1047,6 +1057,8 @@ export default function useChat(): ChatContextType {
 
 	const deleteThread = async (threadId: string) => {
 		try {
+			if ((await resolveThreadOwner(threadId)) !== "legacy")
+				throw new Error("Native thread deletion is unavailable");
 			const response = await apiClient.delete(`/threads/${threadId}`, {
 				headers: {
 					"Content-Type": "application/json",

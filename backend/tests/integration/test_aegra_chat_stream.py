@@ -221,6 +221,12 @@ async def test_new_aegra_thread_two_turns_tool_stream_and_isolation(harness, mon
         assert (await client.post("/api/v1/threads", json={}, headers=headers)).status_code == 401
         assert (await client.get(f"{path}/runs/{run_id}/stream", headers=headers)).status_code == 401
         assert (await client.post(f"{path}/runs/stream", json=request, headers=headers)).status_code == 401
+    own_search = await client.post("/api/v1/threads/search", json={"limit": 10}, headers=owner)
+    assert own_search.status_code == 200, own_search.text
+    assert thread_id in [thread["thread_id"] for thread in own_search.json()]
+    other_search = await client.post("/api/v1/threads/search", json={"limit": 10}, headers=other)
+    assert other_search.status_code == 200, other_search.text
+    assert thread_id not in [thread["thread_id"] for thread in other_search.json()]
     for suffix in ("", "/state", f"/runs/{run_id}", f"/runs/{run_id}/stream"):
         assert (await client.get(path + suffix, headers=other)).status_code in (403, 404)
     assert (await client.post(f"{path}/runs/stream", json=request, headers=other)).status_code in (403, 404)

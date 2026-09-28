@@ -1,5 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import useThread from "./useThread";
+import {
+	searchThreads,
+	resolveThreadOwner,
+	getAegraState,
+	searchAegraThreads,
+} from "@/lib/services/threadService";
+
+vi.mock("@/lib/services/threadService", () => ({
+	searchThreads: vi.fn(),
+	resolveThreadOwner: vi.fn(),
+	getAegraState: vi.fn(),
+	searchAegraThreads: vi.fn(),
+}));
 import useInitialThreadRedirect from "./useInitialThreadRedirect";
 
 const mockNavigate = vi.fn();
@@ -22,13 +36,14 @@ describe("useInitialThreadRedirect", () => {
 	beforeEach(() => {
 		localStorage.clear();
 		mockNavigate.mockReset();
+		vi.mocked(resolveThreadOwner).mockReset().mockResolvedValue("legacy");
 		mockUseLocation.mockReset();
 		mockUseLocation.mockReturnValue({ state: null });
 	});
 
-	it("keeps Aegra conversations on /chat while Orchestra conversations still redirect", () => {
+	it("redirects a live v1 conversation to its own thread route after browser storage is cleared", () => {
 		mockUseLocation.mockReturnValue({ pathname: "/chat", state: null });
-		localStorage.setItem("aegra-thread:aegra-123", "1");
+		localStorage.clear();
 		const { rerender } = renderHook(
 			({
 				threadId,
@@ -47,14 +62,96 @@ describe("useInitialThreadRedirect", () => {
 
 		rerender({ threadId: "aegra-123", hasMessages: true });
 		rerender({ threadId: "aegra-123", hasMessages: true });
-		expect(mockNavigate).not.toHaveBeenCalled();
+		expect(mockNavigate).toHaveBeenCalledWith("/thread/aegra-123", {
+			replace: true,
+		});
 
+		mockNavigate.mockClear();
 		rerender({ threadId: undefined, hasMessages: false });
 		rerender({ threadId: "orchestra-123", hasMessages: true });
 		expect(mockNavigate).toHaveBeenCalledTimes(1);
 		expect(mockNavigate).toHaveBeenCalledWith("/thread/orchestra-123", {
 			replace: true,
 		});
+	});
+
+	it("hydrates native state and legacy checkpoints independently without local markers", async () => {
+		localStorage.clear();
+		vi.mocked(resolveThreadOwner).mockImplementation(async (id) =>
+			id === "native" ? "aegra" : "legacy",
+		);
+		vi.mocked(getAegraState).mockResolvedValue({
+			values: {
+				messages: [{ id: "n", type: "human", content: "native text" }],
+			},
+			metadata: {},
+		});
+		vi.mocked(searchThreads).mockResolvedValue([
+			{
+				values: {
+					messages: [{ id: "l", type: "human", content: "legacy text" }],
+				},
+				metadata: {},
+			},
+		] as never);
+		const { result } = renderHook(() => useThread());
+		let native: any;
+		await act(async () => {
+			native = await result.current.loadThread("native");
+		});
+		expect(native.messages[0].content).toBe("native text");
+		expect(native.metadata).toMatchObject({
+			thread_id: "native",
+			stream_owner: "aegra",
+		});
+		expect(searchThreads).not.toHaveBeenCalled();
+		let legacy: any;
+		await act(async () => {
+			legacy = await result.current.loadThread("legacy");
+		});
+		expect(legacy.messages[0].content).toBe("legacy text");
+		expect(searchThreads).toHaveBeenCalledWith("list_checkpoints", {
+			thread_id: "legacy",
+		});
+	});
+
+	it("discovers native and legacy sidebar rows from their respective stores", async () => {
+		localStorage.clear();
+		vi.mocked(searchThreads).mockResolvedValue([
+			{
+				key: "legacy",
+				value: { thread_id: "legacy" },
+				updated_at: "2025-01-01",
+			},
+		] as never);
+		vi.mocked(searchAegraThreads).mockResolvedValue([
+			{ thread_id: "native", updated_at: "2025-01-02", metadata: {} },
+		] as never);
+		const { result } = renderHook(() => {
+			const thread = useThread();
+			thread.useListThreadsEffect();
+			return thread;
+		});
+		await waitFor(() =>
+			expect(result.current.threads.map((thread) => thread.key)).toContain(
+				"native",
+			),
+		);
+		expect(result.current.threads.map((thread) => thread.key)).toContain(
+			"legacy",
+		);
+	});
+
+	it("routes a newly created native thread even before the run yields messages", async () => {
+		vi.mocked(resolveThreadOwner).mockResolvedValue("aegra");
+		renderHook(() =>
+			useInitialThreadRedirect({ threadId: "new-native", hasMessages: false }),
+		);
+		await waitFor(() =>
+			expect(mockNavigate).toHaveBeenCalledWith("/thread/new-native", {
+				replace: true,
+			}),
+		);
 	});
 
 	it("does not navigate when threadId is missing", () => {

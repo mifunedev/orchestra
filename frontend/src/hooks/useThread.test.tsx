@@ -1,12 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import useThread from "./useThread";
 
 const mockSearchThreads = vi.fn();
+const mockResolveThreadOwner = vi.fn();
+const mockGetAegraState = vi.fn();
+const mockSearchAegraThreads = vi.fn();
 
 vi.mock("@/lib/services/threadService", () => ({
 	searchThreads: (...args: any[]) => mockSearchThreads(...args),
+	resolveThreadOwner: (...args: any[]) => mockResolveThreadOwner(...args),
+	getAegraState: (...args: any[]) => mockGetAegraState(...args),
+	searchAegraThreads: (...args: any[]) => mockSearchAegraThreads(...args),
 }));
 
 vi.mock("@/lib/utils/format", () => ({
@@ -67,6 +73,8 @@ function UseLoadThreadEffectHarness({
 describe("useThread", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mockResolveThreadOwner.mockResolvedValue("legacy");
+		mockSearchAegraThreads.mockResolvedValue([]);
 	});
 
 	it("clears stale thread errors and loading state when hydration is disabled", async () => {
@@ -208,6 +216,67 @@ describe("useThread", () => {
 		await waitFor(() => {
 			expect(callbacks.setFilesMap).toHaveBeenCalledWith(expected);
 		});
+	});
+
+	it("recovers native state without legacy checkpoints after localStorage is cleared", async () => {
+		localStorage.clear();
+		mockResolveThreadOwner.mockResolvedValue("aegra");
+		mockGetAegraState.mockResolvedValue({
+			values: {
+				messages: [{ id: "native-1", type: "human", content: "Recovered" }],
+			},
+			metadata: {},
+		});
+		const { result } = renderHook(() => useThread());
+		let data: any = null;
+		await act(async () => {
+			data = await result.current.loadThread("native-1");
+		});
+		expect(data?.messages[0].content).toBe("Recovered");
+		expect(data?.metadata).toMatchObject({
+			thread_id: "native-1",
+			stream_owner: "aegra",
+		});
+		expect(mockSearchThreads).not.toHaveBeenCalled();
+	});
+
+	it("recovers legacy checkpoints after localStorage is cleared", async () => {
+		localStorage.clear();
+		mockSearchThreads.mockResolvedValue([
+			{
+				metadata: {},
+				values: {
+					messages: [{ id: "legacy-1", type: "human", content: "Legacy" }],
+				},
+			},
+		]);
+		const { result } = renderHook(() => useThread());
+		let data: any = null;
+		await act(async () => {
+			data = await result.current.loadThread("legacy-1");
+		});
+		expect(mockResolveThreadOwner).toHaveBeenCalledWith("legacy-1");
+		expect(mockSearchThreads).toHaveBeenCalledWith("list_checkpoints", {
+			thread_id: "legacy-1",
+		});
+		expect(mockGetAegraState).not.toHaveBeenCalled();
+		expect(data.messages[0].content).toBe("Legacy");
+		expect(data.metadata).toMatchObject({
+			thread_id: "legacy-1",
+			stream_owner: "legacy",
+		});
+	});
+
+	it("fails closed on unresolved ownership before any legacy checkpoint lookup", async () => {
+		mockResolveThreadOwner.mockRejectedValue(new Error("offline"));
+		const { result } = renderHook(() => useThread());
+		let data: any = null;
+		await act(async () => {
+			data = await result.current.loadThread("unknown");
+		});
+		expect(data).toBeNull();
+		expect(result.current.threadError).toBe("Failed to load thread");
+		expect(mockSearchThreads).not.toHaveBeenCalled();
 	});
 
 	it("returns empty filesMap when metadata.files is empty", async () => {
