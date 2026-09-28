@@ -36,3 +36,51 @@ async def authenticate(headers: Mapping[str, str]) -> dict:
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
         raise Auth.exceptions.HTTPException(status_code=401, detail="Unauthorized") from None
     return {"identity": identity}
+
+
+@auth.on
+async def deny_unhandled(ctx: Auth.types.AuthContext, value: dict) -> bool:
+    return False
+
+
+@auth.on.assistants.create
+@auth.on.threads.create
+async def create_owned(ctx: Auth.types.AuthContext, value: dict) -> None:
+    value["metadata"] = {**(value.get("metadata") or {}), "owner": ctx.user.identity}
+
+
+@auth.on.assistants.search
+@auth.on.assistants.read
+@auth.on.assistants.delete
+@auth.on.threads.search
+@auth.on.threads.read
+@auth.on.threads.delete
+async def read_owned(ctx: Auth.types.AuthContext, value: dict) -> dict:
+    return {"owner": ctx.user.identity}
+
+
+@auth.on.assistants.update
+@auth.on.threads.update
+@auth.on.threads.create_run
+async def change_owned(ctx: Auth.types.AuthContext, value: dict) -> dict | bool:
+    metadata = value.get("metadata") or {}
+    if "owner" in metadata and metadata["owner"] != ctx.user.identity:
+        return False
+    return {"owner": ctx.user.identity}
+
+
+@auth.on.store.put
+@auth.on.store.get
+@auth.on.store.delete
+async def scope_store_item(ctx: Auth.types.AuthContext, value: dict) -> dict:
+    return {"namespace": [ctx.user.identity, *(value.get("namespace") or ())]}
+
+
+@auth.on.store.search
+async def scope_store_search(ctx: Auth.types.AuthContext, value: dict) -> dict:
+    return {"namespace_prefix": [ctx.user.identity, *(value.get("namespace_prefix") or ())]}
+
+
+@auth.on.store.list_namespaces
+async def scope_store_namespaces(ctx: Auth.types.AuthContext, value: dict) -> dict:
+    return {"prefix": [ctx.user.identity, *(value.get("prefix") or ())]}

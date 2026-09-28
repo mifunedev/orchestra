@@ -6,6 +6,7 @@ import subprocess
 import time
 from datetime import timedelta
 from pathlib import Path
+from uuid import uuid4
 
 import conftest
 import pytest
@@ -43,6 +44,125 @@ from aegra_api.main import app
 from aegra_api.core.auth_middleware import get_auth_backend
 from src.integrations.aegra import auth as adapter
 
+async def authorization_routes(client):
+    first = {'authorization': 'Bearer ' + os.environ['PROBE_JWT']}
+    second = {'x-api-key': os.environ['PROBE_SECOND_KEY']}
+
+    async def request(method, path, headers, status, **kwargs):
+        response = await client.request(method, path, headers=headers, **kwargs)
+        assert response.status_code == status, (method, path, response.status_code, response.text[:300])
+        return response
+
+    assert (await request('POST', '/runs/crons/search', first, 403, json={})).json() is not None
+    assistant = (await request('POST', '/assistants', first, 200, json={
+        'graph_id': 'auth_probe', 'name': 'private-probe', 'metadata': {'owner': os.environ['PROBE_SECOND_ID']},
+    })).json()
+    assistant_id = assistant['assistant_id']
+    assert assistant['metadata']['owner'] == os.environ['PROBE_USER_ID']
+    assert (await request('GET', '/assistants/' + assistant_id, first, 200)).json()['assistant_id'] == assistant_id
+    assert any(item['assistant_id'] == assistant_id for item in (
+        await request('POST', '/assistants/search', first, 200, json={'limit': 10})
+    ).json())
+    results = (await request('POST', '/assistants/search', second, 200, json={'limit': 10})).json()
+    assert all(item['assistant_id'] != assistant_id for item in results)
+    await request('GET', '/assistants/' + assistant_id, second, 404)
+    await request('PATCH', '/assistants/' + assistant_id, first, 403,
+                  json={'metadata': {'owner': os.environ['PROBE_SECOND_ID']}})
+    await request('PATCH', '/assistants/' + assistant_id, second, 404, json={'name': 'stolen'})
+    await request('DELETE', '/assistants/' + assistant_id, second, 404)
+    updated_assistant = (await request('PATCH', '/assistants/' + assistant_id, first, 200,
+        json={'metadata': {'owner': os.environ['PROBE_USER_ID'], 'test': 'ok'}})).json()
+    assert updated_assistant['metadata']['owner'] == os.environ['PROBE_USER_ID']
+    thread = (await request('POST', '/threads', first, 200, json={
+        'metadata': {'owner': os.environ['PROBE_SECOND_ID']},
+    })).json()
+    thread_id = thread['thread_id']
+    assert thread['metadata']['owner'] == os.environ['PROBE_USER_ID']
+    assert (await request('GET', '/threads/' + thread_id, first, 200)).json()['thread_id'] == thread_id
+    assert all(item['thread_id'] != thread_id for item in (
+        await request('POST', '/threads/search', second, 200, json={'limit': 10})
+    ).json())
+    await request('GET', '/threads/' + thread_id, second, 404)
+    await request('PATCH', '/threads/' + thread_id, first, 403,
+                  json={'metadata': {'owner': os.environ['PROBE_SECOND_ID']}})
+    await request('PATCH', '/threads/' + thread_id, second, 404, json={'metadata': {'test': 'stolen'}})
+    await request('DELETE', '/threads/' + thread_id, second, 404)
+    updated_thread = (await request('PATCH', '/threads/' + thread_id, first, 200,
+        json={'metadata': {'owner': os.environ['PROBE_USER_ID'], 'test': 'ok'}})).json()
+    assert updated_thread['metadata']['owner'] == os.environ['PROBE_USER_ID']
+    run_path = '/threads/' + thread_id + '/runs'
+    await request('POST', run_path, first, 403, json={
+        'assistant_id': assistant_id, 'input': {'message': 'forged-message'},
+        'metadata': {'owner': os.environ['PROBE_SECOND_ID']},
+    })
+    run = (await request('POST', run_path, first, 200, json={
+        'assistant_id': assistant_id, 'input': {'message': 'private-message'},
+    })).json()
+    run_id = run['run_id']
+    assert run['user_id'] == os.environ['PROBE_USER_ID'], run
+    assert (await request('GET', run_path + '/' + run_id, first, 200)).json()['user_id'] == os.environ['PROBE_USER_ID']
+    assert all(item['run_id'] != run_id for item in (await request('GET', run_path, second, 200)).json())
+    own_stream = await request('GET', run_path + '/' + run_id + '/stream', first, 200)
+    assert 'private-message' in own_stream.text or own_stream.headers['content-type'].startswith('text/event-stream')
+    for path in (
+        '/threads/' + thread_id + '/runs/' + run_id,
+        '/threads/' + thread_id + '/runs/' + run_id + '/stream',
+    ):
+        response = await client.get(path, headers=second)
+        assert response.status_code in (403, 404), (path, response.status_code, response.text[:300])
+        assert 'private-message' not in response.text
+    response = await client.post('/threads/' + thread_id + '/runs/' + run_id + '/cancel', headers=second)
+    assert response.status_code in (403, 404), (response.status_code, response.text[:300])
+    assert 'private-message' not in response.text
+    own_thread = (await request('POST', '/threads', second, 200, json={})).json()['thread_id']
+    own_run = (await request('POST', '/threads/' + own_thread + '/runs', second, 200,
+                             json={'assistant_id': 'auth_probe', 'input': {'message': 'second-message'}})).json()
+    assert own_run['user_id'] == os.environ['PROBE_SECOND_ID']
+    assert (await request('GET', '/threads/' + own_thread, {
+        'authorization': 'Bearer ' + os.environ['PROBE_SECOND_JWT']}, 200)).json()['thread_id'] == own_thread
+    await request('GET', '/threads/' + own_thread + '/runs/' + own_run['run_id'], second, 200)
+    cancelled = await request('POST', '/threads/' + own_thread + '/runs/' + own_run['run_id'] + '/cancel', second, 200)
+    assert cancelled.json()['user_id'] == os.environ['PROBE_SECOND_ID']
+    await request('PUT', '/store/items', first, 204,
+                  json={'namespace': ['probe'], 'key': 'secret', 'value': {'private': 'private-message'}})
+    assert 'private-message' in (await request('GET', '/store/items', first, 200,
+        params={'namespace': 'probe', 'key': 'secret'})).text
+    assert 'private-message' in (await request('POST', '/store/items/search', first, 200,
+        json={'namespace_prefix': ['probe']})).text
+    assert 'probe' in (await request('POST', '/store/namespaces', first, 200, json={})).text
+    await request('GET', '/store/items', second, 404,
+                  params={'namespace': 'probe', 'key': 'secret'})
+    await request('GET', '/store/items', second, 404,
+                  params={'namespace': ['users', os.environ['PROBE_USER_ID'], os.environ['PROBE_USER_ID'], 'probe'],
+                          'key': 'secret'})
+    for path, body in (
+        ('/store/items/search', {'namespace_prefix': ['probe']}),
+        ('/store/items/search', {'namespace_prefix': ['users', os.environ['PROBE_USER_ID'], 'probe']}),
+        ('/store/namespaces', {}),
+        ('/store/namespaces', {'prefix': ['users', os.environ['PROBE_USER_ID']]}),
+    ):
+        response = await request('POST', path, second, 200, json=body)
+        assert 'private-message' not in response.text and os.environ['PROBE_USER_ID'] not in response.text
+    forged_namespace = ['users', os.environ['PROBE_USER_ID'], 'probe']
+    await request('PUT', '/store/items', second, 204,
+                  json={'namespace': forged_namespace, 'key': 'forged', 'value': {'private': 'second-only'}})
+    await request('GET', '/store/items', first, 404,
+                  params={'namespace': forged_namespace, 'key': 'forged'})
+    assert 'second-only' in (await request('GET', '/store/items', second, 200,
+                  params={'namespace': forged_namespace, 'key': 'forged'})).text
+    await request('DELETE', '/store/items', second, 204,
+                  json={'namespace': ['probe'], 'key': 'secret'})
+    assert 'private-message' in (await request('GET', '/store/items', first, 200,
+        params={'namespace': 'probe', 'key': 'secret'})).text
+    await request('DELETE', '/store/items', first, 204,
+                  json={'namespace': ['probe'], 'key': 'secret'})
+    await request('GET', '/store/items', first, 404,
+                  params={'namespace': 'probe', 'key': 'secret'})
+    disposable_thread = (await request('POST', '/threads', first, 200, json={})).json()['thread_id']
+    await request('DELETE', '/threads/' + disposable_thread, first, 200)
+    print('AUTHORIZATION_ROUTES=passed', flush=True)
+
+
 async def run():
     backend = get_auth_backend()
     assert backend.auth_instance is not None
@@ -68,6 +188,7 @@ async def run():
                 )
                 assert response.status_code == expected, (label, response.status_code, response.text[:300])
                 print('AUTH_ROUTE=' + json.dumps([label, response.status_code]), flush=True)
+            await authorization_routes(client)
             async with client.stream(
                 'POST', '/runs/stream',
                 json={'assistant_id': 'auth_probe', 'input': {'message': 'hello'}, 'stream_mode': 'values'},
@@ -143,6 +264,13 @@ def test_aegra_auth_adapter(tmp_path):
         with owner.begin() as conn:
             assert conn.execute(text("SELECT version_num FROM public.alembic_version")).scalar_one() == "0001"
             user_id, email = conn.execute(text("SELECT id, email FROM public.users LIMIT 1")).one()
+            second_id = uuid4()
+            conn.execute(
+                text("INSERT INTO public.users (id, username, email, name, hashed_password) "
+                     "VALUES (:id, :username, :email, :name, :password)"),
+                {"id": second_id, "username": f"probe-{second_id}", "email": f"probe-{second_id}@example.com",
+                 "name": "Second Probe", "password": "unused"},
+            )
             conn.execute(text("REVOKE CREATE ON SCHEMA public FROM PUBLIC"))
             conn.execute(text("CREATE SCHEMA aegra"))
             conn.execute(text("CREATE ROLE aegra_migrator LOGIN PASSWORD 'disposable_migrator_only'"))
@@ -236,6 +364,7 @@ def test_aegra_auth_adapter(tmp_path):
             invoke(["-m", "src.integrations.aegra.launch", str(path), "--check"], environment, valid=False)
         invoke(["-m", "src.integrations.aegra.launch", str(CONFIG), "--check"], environment)
         token = generate_api_key_str()
+        second_token = generate_api_key_str()
         revoked = generate_api_key_str()
 
         async def seed_tokens():
@@ -243,6 +372,9 @@ def test_aegra_auth_adapter(tmp_path):
 
             async with AsyncPostgresStore.from_conn_string(conftest._test_uri) as store:
                 repo = ApiTokenRepo(str(user_id), store)
+                await ApiTokenRepo(str(second_id), store).create_token(
+                    "second", hash_token(second_token), second_token[:12]
+                )
                 await repo.create_token("live", hash_token(token), token[:12])
                 removed = await repo.create_token("revoked", hash_token(revoked), revoked[:12])
                 assert await repo.revoke_token(removed.id)
@@ -276,6 +408,12 @@ def test_aegra_auth_adapter(tmp_path):
         environment.update(
             {
                 "PROBE_USER_ID": str(user_id),
+                "PROBE_SECOND_ID": str(second_id),
+                "PROBE_SECOND_KEY": second_token,
+                "PROBE_SECOND_JWT": create_access_token(
+                    User(id=second_id, email=f"probe-{second_id}@example.com", username=f"probe-{second_id}",
+                         name="Second Probe")
+                ),
                 "PROBE_JWT": create_access_token(user),
                 "PROBE_EXPIRED": create_access_token(user, expires_delta=timedelta(seconds=-10)),
                 "PROBE_API_KEY": token,
@@ -336,6 +474,7 @@ def test_aegra_auth_adapter(tmp_path):
                 ("api-key", 200),
             )
         ]
+        assert "AUTHORIZATION_ROUTES=passed" in result.stdout
         assert "AUTH_STREAM=200" in result.stdout
         assert [line for line in result.stdout.splitlines() if line.startswith("AUTH_FAIL=")] == [
             f"AUTH_FAIL={label}" for label in ("redirect", "malformed", "non-200", "unreachable")
