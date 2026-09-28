@@ -1,0 +1,9 @@
+{
+  "graphs": {
+    "orchestra": "./graph.py:graph"
+  },
+  "auth": {
+    "path": "src.integrations.aegra.auth:auth",
+    "disable_studio_auth": false
+  }
+}
