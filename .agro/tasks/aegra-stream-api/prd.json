@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "project": "mifunedev/orchestra",
+  "branchName": "feat/1019-aegra-stream-api",
+  "description": "New UI threads on Aegra: stream an Orchestra graph and tool through the current chat view without changing legacy threads.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Run an Orchestra graph with a tool on Aegra",
+      "description": "As a chat user, I want my new thread to use an Orchestra tool through Aegra so that I can complete a task.",
+      "acceptanceCriteria": [
+        "First add a failing integration test for a new Aegra thread with two turns and one deterministic Orchestra tool call.",
+        "Register the real Orchestra chat graph with Aegra. The test observes the tool call, tool result, streamed reply, and persisted second-turn context.",
+        "Authenticate each run with Orchestra's current credential authority. Reject missing credentials, unknown tools, and cross-user thread or stream access.",
+        "Keep new Aegra thread and run data outside Orchestra's existing tables. The test finds no new Orchestra thread row for the Aegra run.",
+        "No new-thread request invokes Orchestra `stream_generator` or `LLMController.llm_stream`."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": ["backend/src/integrations/aegra/", "backend/tests/integration/test_aegra_chat_stream.py"]
+    },
+    {
+      "id": "US-002",
+      "title": "Create an Aegra thread through the current UI",
+      "description": "As a chat user, I want New Thread to stream Aegra replies and tool results so that I can use the current chat view.",
+      "acceptanceCriteria": [
+        "First add failing UI tests for first-message thread creation, tool events, reply completion, errors, and a second message.",
+        "After New Thread and the first message, the UI creates an Aegra thread and displays its tool call, result, and streamed reply.",
+        "A second message in that thread runs through Aegra and uses the first turn's history.",
+        "Keep existing Orchestra-owned threads on their current routes. Do not dual-write a new thread or redirect an old thread to Aegra.",
+        "Reject unsupported new-thread inputs before execution. Do not reject supported Orchestra tools.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001"],
+      "files": ["frontend/src/components/buttons/NewThreadButton.tsx", "frontend/src/hooks/useChat.ts", "frontend/src/hooks/useChat.test.tsx", "frontend/src/lib/services/threadService.ts", "frontend/src/lib/utils/aegraStream.ts", "frontend/src/tests/utils/aegraStream.test.ts", "frontend/vite.config.ts"]
+    },
+    {
+      "id": "US-003",
+      "title": "Review the UI journey",
+      "description": "As an operator, I want observed browser and API evidence so that I can accept the new-thread path.",
+      "acceptanceCriteria": [
+        "After operator approval for disposable local resources, record redacted commands and route responses in `.agro/tasks/aegra-stream-api/evidence/manual-review.md`.",
+        "Record an agent-browser journey with annotated screenshots: New Thread, a tool call and result, a streamed reply, and a second turn.",
+        "Confirm that a second user cannot read the new thread or attach to its run stream.",
+        "Stop the review service and delete only resources created for this review. Use the evidence for the PR `## Manual review` section."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001", "US-002"],
+      "files": [".agro/tasks/aegra-stream-api/evidence/manual-review.md"]
+    }
+  ]
+}
