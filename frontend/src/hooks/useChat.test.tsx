@@ -264,9 +264,8 @@ describe("useChat Aegra routing", () => {
 			)
 			.mockResolvedValueOnce(new Response("event: end\ndata: {}\n\n"));
 		vi.stubGlobal("fetch", fetchMock);
-		const legacySearch = vi
-			.spyOn(apiClient, "post")
-			.mockResolvedValue({ data: { threads: [] } });
+		const legacyLookup = vi.spyOn(apiClient, "get");
+		const legacySearch = vi.spyOn(apiClient, "post");
 		const { result } = renderHook(() => useChat());
 		act(() => result.current.setMetadata({ thread_id: "remembered" }));
 		localStorage.clear();
@@ -278,11 +277,9 @@ describe("useChat Aegra routing", () => {
 			"/api/v1/threads/remembered/runs/stream",
 		);
 		expect(mockInitiateStream).not.toHaveBeenCalled();
-		expect(legacySearch).toHaveBeenCalledWith("/threads/search", {
-			limit: 100,
-			offset: 0,
-			filter: {},
-		});
+		expect(legacyLookup).not.toHaveBeenCalled();
+		expect(legacySearch).not.toHaveBeenCalled();
+		legacyLookup.mockRestore();
 		legacySearch.mockRestore();
 		vi.unstubAllGlobals();
 	});
@@ -546,84 +543,85 @@ describe("server-owned engine resolution", () => {
 		vi.unstubAllGlobals();
 	});
 
-	it("expands legacy list pages without requesting checkpoints", async () => {
-		const fetchMock = vi
+	it("uses the authorized legacy GET only when native search finds no thread", async () => {
+		const nativeSearch = vi
 			.fn()
 			.mockResolvedValue(new Response(JSON.stringify([])));
-		vi.stubGlobal("fetch", fetchMock);
-		const rows = Array.from({ length: 100 }, (_, index) => ({
-			key: `other-${index}`,
-		}));
-		const post = vi.spyOn(apiClient, "post").mockImplementation(
-			async (_path, payload: any) =>
-				({
-					data: {
-						threads: [...rows, { value: { thread_id: "legacy-101" } }].slice(
-							0,
-							payload.limit,
-						),
-					},
-				}) as any,
-		);
-		expect(await resolveThreadOwner("legacy-101")).toBe("legacy");
-		expect(post.mock.calls.map(([, payload]: any[]) => payload)).toEqual([
-			{ limit: 100, offset: 0, filter: {} },
-			{ limit: 200, offset: 0, filter: {} },
-		]);
-		expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads/search");
-	});
-
-	it("keeps unknown ids off legacy checkpoint search", async () => {
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue(new Response(JSON.stringify([]))),
-		);
-		const post = vi
-			.spyOn(apiClient, "post")
-			.mockResolvedValue({ data: { threads: [] } });
-		await expect(resolveThreadOwner("unknown")).rejects.toThrow(
-			/could not be verified/i,
-		);
-		expect(post).toHaveBeenCalledWith("/threads/search", {
-			limit: 100,
-			offset: 0,
-			filter: {},
+		vi.stubGlobal("fetch", nativeSearch);
+		const get = vi.spyOn(apiClient, "get").mockResolvedValue({
+			status: 200,
+			data: { thread: { id: "legacy-101" } },
 		});
+		const post = vi.spyOn(apiClient, "post");
+		expect(await resolveThreadOwner("legacy-101")).toBe("legacy");
+		expect(nativeSearch.mock.calls[0][0]).toBe("/api/v1/threads/search");
+		expect(get).toHaveBeenCalledOnce();
+		expect(get).toHaveBeenCalledWith("/threads/legacy-101");
+		expect(nativeSearch.mock.invocationCallOrder[0]).toBeLessThan(
+			get.mock.invocationCallOrder[0],
+		);
+		expect(post).not.toHaveBeenCalled();
 	});
 
-	it("fails closed on native and legacy identifier collision", async () => {
+	it("returns native ownership without any legacy call", async () => {
 		vi.stubGlobal(
 			"fetch",
 			vi
 				.fn()
 				.mockResolvedValue(
-					new Response(JSON.stringify([{ thread_id: "collision" }])),
+					new Response(JSON.stringify([{ thread_id: "native" }])),
 				),
 		);
-		const post = vi
-			.spyOn(apiClient, "post")
-			.mockResolvedValue({ data: { threads: [{ key: "collision" }] } });
-		await expect(resolveThreadOwner("collision")).rejects.toThrow(/ambiguous/i);
-		expect(post).toHaveBeenCalledWith("/threads/search", {
-			limit: 100,
-			offset: 0,
-			filter: {},
-		});
+		const get = vi.spyOn(apiClient, "get");
+		const post = vi.spyOn(apiClient, "post");
+		expect(await resolveThreadOwner("native")).toBe("aegra");
+		expect(get).not.toHaveBeenCalled();
+		expect(post).not.toHaveBeenCalled();
 	});
 
-	it("fails closed if the legacy list ignores an increased limit", async () => {
+	it("fails closed on a native search service error without probing legacy", async () => {
 		vi.stubGlobal(
 			"fetch",
-			vi.fn().mockResolvedValue(new Response(JSON.stringify([]))),
+			vi.fn().mockResolvedValue(new Response("missing", { status: 404 })),
 		);
-		const rows = Array.from({ length: 100 }, (_, index) => ({
-			key: `other-${index}`,
-		}));
-		const post = vi
-			.spyOn(apiClient, "post")
-			.mockResolvedValue({ data: { threads: rows } });
-		await expect(resolveThreadOwner("unseen")).rejects.toThrow(/pagination/i);
-		expect(post).toHaveBeenCalledTimes(2);
+		const get = vi.spyOn(apiClient, "get");
+		await expect(resolveThreadOwner("unknown")).rejects.toThrow(
+			/search failed \(404\)/i,
+		);
+		expect(get).not.toHaveBeenCalled();
+	});
+
+	it("fails closed when legacy GET returns 404, another identity, or a service error", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockImplementation(async () => new Response(JSON.stringify([]))),
+		);
+		const get = vi
+			.spyOn(apiClient, "get")
+			.mockRejectedValueOnce(
+				Object.assign(new Error("Not found"), { response: { status: 404 } }),
+			)
+			.mockResolvedValueOnce({
+				status: 200,
+				data: { thread: { id: "different" } },
+			})
+			.mockRejectedValueOnce(
+				Object.assign(new Error("Service unavailable"), {
+					response: { status: 503 },
+				}),
+			);
+		const post = vi.spyOn(apiClient, "post");
+		await expect(resolveThreadOwner("unknown")).rejects.toThrow(
+			/ownership|verified/i,
+		);
+		await expect(resolveThreadOwner("unknown")).rejects.toThrow(
+			/ownership|verified/i,
+		);
+		await expect(resolveThreadOwner("unknown")).rejects.toThrow(
+			"Service unavailable",
+		);
+		expect(get).toHaveBeenCalledTimes(3);
+		expect(post).not.toHaveBeenCalled();
 	});
 });
 

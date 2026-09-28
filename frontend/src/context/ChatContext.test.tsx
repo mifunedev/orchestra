@@ -143,18 +143,11 @@ describe("Aegra submission file provenance", () => {
 			.fn()
 			.mockResolvedValueOnce(new Response(JSON.stringify([])));
 		vi.stubGlobal("fetch", fetchMock);
-		const legacySearch = vi.spyOn(apiClient, "post").mockImplementation(
-			async (_path, payload: any) =>
-				({
-					data: payload.filter?.thread_id
-						? {
-								checkpoints: [
-									{ metadata: { thread_id: payload.filter.thread_id } },
-								],
-							}
-						: { threads: [{ key: "legacy", value: { thread_id: "legacy" } }] },
-				}) as any,
-		);
+		const legacyLookup = vi.spyOn(apiClient, "get").mockResolvedValue({
+			status: 200,
+			data: { thread: { id: "legacy" } },
+		});
+		const checkpointSearch = vi.spyOn(apiClient, "post");
 		const { result } = renderHook(() => useChatContext(), { wrapper });
 		await waitFor(() =>
 			expect(Object.keys(result.current.submissionFiles)).toHaveLength(4),
@@ -165,21 +158,14 @@ describe("Aegra submission file provenance", () => {
 		});
 		expect(fetchMock).toHaveBeenCalledOnce();
 		expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads/search");
-		expect(legacySearch).toHaveBeenCalledWith("/threads/search", {
-			limit: expect.any(Number),
-			offset: 0,
-			filter: {},
-		});
-		expect(
-			legacySearch.mock.calls.every(
-				([, payload]: any[]) => !payload.filter?.thread_id,
-			),
-		).toBe(true);
+		expect(legacyLookup).toHaveBeenCalledOnce();
+		expect(legacyLookup).toHaveBeenCalledWith("/threads/legacy");
+		expect(checkpointSearch).not.toHaveBeenCalled();
 		expect(initiateStream).toHaveBeenCalledOnce();
 		expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(
-			legacySearch.mock.invocationCallOrder[0],
+			legacyLookup.mock.invocationCallOrder[0],
 		);
-		expect(legacySearch.mock.invocationCallOrder[0]).toBeLessThan(
+		expect(legacyLookup.mock.invocationCallOrder[0]).toBeLessThan(
 			vi.mocked(initiateStream).mock.invocationCallOrder[0],
 		);
 		expect(

@@ -55,41 +55,22 @@ export async function resolveThreadOwner(
 	threadId: string,
 ): Promise<ThreadOwner> {
 	const limit = 100;
-	let nativeFound = false;
 	for (let offset = 0; ; offset += limit) {
 		const page = await searchAegraThreads(limit, offset);
-		nativeFound ||= page.some((thread) => thread.thread_id === threadId);
+		if (page.some((thread) => thread.thread_id === threadId)) return "aegra";
 		if (page.length < limit) break;
 	}
-	let previousPage: string | undefined;
-	for (let pageLimit = limit; ; pageLimit *= 2) {
-		if (!Number.isSafeInteger(pageLimit))
-			throw new Error("Legacy thread search pagination is unavailable");
-		const response = await apiClient.post("/threads/search", {
-			limit: pageLimit,
-			offset: 0,
-			filter: {},
-		});
-		const threads = response.data?.threads;
-		if (!Array.isArray(threads) || threads.length > pageLimit)
-			throw new Error("Invalid legacy thread search response");
-		const legacyFound = threads.some(
-			(thread: any) =>
-				thread.key === threadId || thread.value?.thread_id === threadId,
-		);
-		if (legacyFound && nativeFound)
-			throw new Error("Thread ownership is ambiguous");
-		if (legacyFound) return "legacy";
-		const page = JSON.stringify(
-			threads.map((thread: any) => thread.key ?? thread.value?.thread_id),
-		);
-		if (page === previousPage)
-			throw new Error("Legacy thread search pagination is unavailable");
-		if (threads.length < pageLimit) break;
-		previousPage = page;
+	let response;
+	try {
+		response = await apiClient.get(`/threads/${encodeURIComponent(threadId)}`);
+	} catch (error: any) {
+		if (error.response?.status === 404)
+			throw new Error("Thread ownership could not be verified");
+		throw error;
 	}
-	if (nativeFound) return "aegra";
-	throw new Error("Thread ownership could not be verified");
+	if (response.status !== 200 || response.data?.thread?.id !== threadId)
+		throw new Error("Thread ownership could not be verified");
+	return "legacy";
 }
 
 export async function createAegraThread(signal: AbortSignal): Promise<string> {
