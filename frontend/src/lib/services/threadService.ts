@@ -24,7 +24,7 @@ export function isAegraThread(threadId?: string): boolean {
 }
 
 export async function createAegraThread(signal: AbortSignal): Promise<string> {
-	const response = await fetch("/api/aegra/threads", {
+	const response = await fetch("/api/v1/threads", {
 		method: "POST",
 		headers: aegraHeaders(),
 		body: "{}",
@@ -56,20 +56,17 @@ export async function streamAegraThread(
 	tools: string[],
 	signal: AbortSignal,
 ) {
-	return fetch(
-		`/api/aegra/threads/${encodeURIComponent(threadId)}/runs/stream`,
-		{
-			method: "POST",
-			headers: aegraHeaders(),
-			signal,
-			body: JSON.stringify({
-				assistant_id: "orchestra",
-				input: { messages: [{ role: "user", content }] },
-				config: { configurable: { model, tools } },
-				stream_mode: ["messages", "updates", "values"],
-			}),
-		},
-	);
+	return fetch(`/api/v1/threads/${encodeURIComponent(threadId)}/runs/stream`, {
+		method: "POST",
+		headers: aegraHeaders(),
+		signal,
+		body: JSON.stringify({
+			assistant_id: "orchestra",
+			input: { messages: [{ role: "user", content }] },
+			config: { configurable: { model, tools } },
+			stream_mode: ["messages", "updates", "values"],
+		}),
+	});
 }
 
 const SYSTEM_PROMPT = `GOAL:

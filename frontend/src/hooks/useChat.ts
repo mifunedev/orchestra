@@ -644,6 +644,16 @@ export default function useChat(): ChatContextType {
 
 	const aegraControllerRef = useRef<AbortController | null>(null);
 
+	const supportsAegra = (images: File[]) =>
+		images.length === 0 &&
+		!hasExplicitAttachmentsRef.current &&
+		!agent.public &&
+		Object.keys(agent.mcp ?? {}).length === 0 &&
+		Object.keys(agent.a2a ?? {}).length === 0 &&
+		(agent.subagents?.length ?? 0) === 0 &&
+		!agent.prompt?.trim() &&
+		!metadataRef.current.checkpoint_id;
+
 	const handleAegraSubmit = async (content: string, images: File[]) => {
 		const abortController = new AbortController();
 		aegraControllerRef.current = abortController;
@@ -747,9 +757,10 @@ export default function useChat(): ChatContextType {
 		const queryToSubmit = argQuery || query;
 
 		if (
-			!metadataRef.current.thread_id ||
-			metadataRef.current.stream_owner === "aegra" ||
-			isAegraThread(metadataRef.current.thread_id)
+			(metadataRef.current.thread_id &&
+				(metadataRef.current.stream_owner === "aegra" ||
+					isAegraThread(metadataRef.current.thread_id))) ||
+			(!metadataRef.current.thread_id && supportsAegra(images))
 		) {
 			await handleAegraSubmit(queryToSubmit, images);
 			return;
@@ -778,7 +789,7 @@ export default function useChat(): ChatContextType {
 
 	const getMetadata = () => {
 		return {
-			...metadata,
+			...metadataRef.current,
 			assistant_id: agent.id,
 			current_utc: new Date().toISOString(),
 			timezone:

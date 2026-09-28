@@ -162,6 +162,15 @@ describe("useChat Aegra routing", () => {
 	beforeEach(() => {
 		localStorage.clear();
 		vi.clearAllMocks();
+		mockFormatMultimodalPayload.mockImplementation(
+			async (content: string, images: File[]) => [
+				{
+					role: "user",
+					content: images.length ? [content, images[0].name] : content,
+				},
+			],
+		);
+		mockInitiateStream.mockResolvedValue(new MockStreamSource());
 		Object.assign(mockAgent, {
 			public: false,
 			prompt: "",
@@ -171,7 +180,8 @@ describe("useChat Aegra routing", () => {
 			subagents: [],
 		});
 	});
-	it("creates once and reuses native history on the second turn", async () => {
+	it("creates once with an authorized Orchestra tool and reuses native history on the second turn", async () => {
+		Object.assign(mockAgent, { tools: ["get_weather"] });
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValueOnce(
@@ -189,7 +199,10 @@ describe("useChat Aegra routing", () => {
 		await act(async () => {
 			await result.current.handleSubmit("hello");
 		});
-		expect(fetchMock.mock.calls[0][0]).toBe("/api/aegra/threads");
+		expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads");
+		expect(
+			JSON.parse(fetchMock.mock.calls[1][1].body).config.configurable.tools,
+		).toEqual(["get_weather"]);
 		expect(result.current.metadata).toMatchObject({
 			thread_id: "aegra-1",
 			stream_owner: "aegra",
@@ -208,12 +221,14 @@ describe("useChat Aegra routing", () => {
 		});
 		expect(fetchMock).toHaveBeenCalledTimes(3);
 		expect(fetchMock.mock.calls[2][0]).toBe(
-			"/api/aegra/threads/aegra-1/runs/stream",
+			"/api/v1/threads/aegra-1/runs/stream",
 		);
 		expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toMatchObject({
 			assistant_id: "orchestra",
 			input: { messages: [{ role: "user", content: "again" }] },
-			config: { configurable: { model: "openai:gpt-4.1-mini", tools: [] } },
+			config: {
+				configurable: { model: "openai:gpt-4.1-mini", tools: ["get_weather"] },
+			},
 		});
 		expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe(
 			"Bearer token",
@@ -249,7 +264,7 @@ describe("useChat Aegra routing", () => {
 			await result.current.handleSubmit("again");
 		});
 		expect(fetchMock.mock.calls[0][0]).toBe(
-			"/api/aegra/threads/remembered/runs/stream",
+			"/api/v1/threads/remembered/runs/stream",
 		);
 		expect(mockInitiateStream).not.toHaveBeenCalled();
 		expect(streamThread).not.toHaveBeenCalled();
@@ -281,33 +296,96 @@ describe("useChat Aegra routing", () => {
 		},
 	);
 	it.each([
-		{ public: true },
-		{ prompt: "custom" },
-		{ mcp: { server: {} } },
-		{ a2a: { agent: {} } },
-		{ subagents: [{}] },
+		{
+			name: "public assistant",
+			config: { public: true },
+			field: "model",
+			value: "",
+		},
+		{
+			name: "custom prompt",
+			config: { prompt: "custom" },
+			field: "system_prompt",
+			value: "custom",
+		},
+		{
+			name: "MCP",
+			config: { mcp: { server: {} } },
+			field: "mcp",
+			value: { server: {} },
+		},
+		{
+			name: "A2A",
+			config: { a2a: { agent: {} } },
+			field: "a2a",
+			value: { agent: {} },
+		},
+		{
+			name: "subagents",
+			config: { subagents: [{ id: "sub" }] },
+			field: "subagents",
+			value: [{ id: "sub" }],
+		},
 	])(
-		"rejects unsupported configuration %j without fallback",
-		async (config) => {
+		"selects v0 before creation for $name and retains its input",
+		async ({ config, field, value }) => {
 			Object.assign(mockAgent, config);
 			const fetchMock = vi.fn();
 			vi.stubGlobal("fetch", fetchMock);
 			const { result } = renderHook(() => useChat());
 			act(() => result.current.clearMessages());
-			await act(async () => {
-				await result.current.handleSubmit("hello");
-			});
-			expect(result.current.runError?.message).toMatch(/does not support/);
-			expect(toast.error).toHaveBeenCalledWith(
-				result.current.runError?.message,
-			);
-			expect(result.current.query).toBe("hello");
+			await act(async () => result.current.handleSubmit("hello"));
 			expect(fetchMock).not.toHaveBeenCalled();
-			expect(mockInitiateStream).not.toHaveBeenCalled();
-			expect(streamThread).not.toHaveBeenCalled();
+			expect(mockInitiateStream).toHaveBeenCalledWith(
+				expect.objectContaining({
+					[field]: value,
+					input: { messages: [{ role: "user", content: "hello" }] },
+				}),
+			);
+			expect(result.current.runError).toBeNull();
 			vi.unstubAllGlobals();
 		},
 	);
+
+	it("routes checkpoint overrides to v0 before creation", async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChat());
+		act(() => result.current.setMetadata({ checkpoint_id: "checkpoint-1" }));
+		await act(async () => result.current.handleSubmit("hello"));
+		expect(fetchMock).not.toHaveBeenCalled();
+		expect(mockInitiateStream).toHaveBeenCalledWith(
+			expect.objectContaining({
+				metadata: expect.objectContaining({ checkpoint_id: "checkpoint-1" }),
+			}),
+		);
+		vi.unstubAllGlobals();
+	});
+
+	it("keeps a v0 thread on v0 after the first response assigns its id", async () => {
+		Object.assign(mockAgent, { mcp: { server: {} } });
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChat());
+		await act(async () => result.current.handleSubmit("first"));
+		act(() =>
+			result.current.sseHandler(
+				["metadata", { thread_id: "legacy-created" }],
+				[],
+				"messages",
+			),
+		);
+		Object.assign(mockAgent, { mcp: {} });
+		await act(async () => result.current.handleSubmit("second"));
+		expect(mockInitiateStream).toHaveBeenCalledTimes(2);
+		expect(mockInitiateStream).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				metadata: expect.objectContaining({ thread_id: "legacy-created" }),
+			}),
+		);
+		expect(fetchMock).not.toHaveBeenCalled();
+		vi.unstubAllGlobals();
+	});
 	it.each(["http", "native"])(
 		"retains created ownership on run %s failure and permits Orchestra tools",
 		async (failure) => {
@@ -333,6 +411,10 @@ describe("useChat Aegra routing", () => {
 				stream_owner: "aegra",
 			});
 			expect(result.current.runError?.recoverable).toBe(false);
+			expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads");
+			expect(fetchMock.mock.calls[1][0]).toBe(
+				"/api/v1/threads/aegra-1/runs/stream",
+			);
 			expect(
 				JSON.parse(fetchMock.mock.calls[1][1].body).config.configurable.tools,
 			).toEqual(["get_weather"]);
@@ -345,6 +427,30 @@ describe("useChat Aegra routing", () => {
 			vi.unstubAllGlobals();
 		},
 	);
+	it("never switches an existing v1 thread to v0 for later unsupported input", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ thread_id: "aegra-1" })),
+			)
+			.mockResolvedValueOnce(new Response("event: end\ndata: {}\n\n"));
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChat());
+		await act(async () => result.current.handleSubmit("first"));
+		act(() => result.current.setSubmissionFiles({ "later.txt": {} }));
+		await act(async () => result.current.handleSubmit("second"));
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(mockInitiateStream).not.toHaveBeenCalled();
+		expect(result.current.runError?.message).toMatch(
+			/does not support.*files/i,
+		);
+		expect(result.current.metadata).toMatchObject({
+			thread_id: "aegra-1",
+			stream_owner: "aegra",
+		});
+		vi.unstubAllGlobals();
+	});
+
 	it("does not treat passive legacy filesMap entries as attachments", async () => {
 		const fetchMock = vi
 			.fn()
@@ -372,7 +478,7 @@ describe("useChat Aegra routing", () => {
 		vi.unstubAllGlobals();
 	});
 	it.each(["file", "image"])(
-		"visibly rejects explicit %s before creation or execution",
+		"routes explicit %s to v0 before v1 creation and preserves the attachment",
 		async (kind) => {
 			const fetchMock = vi.fn();
 			vi.stubGlobal("fetch", fetchMock);
@@ -387,14 +493,19 @@ describe("useChat Aegra routing", () => {
 					kind === "image" ? [new File(["image"], "image.png")] : [],
 				);
 			});
-			expect(result.current.runError?.message).toMatch(/files/i);
-			expect(toast.error).toHaveBeenCalledWith(
-				result.current.runError?.message,
-			);
-			expect(result.current.query).toBe("hello");
 			expect(fetchMock).not.toHaveBeenCalled();
-			expect(mockInitiateStream).not.toHaveBeenCalled();
-			expect(streamThread).not.toHaveBeenCalled();
+			expect(mockInitiateStream).toHaveBeenCalledWith(
+				expect.objectContaining({
+					input: expect.objectContaining(
+						kind === "file"
+							? { files: { "a.txt": {} } }
+							: {
+									messages: [{ role: "user", content: ["hello", "image.png"] }],
+								},
+					),
+				}),
+			);
+			expect(result.current.runError).toBeNull();
 			vi.unstubAllGlobals();
 		},
 	);
