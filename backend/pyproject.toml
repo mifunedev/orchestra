@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "../README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aegra-api==0.10.7",
     "aiofiles>=24.1.0",
     "alembic>=1.16.5",
     "apscheduler==3.11.0",

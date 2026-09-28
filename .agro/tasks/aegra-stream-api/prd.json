@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "project": "mifunedev/orchestra",
+  "branchName": "feat/1019-aegra-stream-api",
+  "description": "New UI threads on Aegra: stream an Orchestra graph and tool through the current chat view without changing legacy threads.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Run an Orchestra graph with a tool on Aegra",
+      "description": "As a chat user, I want my new thread to use an Orchestra tool through Aegra so that I can complete a task.",
+      "acceptanceCriteria": [
+        "First add a failing integration test for a new Aegra thread with two turns and one deterministic Orchestra tool call.",
+        "Register the real Orchestra chat graph with Aegra. The test observes the tool call, tool result, streamed reply, and persisted second-turn context.",
+        "Authenticate each run with Orchestra's current credential authority. Reject missing credentials, unknown tools, and cross-user thread or stream access.",
+        "Keep new Aegra thread and run data outside Orchestra's existing tables. The test finds no new Orchestra thread row for the Aegra run.",
+        "No new-thread request invokes Orchestra `stream_generator` or `LLMController.llm_stream`."
+      ],
+      "priority": 1,
+      "passes": true,
+      "commit": "2bd7b50abb9d8e42534485604add0af9df6ae7c3",
+      "notes": "1 executed: test module-load failed before implementation, exit 1. 2 executed: bash backend/scripts/test-aegra-chat-stream.sh exit 0, 3 passed; real graph/tool/result/second-turn state asserted. 3 executed: same test covers missing, invalid, revoked, unknown-tool, spoofed identity, and second-user thread/run/stream denials. 4 executed: test asserts native thread/run/checkpoint rows and no Orchestra thread row or store entry; disposable DB dropped and absent. 5 executed: test failure sentinels assert legacy stream_generator and LLMController.llm_stream uncalled. Advisor independently reran the runner: exit 0, 3 passed, disposable DB dropped and absent. README trim commit 061fe8a6 passed STE checker and git diff --check.",
+      "dependsOn": [],
+      "files": ["backend/src/integrations/aegra/", "backend/tests/integration/test_aegra_chat_stream.py", "backend/pyproject.toml", "backend/uv.lock", "backend/scripts/test-aegra-chat-stream.sh"]
+    },
+    {
+      "id": "US-002",
+      "title": "Create an Aegra thread through the current UI",
+      "description": "As a chat user, I want New Thread to stream Aegra replies and tool results so that I can use the current chat view.",
+      "acceptanceCriteria": [
+        "First add failing UI tests for first-message thread creation, tool events, reply completion, errors, and a second message.",
+        "After New Thread and the first message, the UI creates an Aegra thread and displays its tool call, result, and streamed reply.",
+        "A second message in that thread runs through Aegra and uses the first turn's history.",
+        "Keep existing Orchestra-owned threads on their current routes. Do not dual-write a new thread or redirect an old thread to Aegra.",
+        "Reject unsupported new-thread inputs before execution. Do not reject supported Orchestra tools.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 2,
+      "passes": true,
+      "commit": "7728dfc461862d6baf0eb723ea1fd13d40281834",
+      "notes": "Frontend regressions went red before repair. Advisor independently ran six focused test files: 67 passed, exit 0; frontend build exit 0. Browser review in the local authenticated UI created Aegra thread 5397299e-69bd-4a5a-9e5b-639511982204, displayed math_calculator call/result 7 * 8 = 56 and streamed reply, then returned 56 in a second run on the same thread while remaining on /chat. Existing persistent context files did not block text submission. Explicit attachments show an error and restore the prompt in focused tests. Legacy route and no-fallback cases are covered by focused tests. UI commits: 10c47930, 97d5b382, 26f78b9d, 7728dfc4. See evidence/manual-review.md.",
+      "dependsOn": ["US-001"],
+      "files": ["frontend/src/components/buttons/NewThreadButton.tsx", "frontend/src/hooks/useChat.ts", "frontend/src/hooks/useChat.test.tsx", "frontend/src/hooks/useInitialThreadRedirect.ts", "frontend/src/hooks/useInitialThreadRedirect.test.tsx", "frontend/src/context/ChatContext.tsx", "frontend/src/context/ChatContext.test.tsx", "frontend/src/lib/services/threadService.ts", "frontend/src/lib/utils/aegraStream.ts", "frontend/src/tests/utils/aegraStream.test.ts", "frontend/vite.config.ts"]
+    },
+    {
+      "id": "US-003",
+      "title": "Review the UI journey",
+      "description": "As an operator, I want observed browser and API evidence so that I can accept the new-thread path.",
+      "acceptanceCriteria": [
+        "After operator approval for disposable local resources, record redacted commands and route responses in `.agro/tasks/aegra-stream-api/evidence/manual-review.md`.",
+        "Record an agent-browser journey with annotated screenshots: New Thread, a tool call and result, a streamed reply, and a second turn.",
+        "Confirm that a second user cannot read the new thread or attach to its run stream.",
+        "Stop the review service and delete only resources created for this review. Use the evidence for the PR `## Manual review` section."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Operator approved only task-owned disposable database resources. Recorded redacted API responses, browser journey, annotated screenshots, second-identity access checks from focused backend integration test, and cleanup in evidence/manual-review.md. Live unauthenticated thread creation returned 401. Second identity denial is integration-fixture evidence, not a second interactive login to the pre-existing account database. Stopped only the task Aegra process in Herdr pane w4:pB, dropped only database aegra_ui_61727680cbad486a96a386d2e89e06df, verified count 0; pre-existing backend and frontend panes remained running. STE checker and git diff --check passed.",
+      "dependsOn": ["US-001", "US-002"],
+      "files": [".agro/tasks/aegra-stream-api/evidence/manual-review.md"]
+    }
+  ]
+}

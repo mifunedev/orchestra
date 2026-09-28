@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { toast } from "sonner";
+import { streamThread } from "@/lib/services";
+
+vi.mock("@/lib/services/userSettingsService", () => ({
+	getSettings: async () => ({ defaults: {} }),
+}));
 import useChat, { STREAM_RECOVERY_TOAST_ID } from "./useChat";
 
 const mockSetLoading = vi.fn();
@@ -23,19 +28,18 @@ vi.mock("@/context/AppContext", () => ({
 	}),
 }));
 
+const mockAgent = {
+	id: "agent-1",
+	model: "openai:gpt-4.1-mini",
+	public: false,
+	prompt: "",
+	tools: [],
+	a2a: {},
+	mcp: {},
+	subagents: [],
+};
 vi.mock("@/context/AgentContext", () => ({
-	useAgentContext: () => ({
-		agent: {
-			id: "agent-1",
-			model: "openai:gpt-4.1-mini",
-			public: false,
-			prompt: "You are helpful.",
-			tools: [],
-			a2a: {},
-			mcp: {},
-			subagents: [],
-		},
-	}),
+	useAgentContext: () => ({ agent: mockAgent }),
 }));
 
 vi.mock("@/lib/utils/format", () => ({
@@ -154,6 +158,248 @@ vi.mock("sonner", () => {
 	return { toast };
 });
 
+describe("useChat Aegra routing", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		vi.clearAllMocks();
+		Object.assign(mockAgent, {
+			public: false,
+			prompt: "",
+			tools: [],
+			mcp: {},
+			a2a: {},
+			subagents: [],
+		});
+	});
+	it("creates once and reuses native history on the second turn", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ thread_id: "aegra-1" })),
+			)
+			.mockImplementation(
+				async () =>
+					new Response(
+						'event: values\ndata: {"messages":[{"id":"a","type":"ai","content":"Sunny","tool_calls":[{"id":"c","name":"get_weather","args":{}}]},{"id":"t","type":"tool","tool_call_id":"c","content":"72"}]}\n\nevent: end\ndata: {}\n\n',
+					),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChat());
+		act(() => result.current.clearMessages());
+		await act(async () => {
+			await result.current.handleSubmit("hello");
+		});
+		expect(fetchMock.mock.calls[0][0]).toBe("/api/aegra/threads");
+		expect(result.current.metadata).toMatchObject({
+			thread_id: "aegra-1",
+			stream_owner: "aegra",
+		});
+		expect(result.current.messages.some((m) => m.content === "Sunny")).toBe(
+			true,
+		);
+		expect(
+			result.current.messages.some(
+				(m) => m.tool_calls?.[0].name === "get_weather",
+			),
+		).toBe(true);
+		expect(result.current.messages.some((m) => m.content === "72")).toBe(true);
+		await act(async () => {
+			await result.current.handleSubmit("again");
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+		expect(fetchMock.mock.calls[2][0]).toBe(
+			"/api/aegra/threads/aegra-1/runs/stream",
+		);
+		expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toMatchObject({
+			assistant_id: "orchestra",
+			input: { messages: [{ role: "user", content: "again" }] },
+			config: { configurable: { model: "openai:gpt-4.1-mini", tools: [] } },
+		});
+		expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe(
+			"Bearer token",
+		);
+		expect(mockInitiateStream).not.toHaveBeenCalled();
+		expect(streamThread).not.toHaveBeenCalled();
+		expect(result.current.controller).toBeNull();
+		act(() =>
+			result.current.setMetadata((previous: any) => ({
+				...previous,
+				thread_id: "legacy-2",
+			})),
+		);
+		mockInitiateStream.mockResolvedValue(new MockStreamSource());
+		await act(async () => {
+			await result.current.handleSubmit("legacy turn");
+		});
+		expect(mockInitiateStream).toHaveBeenCalledWith(
+			expect.objectContaining({
+				metadata: expect.objectContaining({ thread_id: "legacy-2" }),
+			}),
+		);
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+		vi.unstubAllGlobals();
+	});
+	it("keeps remembered Aegra ids off legacy routes after metadata reload", async () => {
+		localStorage.setItem("aegra-thread:remembered", "1");
+		const fetchMock = vi.fn().mockRejectedValue(new Error("offline"));
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChat());
+		act(() => result.current.setMetadata({ thread_id: "remembered" }));
+		await act(async () => {
+			await result.current.handleSubmit("again");
+		});
+		expect(fetchMock.mock.calls[0][0]).toBe(
+			"/api/aegra/threads/remembered/runs/stream",
+		);
+		expect(mockInitiateStream).not.toHaveBeenCalled();
+		expect(streamThread).not.toHaveBeenCalled();
+		vi.unstubAllGlobals();
+	});
+	it.each([false, true])(
+		"never falls back on failure (existing Aegra=%s)",
+		async (existing) => {
+			vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+			const { result } = renderHook(() => useChat());
+			act(() => {
+				result.current.clearMessages();
+				if (existing)
+					result.current.setMetadata({
+						thread_id: "aegra-1",
+						stream_owner: "aegra",
+					});
+			});
+			await act(async () => {
+				await result.current.handleSubmit("hello");
+			});
+			expect(result.current.runError).toMatchObject({
+				message: "offline",
+				recoverable: false,
+			});
+			expect(mockInitiateStream).not.toHaveBeenCalled();
+			expect(streamThread).not.toHaveBeenCalled();
+			vi.unstubAllGlobals();
+		},
+	);
+	it.each([
+		{ public: true },
+		{ prompt: "custom" },
+		{ mcp: { server: {} } },
+		{ a2a: { agent: {} } },
+		{ subagents: [{}] },
+	])(
+		"rejects unsupported configuration %j without fallback",
+		async (config) => {
+			Object.assign(mockAgent, config);
+			const fetchMock = vi.fn();
+			vi.stubGlobal("fetch", fetchMock);
+			const { result } = renderHook(() => useChat());
+			act(() => result.current.clearMessages());
+			await act(async () => {
+				await result.current.handleSubmit("hello");
+			});
+			expect(result.current.runError?.message).toMatch(/does not support/);
+			expect(toast.error).toHaveBeenCalledWith(
+				result.current.runError?.message,
+			);
+			expect(result.current.query).toBe("hello");
+			expect(fetchMock).not.toHaveBeenCalled();
+			expect(mockInitiateStream).not.toHaveBeenCalled();
+			expect(streamThread).not.toHaveBeenCalled();
+			vi.unstubAllGlobals();
+		},
+	);
+	it.each(["http", "native"])(
+		"retains created ownership on run %s failure and permits Orchestra tools",
+		async (failure) => {
+			Object.assign(mockAgent, { tools: ["get_weather"] });
+			const fetchMock = vi
+				.fn()
+				.mockResolvedValueOnce(
+					new Response(JSON.stringify({ thread_id: "aegra-1" })),
+				)
+				.mockImplementation(async () =>
+					failure === "http"
+						? new Response("denied", { status: 403 })
+						: new Response('event: error\ndata: {"message":"denied"}\n\n'),
+				);
+			vi.stubGlobal("fetch", fetchMock);
+			const { result } = renderHook(() => useChat());
+			act(() => result.current.clearMessages());
+			await act(async () => {
+				await result.current.handleSubmit("hello");
+			});
+			expect(result.current.metadata).toMatchObject({
+				thread_id: "aegra-1",
+				stream_owner: "aegra",
+			});
+			expect(result.current.runError?.recoverable).toBe(false);
+			expect(
+				JSON.parse(fetchMock.mock.calls[1][1].body).config.configurable.tools,
+			).toEqual(["get_weather"]);
+			await act(async () => {
+				await result.current.handleSubmit("retry");
+			});
+			expect(fetchMock).toHaveBeenCalledTimes(3);
+			expect(mockInitiateStream).not.toHaveBeenCalled();
+			expect(streamThread).not.toHaveBeenCalled();
+			vi.unstubAllGlobals();
+		},
+	);
+	it("does not treat passive legacy filesMap entries as attachments", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ thread_id: "passive" })),
+			)
+			.mockResolvedValueOnce(new Response("event: end\ndata: {}\n\n"));
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChat());
+		act(() => {
+			result.current.clearMessages();
+			result.current.setFilesMap(
+				new Map([["passive", { "context.md": { content: ["context"] } }]]),
+			);
+		});
+		await act(async () => {
+			await result.current.handleSubmit("hello");
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(JSON.parse(fetchMock.mock.calls[1][1].body).input).toEqual({
+			messages: [{ role: "user", content: "hello" }],
+		});
+		expect(mockInitiateStream).not.toHaveBeenCalled();
+		expect(streamThread).not.toHaveBeenCalled();
+		vi.unstubAllGlobals();
+	});
+	it.each(["file", "image"])(
+		"visibly rejects explicit %s before creation or execution",
+		async (kind) => {
+			const fetchMock = vi.fn();
+			vi.stubGlobal("fetch", fetchMock);
+			const { result } = renderHook(() => useChat());
+			act(() => {
+				result.current.clearMessages();
+				if (kind === "file") result.current.setSubmissionFiles({ "a.txt": {} });
+			});
+			await act(async () => {
+				await result.current.handleSubmit(
+					"hello",
+					kind === "image" ? [new File(["image"], "image.png")] : [],
+				);
+			});
+			expect(result.current.runError?.message).toMatch(/files/i);
+			expect(toast.error).toHaveBeenCalledWith(
+				result.current.runError?.message,
+			);
+			expect(result.current.query).toBe("hello");
+			expect(fetchMock).not.toHaveBeenCalled();
+			expect(mockInitiateStream).not.toHaveBeenCalled();
+			expect(streamThread).not.toHaveBeenCalled();
+			vi.unstubAllGlobals();
+		},
+	);
+});
+
 describe("useChat submission files", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -181,6 +427,7 @@ describe("useChat submission files", () => {
 					],
 				]),
 			);
+			result.current.setMetadata({ thread_id: "legacy-1" });
 			result.current.setSubmissionFiles({
 				"/current.md": {
 					content: ["current"],
@@ -213,6 +460,7 @@ describe("useChat submission files", () => {
 		const { result } = renderHook(() => useChat());
 
 		act(() => {
+			result.current.setMetadata({ thread_id: "legacy-1" });
 			result.current.setFilesMap(
 				new Map([
 					[

@@ -17,6 +17,61 @@ import {
 } from "@/lib/utils/streamSource";
 import { isDistributedResponse } from "@/lib/entities/stream";
 
+export function isAegraThread(threadId?: string): boolean {
+	return Boolean(
+		threadId && localStorage.getItem(`aegra-thread:${threadId}`) === "1",
+	);
+}
+
+export async function createAegraThread(signal: AbortSignal): Promise<string> {
+	const response = await fetch("/api/aegra/threads", {
+		method: "POST",
+		headers: aegraHeaders(),
+		body: "{}",
+		signal,
+	});
+	if (!response.ok)
+		throw new Error(`Aegra thread creation failed (${response.status})`);
+	const thread = await response.json();
+	if (typeof thread.thread_id !== "string" || !thread.thread_id)
+		throw new Error("Missing Aegra thread id");
+	localStorage.setItem(`aegra-thread:${thread.thread_id}`, "1");
+	return thread.thread_id;
+}
+
+function aegraHeaders() {
+	const token = getAuthToken();
+	if (!token) throw new Error("Authentication required");
+	return {
+		"Content-Type": "application/json",
+		Authorization: `Bearer ${token}`,
+		Accept: "text/event-stream",
+	};
+}
+
+export async function streamAegraThread(
+	threadId: string,
+	content: string,
+	model: string,
+	tools: string[],
+	signal: AbortSignal,
+) {
+	return fetch(
+		`/api/aegra/threads/${encodeURIComponent(threadId)}/runs/stream`,
+		{
+			method: "POST",
+			headers: aegraHeaders(),
+			signal,
+			body: JSON.stringify({
+				assistant_id: "orchestra",
+				input: { messages: [{ role: "user", content }] },
+				config: { configurable: { model, tools } },
+				stream_mode: ["messages", "updates", "values"],
+			}),
+		},
+	);
+}
+
 const SYSTEM_PROMPT = `GOAL:
 Generate a system prompt for an AI Agent.
 
@@ -229,6 +284,12 @@ export const searchThreads = async (
 	limit: number = 20,
 	offset: number = 0,
 ) => {
+	if (isAegraThread(filter.thread_id)) {
+		if (action === "list_checkpoints") return [];
+		throw new Error(
+			"Aegra history is not available through Orchestra checkpoints",
+		);
+	}
 	let payload;
 	if (action === "list_threads") {
 		payload = {
