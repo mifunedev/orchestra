@@ -108,8 +108,8 @@
         "Tests exercise missing and revoked API tokens as well as valid JWTs against the adapter. The current Orchestra routes continue to pass their auth tests."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor accepted only the exercised disposable two-user authorization proof after reviewing worker 1ab8974a and integrating it as 7b34b30a. The first uncommitted attempt failed: Aegra 0.10.7 passes a COPY to threads.create_run and persists original client metadata; a handler mutation did not change run metadata. The accepted handler instead rejects forged metadata.owner with 403, also rejects forged assistant/thread updates, and checks successful runs use Aegra's persisted verified user_id. A global fallback denies unhandled actions; specific assistant, thread/create_run, and Store handlers scope tested actions to the verified identity. Integrated standalone Aegra 0.10.7 disposable ASGI test exited 0: 1 passed, 5 warnings in 10.01s. It tested two persisted users via Orchestra's separate HTTP service, own assistant/thread/run/Store access, cross-user search/read/stream/cancel/update/delete denial or filtered empty results, Store namespace forgery, missing/revoked keys and JWTs. Integrated Orchestra auth regressions exited 0: 29 passed, 5 warnings; dummy operator URL refusal exited 4; full Ruff, compileall, and diff check passed. No labeled Testcontainer or owned tmux socket remained. Tests do not cover every Aegra route, full network stream, upstream fixes, indexed Store, downgrade, production isolation or cutover. No push or CI result; PR stays draft.",
       "dependsOn": [
         "US-004"
       ],
