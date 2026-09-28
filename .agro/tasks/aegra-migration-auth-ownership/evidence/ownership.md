@@ -1,6 +1,6 @@
 # Candidate data ownership map
 
-This map describes code-defined persistence on `development` at `62a7b714`, not live row counts or a completed migration. The single-database schema gate failed. Every Aegra target below remains a **candidate**. The operator must not remove any table, namespace, queue, or object on this evidence alone.
+This map describes code-defined persistence on `development` at `62a7b714`, not live row counts or a completed migration. A prior `aegra, public` gate failed. The later opt-in tests exercised an `aegra`-only upgrade and runtime in one disposable database. They proved a schema-scoped archive/restore for Aegra revision, checkpoint, and non-indexed Store rows without changing the tested `public` rows, relations, indexes, extensions, or ACL snapshots. Every field mapping below remains **unverified**. Every Aegra target remains a **candidate**. The operator must not remove any table, namespace, queue, or object on this evidence alone.
 
 | Data | Current owner and path | Candidate owner | Field mapping / retirement gate |
 |---|---|---|---|
@@ -19,7 +19,7 @@ This map describes code-defined persistence on `development` at `62a7b714`, not 
 
 ## Later cutover sequence
 
-1. Pass a fresh single-database schema and runtime proof without any Aegra role reaching `public`.
+1. Use the exercised narrow pilot boundary: one database, an `aegra`-only role, Aegra upgrade, startup precheck, ORM, checkpoint, and non-indexed Store. The disposable `aegra`-only archive/restore restored revision, checkpoint, and Store rows. The tested `public` snapshots stayed unchanged. Do not run Aegra Alembic downgrade or Aegra indexed Store. Orchestra's indexed Store stays in `public`. This proof does not cover auth or production rollback.
 2. Define and test field-level mappings, including public assistants, referenced files, history, and error states. Count existing records and test reversibility on a disposable snapshot.
 3. Backfill eligible data while Orchestra remains authoritative. Compare record counts, owner IDs, reads, and replay results.
 4. Switch one read/write surface only after parity and rollback tests. Keep a known-good source until read-switch validation passes.

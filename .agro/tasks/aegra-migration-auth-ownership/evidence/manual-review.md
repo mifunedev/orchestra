@@ -1,4 +1,4 @@
-# Manual review: single-database gate evidence
+# Manual review: single-database pilot evidence
 
 ## Scope
 
@@ -95,12 +95,36 @@ ALTER TABLE runs ALTER COLUMN run_id SET DEFAULT public.uuid_generate_v4()::text
 
 The worker did not execute this downgrade; the test observed no public access from that code. The source-defined path prevents a blanket claim that every Aegra migration operation avoids `public`. LangGraph's optional indexed store also contains `CREATE EXTENSION vector`; the fixture has `vector` installed in `public` by its admin before the Aegra role connects. The worker did not test indexing or call an external embedding API. The worker did not verify what indexing requires from the isolated role.
 
-The worker committed its bounded runtime test as `57717b6f` on the isolated branch but did not push or integrate it into PR #1017. No US-002 acceptance or auth implementation followed. Pytest's session-finish cleanup stopped its disposable testcontainer; an image-wide Docker check found only the pre-existing `pgvector` container, which the worker did not delete.
+The worker committed this first runtime test as `57717b6f` on an isolated branch. This test did not exercise archive/restore. Pytest's session-finish cleanup stopped its disposable testcontainer.
+
+## Integrated narrow pilot and disposable restore
+
+The operator approved one database with separate `public` and `aegra` schemas. The approved pilot covers Aegra 0.10.7 upgrade, startup revision precheck, ORM, checkpoint, and non-indexed Store. Aegra uses an `aegra`-only search path. Orchestra keeps its indexed Store in `public`. Do not invoke Aegra Alembic downgrade or Aegra indexed Store. This boundary does not prove production rollback or all Aegra paths.
+
+The advisor integrated worker commit `030d3f72` as `1a2ebe4a`. The integrated opt-in runtime test ran from the task branch's `backend/` directory in a separate pytest process:
+
+```bash
+env -u TEST_POSTGRES_CONNECTION_STRING AEGRA_OWNERSHIP_LIVE=1 uv run --no-sync pytest -q -s tests/integration/test_aegra_schema_runtime.py
+```
+
+The command exited 0: `1 passed, 5 warnings in 3.96s`. The disposable test used `pgvector/pgvector:pg17` and database `test`. The Aegra role had `search_path = aegra`, no `public` fallback, and no `SELECT` on `public.users` or `public.alembic_version`. The upgrade resolved `aegra.alembic_version` to `a3f7c1d9e2b4`; Orchestra's `public.alembic_version` remained `0001`. The test set `RUN_MIGRATIONS_ON_STARTUP=false`. The startup revision precheck, ORM, checkpoint pool, and non-indexed Store pool reported effective schemas `['pg_catalog', 'aegra']`. Checkpoint and Store round trips passed.
+
+The disposable restore test ran in this order:
+
+1. The test captured `public` revision and user rows, relations, indexes, extensions, and namespace and relation ACLs after fixture setup.
+2. Inside the testcontainer, `pg_dump -n aegra -Fc` wrote a custom archive. The test checked the archive TOC for `aegra`-only entries and required revision, checkpoint, and Store data. The dependency preflight refused cross-schema dependents. It excepted only verified internal `pg_toast` tables owned by the Aegra role and attached to `aegra` relations.
+3. The Aegra role changed only its revision row and deleted its checkpoint and Store proof rows. The test checked that the `public` snapshot still matched.
+4. Inside the testcontainer, `pg_restore --schema=aegra --clean --if-exists` restored the archive with exit-on-error. The test compared the restored Aegra revision, checkpoint rows, and Store rows to their saved values. It checked the `public` snapshot after archive, mutation, and restore. All comparisons passed.
+5. The test deleted the archive inside the disposable testcontainer. The session fixture stopped the testcontainer. A later Docker query with the testcontainers label returned no rows.
+
+The ownership opt-in test passed in a separate pytest process. A combined invocation of ownership and runtime tests in ONE pytest process failed at `CREATE SCHEMA aegra`: the session-scoped conftest reused one disposable database. Run the probes in separate pytest processes as the PRD requires. A negative preflight with a dummy operator URL exited 4 before migrations. Targeted Ruff and `compileall` checks passed. Neither probe tested auth or production rollback.
+
+Docker events showed removal of our labeled testcontainer. During the same period, Docker events recorded the stop, rename, and removal of an unlabeled pre-existing `pgvector` container named `postgres`. Docker events also recorded creation of an unlabeled container using a different image with a `127.0.0.1:5432` binding. The actor and cause of those unlabeled container changes are unknown. Do not claim the pre-existing container stayed untouched or attribute its replacement to this test. Do not modify the new container as part of this pilot.
 
 ## CI
 
-The initial plan-only commit `1cedf6b6` passed backend and frontend checks in [run 36350139276](https://github.com/mifunedev/orchestra/actions/runs/36350139276); CI skipped E2E. The previous blocker proof ran only in an uncommitted worker worktree. [Run 36350893298](https://github.com/mifunedev/orchestra/actions/runs/36350893298) passed for the evidence-only commit `aef80527`. The migration commit `221affc4` and runtime worker commit `57717b6f` have no final CI result on PR #1017 yet.
+The initial plan-only commit `1cedf6b6` passed backend and frontend checks in [run 36350139276](https://github.com/mifunedev/orchestra/actions/runs/36350139276); CI skipped E2E. The previous blocker proof ran only in an uncommitted worker worktree. [Run 36350893298](https://github.com/mifunedev/orchestra/actions/runs/36350893298) passed for the evidence-only commit `aef80527`. The migration commit `221affc4` and runtime worker commit `57717b6f` had no final CI result at the time of the earlier review. This document records no CI verdict for integrated commit `1a2ebe4a`.
 
-## Decision needed
+## Next decision
 
-Stop the strict no-`public` proof: Aegra 0.10.7 contains a downgrade that references `public`, and optional indexing remains unverified. The exercised upgrade and non-indexed runtime paths passed, but they cannot certify all migration paths. Request an operator decision before any downgrade, indexing, auth work, second database, or production cutover. Keep PR #1017 draft.
+The operator approved only the narrow upgrade and non-indexed pilot with disposable schema restore. Aegra downgrade, Aegra indexed Store, auth, a second database, and production cutover remain outside this proof. Keep PR #1017 draft pending separate review. Do not treat the disposable restore as production rollback evidence.
