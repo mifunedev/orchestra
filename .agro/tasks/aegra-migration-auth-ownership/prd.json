@@ -60,8 +60,8 @@
         "The existing API-token, auth-session, and public-assistant tests pass. The API-token lifecycle test runs without a skip."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: e40cf7b5 extracts resolve_identity(headers, bearer_token, store, session_factory) and keeps verify_credentials as a thin FastAPI wrapper. Integrated JWT/API-token/public-assistant integration tests pass. 2 executed: unit tests reject missing, malformed, expired, missing-expiry, mismatched-ID, revoked, and deleted-user credentials with 401; verified identity uses persisted user ID. 3 executed: async with session_factory scopes lookup and unit SSE response probe asserts session closes before streaming. 4 executed: API token last_used_at update occurs after session closure; failure logs do not include raw bearer/API credentials; unit redaction and integration lifecycle checks pass. 5 executed: env -u TEST_POSTGRES_CONNECTION_STRING uv run --no-sync pytest -q tests/unit/utils/test_identity_resolver.py tests/unit/utils/test_auth_dependency_scope.py tests/integration/test_api_tokens.py tests/integration/test_public_assistants.py on integrated task branch exited 0: 29 passed, 5 warnings, 0 skipped. Targeted Ruff, compileall and git diff --check exited 0. Disposable Testcontainers-label query returned no rows. Local only; no Aegra adapter, production wiring, push, or CI result.",
       "dependsOn": [
         "US-002"
       ],
