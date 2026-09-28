@@ -1,0 +1,14 @@
+# Aegra v1 migration browser review
+
+## US-002: pre-creation engine selection
+
+- Date: 2026-09-28. Branch: `feat/1021-aegra-v1-migration` at `f53fc2a46d70e9f7e7c59cafcf43a4f4b5e6cbcf`.
+- The isolated frontend served port `5174`. Its temporary Vite config sent `/api/v1` to the task Aegra service on `2027` and `/api` to the existing legacy backend on `8000`.
+- The task Aegra service used only database `aegra_v1_review_5160189ff5fc8c8e3c678b35499fdc97` in the existing `postgres` container. Its receipt is `/tmp/orchestra-aegra-v1-review.json`. Do not remove the service or database before the US-003 reload review.
+- Preflight: `agent-browser 0.8.5` opened `about:blank` and returned a snapshot. The browser opened `http://127.0.0.1:5174/chat` in isolated session `v1-review`. The reviewer transferred an existing local account login between isolated browser origins without printing its token.
+- Proxy checks: `POST http://127.0.0.1:5174/api/v1/threads` without a token returned `401`. `GET http://127.0.0.1:5174/api/auth/user` without a token returned `401`. The operator app on `5173`, legacy backend on `8000`, and prior Aegra service on `2026` stayed online.
+- Supported journey: A new text chat requested `math_calculator` for `9 * 9`. Aegra created thread `060a0794-9b06-4f61-803a-d3bab4a67528`. The browser showed the tool call and result `9 * 9 = 81`, plus a streamed reply. The second turn recalled the same result. The Aegra service logged a `200` stream on the same thread. See [v1 tool and second turn](us002-v1-tool.png).
+- Unsupported journey: A new chat attached a valid 32×32 red PNG through the UI upload control. The browser loaded its preview and displayed `image_1 0.10kB`. Legacy v0 created thread `9b729cd8-8fe0-4259-b8c7-cb116cc0c6fa` and answered `Red.` The text-only second turn stayed at `/thread/9b729cd8-8fe0-4259-b8c7-cb116cc0c6fa` and answered `Red`. See [v0 image and reply](us002-v0-image.png).
+- Ownership probe: The authorized account received `200` for v1 state at `/api/v1/threads/060a0794-9b06-4f61-803a-d3bab4a67528/state` and `404` for that identifier on the legacy `/api/threads` route. The same account received `200` for `/api/threads/9b729cd8-8fe0-4259-b8c7-cb116cc0c6fa` and `404` for that identifier at the v1 state route.
+- One invalid 1×1 PNG caused a legacy model error before the valid-image run. The reviewer removed only its task-created legacy thread `84641b57-0b14-4cbd-b137-a4147d70ce92` through the authenticated `/api/threads/{id}` delete route; the route returned `204`.
+- Current limit: The v1 thread does not appear in the sidebar and its URL remains `/chat`. US-003 owns durable discovery and reload routing. A legacy thread showed duplicate message cards after navigation; inspect this during US-004. Keep both successful review threads until the reload journey is complete.

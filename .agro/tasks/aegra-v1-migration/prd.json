@@ -41,8 +41,9 @@
       ],
       "description": "As a chat user, I want supported interactions on v1 and unsupported ones on v0 so that legacy features remain available.",
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "f53fc2a46d70e9f7e7c59cafcf43a4f4b5e6cbcf",
+      "notes": "1 executed: worker reported 13 red tests before implementation; advisor independently reran integrated UI suite, 4 files and 47 tests passed, with frontend build exit 0. 2 and 3 executed: isolated browser on 5174 used v1 service 2027 for authorized math_calculator (9 * 9 = 81) and legacy 8000 for an attached valid PNG (reply Red); upload preview and legacy reply verified input. 4 and 5 executed: browser second turns stayed on their engine, v1 and v0 ownership probes returned 200 on owning route and 404 on opposite route; focused tests cover failed/interrupted v1 without v0 retry. 6 executed: agent-browser 0.8.5 preflight and two browser journey screenshots in evidence/manual-review.md. Existing operator services untouched. No generated tracked changes after build. Known v1 discovery gap remains US-003.",
       "dependsOn": [
         "US-001"
       ],
