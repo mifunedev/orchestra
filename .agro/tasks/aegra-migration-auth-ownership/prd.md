@@ -46,10 +46,10 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] Aegra 0.10.7 loads the adapter through its supported `auth.path` setting in an opt-in configuration. The production Orchestra app does not mount Aegra routes.
+- [ ] Aegra 0.10.7 loads the adapter through its supported `auth.path` setting in an opt-in configuration. A guarded opt-in launcher checks that path before it starts Aegra; do not invoke raw `aegra serve`, which falls back to shared `anonymous` without auth. The production Orchestra app does not mount Aegra routes.
 - [ ] The adapter maps a verified Orchestra user ID to Aegra `identity`. It ignores client-supplied user and tenant fields.
 - [ ] Missing, invalid, expired, or revoked credentials return 401 on protected Aegra routes. A missing auth configuration prevents the isolated service from starting; it never falls back to Aegra's shared anonymous identity.
-- [ ] The adapter uses a separate, least-privilege role in the same database for `public` identity and token lookup. The Aegra migration role cannot create, alter, or drop `public` tables.
+- [ ] The adapter uses a separate, least-privilege role in the same database for `public` identity and API-token Store lookup/update. The Aegra migration role cannot create, alter, or drop `public` tables. The test denies unrelated public DDL and Aegra-schema access to the auth role.
 - [ ] API token lookup and resource streaming do not pin a pooled Orchestra connection for the duration of a run.
 
 ### US-005: Deny cross-user Aegra resources
@@ -112,7 +112,7 @@ Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a sh
 | Surface | Change Type | Description |
 |---|---|---|
 | Orchestra HTTP routes | Preserve | Keep existing JWT, API-token, guest, and stream behavior. |
-| Aegra opt-in sidecar | Add | Use the same database with a dedicated schema and role. Load Orchestra auth through `auth.path`. |
+| Aegra opt-in sidecar | Add | Use the same database with a dedicated schema and role. A guarded opt-in launcher requires `auth.path` before Aegra starts. |
 | Aegra resource hooks | Add | Deny access outside the verified identity. |
 | Data ownership map | Add | Name replacement candidates, retained data, and retirement gates. |
 | Production deployment | None | Do not enable the sidecar or change Compose in this task. |
@@ -135,7 +135,8 @@ Keep schema isolation unverified until the disposable upgrade, startup precheck,
 | `backend/tests/integration/test_api_tokens.py` | Create, use, revoke, and `last_used_at`. | Orchestra route parity. |
 | `backend/tests/unit/utils/test_auth_dependency_scope.py` | No session held across streaming. | Pool safety. |
 | `backend/tests/integration/test_public_assistants.py` | Guest access stays on Orchestra routes. | Existing public-assistant behavior. |
-| `backend/tests/integration/test_aegra_auth_adapter.py` (new) | Startup guard, two-user thread/run/assistant/store authorization. | Aegra auth boundary. |
+| `backend/tests/integration/test_aegra_auth_adapter.py` (new) | Guarded startup, credential rejection, restricted same-database auth role, and later two-user resource authorization. | Aegra auth boundary. |
+| `backend/tests/fixtures/aegra_auth.json` and `aegra_auth_graph.py` (new) | Minimal opt-in graph and `auth.path` configuration. | Isolated Agent Protocol probe. |
 | `.agro/tasks/aegra-migration-auth-ownership/evidence/ownership.md` (new) | Current and candidate owners, mapping gaps, and retirement gates. | Replacement sequence. |
 | `.agro/tasks/aegra-migration-auth-ownership/evidence/manual-review.md` (new) | Live commands, failures, and cleanup. | Reproducible decision evidence. |
 
