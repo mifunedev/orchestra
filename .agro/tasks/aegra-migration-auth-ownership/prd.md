@@ -47,10 +47,10 @@ Status: DRAFT
 **Acceptance Criteria:**
 
 - [ ] Aegra 0.10.7 loads the adapter through its supported `auth.path` setting in an opt-in configuration. A guarded opt-in launcher checks that path before it starts Aegra; do not invoke raw `aegra serve`, which falls back to shared `anonymous` without auth. The production Orchestra app does not mount Aegra routes.
-- [ ] The adapter maps a verified Orchestra user ID to Aegra `identity`. It ignores client-supplied user and tenant fields.
-- [ ] Missing, invalid, expired, or revoked credentials return 401 on protected Aegra routes. A missing auth configuration prevents the isolated service from starting; it never falls back to Aegra's shared anonymous identity.
-- [ ] The adapter uses a separate, least-privilege role in the same database for `public` identity and API-token Store lookup/update. The Aegra migration role cannot create, alter, or drop `public` tables. The test denies unrelated public DDL and Aegra-schema access to the auth role.
-- [ ] API token lookup and resource streaming do not pin a pooled Orchestra connection for the duration of a run.
+- [ ] The adapter forwards only the supplied Bearer token or `x-api-key` to Orchestra's existing `GET /api/auth/user` endpoint at a fixed internal URL. It maps the returned, persisted Orchestra user ID to Aegra `identity` and ignores client-supplied user and tenant fields.
+- [ ] Missing, invalid, expired, or revoked credentials return 401 on protected Aegra routes. A missing auth configuration prevents the isolated service from starting; it never falls back to Aegra's shared anonymous identity. An unavailable, redirected, malformed, or non-200 Orchestra auth response fails closed.
+- [ ] Aegra's migrator, ORM, checkpoint, and Store connections use the `aegra`-only role. The adapter receives no `public` database URL or role and opens no PostgreSQL connection to `public`. Orchestra's separate HTTP service owns user lookup and API-token Store updates in the same database. Stop if an Aegra-owned connection reaches `public` directly.
+- [ ] The adapter completes its HTTP credential lookup before resource streaming. Orchestra closes its own pooled lookup session before returning `/api/auth/user`; no raw credential reaches logs or an untrusted URL. API-token `last_used_at` and revocation behavior stay intact.
 
 ### US-005: Deny cross-user Aegra resources
 
@@ -87,7 +87,7 @@ Status: DRAFT
 
 ## Summary
 
-Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a shared database. PR #1015's fixture-only auth denied cross-user runs, but did not use Orchestra credentials. Current `backend/src/utils/migrations.py` can clear an unknown revision. Aegra reads an unqualified `alembic_version` table and runs bundled migrations on startup by default. Orchestra validates JWTs and API tokens through `backend/src/utils/auth.py`. This plan uses one PostgreSQL database with separate `public` and `aegra` migration schemas. The operator approved an upgrade-only, non-indexed Aegra pilot; the rollback gate uses a disposable `aegra`-schema backup/restore instead of Alembic downgrade. Aegra can own agent state after migration and parity tests; Orchestra keeps user and app-specific state where Aegra has no proven replacement. This bounded stage proves the single-database boundary and maps later replacements. The stage does not switch live data. The new task does not depend on merging or cherry-picking PR #1015.
+Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a shared database. PR #1015's fixture-only auth denied cross-user runs, but did not use Orchestra credentials. Current `backend/src/utils/migrations.py` can clear an unknown revision. Aegra reads an unqualified `alembic_version` table and runs bundled migrations on startup by default. Orchestra validates JWTs and API tokens through `backend/src/utils/auth.py` and exposes the protected user at `GET /api/auth/user`. This plan uses one PostgreSQL database with separate `public` and `aegra` migration schemas. Aegra obtains identity from that Orchestra HTTP endpoint, not from a direct connection to `public`. The operator approved an upgrade-only, non-indexed Aegra pilot; the rollback gate uses a disposable `aegra`-schema backup/restore instead of Alembic downgrade. Aegra can own agent state after migration and parity tests; Orchestra keeps user and app-specific state where Aegra has no proven replacement. This bounded stage proves the single-database boundary and maps later replacements. The stage does not switch live data. The new task does not depend on merging or cherry-picking PR #1015.
 
 ## Key Integration Points
 
@@ -96,6 +96,7 @@ Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a sh
 | `backend/migrations/env.py` | `run_migrations_online` | Current Orchestra revision ownership. |
 | `backend/src/utils/migrations.py` | `run_migrations`, `_stamp_head_with_clear` | Recovery hazard; never call the clear-and-stamp fallback on the shared database. |
 | `backend/src/utils/auth.py` | `verify_credentials`, `get_optional_user` | Existing credential policy and guest access. |
+| `backend/src/routes/v0/auth.py` | `read_user_details` | Existing protected user endpoint for Aegra identity lookup. |
 | `backend/src/repos/api_token_repo.py` | `get_by_hash_global`, `update_last_used` | Token lookup and usage metadata. |
 | `backend/src/services/db.py` | `AsyncSessionLocal`, `get_shared_store`, `close_shared_store` | Current session and store lifetimes. |
 | `backend/src/schemas/models/auth.py` | `User`, `ProtectedUser` | Canonical user ID and user record. |
@@ -111,7 +112,7 @@ Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a sh
 
 | Surface | Change Type | Description |
 |---|---|---|
-| Orchestra HTTP routes | Preserve | Keep existing JWT, API-token, guest, and stream behavior. |
+| Orchestra HTTP routes | Preserve | Reuse `GET /api/auth/user` for identity. Keep existing JWT, API-token, guest, and stream behavior. |
 | Aegra opt-in sidecar | Add | Use the same database with a dedicated schema and role. A guarded opt-in launcher requires `auth.path` before Aegra starts. |
 | Aegra resource hooks | Add | Deny access outside the verified identity. |
 | Data ownership map | Add | Name replacement candidates, retained data, and retirement gates. |
@@ -119,11 +120,11 @@ Draft PR #1015 found that Aegra 0.10.7 rejects Orchestra revision `0001` on a sh
 
 ## Storage
 
-Use ONE PostgreSQL database in the disposable fixture. Orchestra keeps `public.alembic_version`; Aegra must create `aegra.alembic_version`. Give Aegra a dedicated role with database-scoped `search_path = aegra`, without a `public` fallback. Give the auth adapter another constrained role for Orchestra users and API-token store data in `public`. Prove the token usage update without giving the Aegra migrator write access to `public`. Do not modify an operator database or reset revision history. Redis and MinIO are separate persistence surfaces; this plan does not add a second PostgreSQL database.
+Use ONE PostgreSQL database in the disposable fixture. Orchestra keeps `public.alembic_version`; Aegra must create `aegra.alembic_version`. Give Aegra a dedicated role with database-scoped `search_path = aegra`, without a `public` fallback. Do not give Aegra an auth database role or URL for `public`. Orchestra's separate HTTP service continues to access its user and API-token Store data in `public`. Prove the token usage update through `GET /api/auth/user` without giving Aegra direct write access to `public`. Do not modify an operator database or reset revision history. Redis and MinIO are separate persistence surfaces; this plan does not add a second PostgreSQL database.
 
 ## Architectural Decisions
 
-Keep schema isolation unverified until the disposable upgrade, startup precheck, ORM query, and checkpoint/non-indexed store round trip preserve the tested `public` baseline. Require an `aegra`-only backup/restore to preserve that baseline too. Do not run Alembic downgrade or indexed Store in this stage. The tagged downgrade references `public.uuid_generate_v4()`; the installed vector extension in `public` prevents an `aegra`-only indexed Store with the resolved LangGraph migrations. Aegra 0.10.7 has no verified version-table override. Set `RUN_MIGRATIONS_ON_STARTUP=false` for the opt-in sidecar and run an explicit Aegra upgrade with its restricted role. If a connection resolves to `public` or requires writes there, stop; do not create a second database as a fallback. Keep Orchestra's migration configuration unchanged. Map credentials to the persisted Orchestra user ID and use explicit Aegra authorization hooks. Preserve guest access only on Orchestra routes. Move eligible agent data in later tested steps; retire old storage only after backfill, parity, read-switch, and rollback proof.
+Keep schema isolation unverified until the disposable upgrade, startup precheck, ORM query, and checkpoint/non-indexed store round trip preserve the tested `public` baseline. Require an `aegra`-only backup/restore to preserve that baseline too. Do not run Alembic downgrade or indexed Store in this stage. The tagged downgrade references `public.uuid_generate_v4()`; the installed vector extension in `public` prevents an `aegra`-only indexed Store with the resolved LangGraph migrations. Aegra 0.10.7 has no verified version-table override. Set `RUN_MIGRATIONS_ON_STARTUP=false` for the opt-in sidecar and run an explicit Aegra upgrade with its restricted role. If an Aegra-owned database connection resolves to `public` or requires writes there, stop. Orchestra's own HTTP service may read users and update API-token usage in `public`. Do not create a second database as a fallback. Keep Orchestra's migration configuration unchanged. Map credentials to the persisted Orchestra user ID and use explicit Aegra authorization hooks. Preserve guest access only on Orchestra routes. Move eligible agent data in later tested steps; retire old storage only after backfill, parity, read-switch, and rollback proof.
 
 ## Test Plan (TDD)
 
@@ -135,8 +136,9 @@ Keep schema isolation unverified until the disposable upgrade, startup precheck,
 | `backend/tests/integration/test_api_tokens.py` | Create, use, revoke, and `last_used_at`. | Orchestra route parity. |
 | `backend/tests/unit/utils/test_auth_dependency_scope.py` | No session held across streaming. | Pool safety. |
 | `backend/tests/integration/test_public_assistants.py` | Guest access stays on Orchestra routes. | Existing public-assistant behavior. |
-| `backend/tests/integration/test_aegra_auth_adapter.py` (new) | Guarded startup, credential rejection, restricted same-database auth role, and later two-user resource authorization. | Aegra auth boundary. |
+| `backend/tests/integration/test_aegra_auth_adapter.py` (new) | Guarded startup, HTTP credential verification through a separate Orchestra service, denied Aegra access to `public`, and later two-user resource authorization. | Aegra auth boundary. |
 | `backend/tests/fixtures/aegra_auth.json` and `aegra_auth_graph.py` (new) | Minimal opt-in graph and `auth.path` configuration. | Isolated Agent Protocol probe. |
+| `backend/tests/fixtures/orchestra_auth_server.py` (new) | Serve the existing Orchestra auth route in a separate disposable process. | Prove the HTTP boundary without an Aegra public DB connection. |
 | `.agro/tasks/aegra-migration-auth-ownership/evidence/ownership.md` (new) | Current and candidate owners, mapping gaps, and retirement gates. | Replacement sequence. |
 | `.agro/tasks/aegra-migration-auth-ownership/evidence/manual-review.md` (new) | Live commands, failures, and cleanup. | Reproducible decision evidence. |
 
@@ -144,7 +146,7 @@ Run `uv run pytest tests/unit/utils/test_identity_resolver.py tests/unit/utils/t
 
 ## Design Principles
 
-Make ownership explicit through different schemas and roles inside one database. Use one credential resolver for both credential types. Fail closed when auth configuration or a resource hook is absent. Keep all test resources disposable and all production routes unchanged. Treat a failed safety assertion as a blocker, not as permission to stamp or clear a revision.
+Make ownership explicit through different schemas and roles inside one database. Keep Orchestra's existing HTTP credential resolver as the sole authority for both credential types. Do not grant Aegra access to `public`. Fail closed when auth configuration or a resource hook is absent. Keep all test resources disposable and all production routes unchanged. Treat a failed safety assertion as a blocker, not as permission to stamp or clear a revision.
 
 ## Out of Scope
 
@@ -153,7 +155,7 @@ Do not merge or modify PR #1015. Do not add a second PostgreSQL database. Do not
 ## Open Questions
 
 - The tagged [Aegra auth registry](https://github.com/aegra/aegra/blob/v0.10.7/libs/aegra-api/src/aegra_api/core/auth_registry.py) maps tested resource actions to `assistants`, `threads`, and `store`; there is no `runs` hook. Missing authorization handlers allow access by default. Register the tested actions and default-deny other actions. Tagged middleware falls back to shared `anonymous` when auth configuration is absent or invalid; guard startup before serving requests.
-- Which minimum store grants permit token lookup and `last_used_at` updates without Aegra migration access to `public`? Prove the grants in the disposable database.
+- Does the fixed internal Orchestra endpoint return a protected user ID for valid JWTs and API tokens, deny missing or revoked credentials, and update API-token usage? Prove those outcomes in the disposable database. Do not give the Aegra process an Orchestra database URL.
 - Do the exercised Aegra 0.10.7 ORM, Alembic upgrade, checkpoint, and non-indexed store operations honor the dedicated role's `search_path`? Do not infer indexed Store or downgrade support from this proof; defer those paths to a separate decision.
 
 ## Acceptance Criteria

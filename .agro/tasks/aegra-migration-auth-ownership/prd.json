@@ -77,10 +77,10 @@
       "description": "As an operator, I want Aegra to accept Orchestra identities so that a test run does not create a second user authority.",
       "acceptanceCriteria": [
         "Aegra 0.10.7 loads the adapter through its supported auth.path in an opt-in configuration. A guarded opt-in launcher requires that path before starting Aegra; raw aegra serve falls back to shared anonymous without auth. The production Orchestra app does not mount Aegra routes.",
-        "The adapter maps a verified Orchestra user ID to Aegra `identity`. It ignores client-supplied user and tenant fields.",
-        "Missing, invalid, expired, or revoked credentials return 401 on protected Aegra routes. A missing auth configuration prevents the isolated service from starting; it never falls back to Aegra's shared anonymous identity.",
-        "The adapter uses a separate, least-privilege role in the same database for public identity and API-token Store lookup/update. The Aegra migration role cannot create, alter, or drop public tables. The test denies unrelated public DDL and aegra-schema access to the auth role.",
-        "API token lookup and resource streaming do not pin a pooled Orchestra connection for the duration of a run."
+        "The adapter forwards only the supplied Bearer token or x-api-key to Orchestra's existing GET /api/auth/user at a fixed internal URL. It maps the returned persisted user ID to Aegra identity and ignores client-supplied user and tenant fields.",
+        "Missing, invalid, expired, or revoked credentials return 401 on protected Aegra routes. A missing auth configuration prevents the isolated service from starting. An unavailable, redirected, malformed, or non-200 Orchestra auth response fails closed.",
+        "Aegra's migrator, ORM, checkpoint, and Store connections use the aegra-only role. The adapter receives no public database URL or role and opens no PostgreSQL connection to public. Orchestra's separate HTTP service owns user lookup and API-token Store updates in the same database. Stop if an Aegra-owned connection reaches public directly.",
+        "The adapter completes its HTTP credential lookup before resource streaming. Orchestra closes its own pooled lookup session before returning /api/auth/user; no raw credential reaches logs or an untrusted URL. API-token last_used_at and revocation behavior stay intact."
       ],
       "priority": 4,
       "passes": false,
@@ -93,7 +93,8 @@
         "backend/src/integrations/aegra/launch.py",
         "backend/tests/integration/test_aegra_auth_adapter.py",
         "backend/tests/fixtures/aegra_auth.json",
-        "backend/tests/fixtures/aegra_auth_graph.py"
+        "backend/tests/fixtures/aegra_auth_graph.py",
+        "backend/tests/fixtures/orchestra_auth_server.py"
       ]
     },
     {
