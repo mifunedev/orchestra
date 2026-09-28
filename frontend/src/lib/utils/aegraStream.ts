@@ -82,8 +82,16 @@ export async function consumeAegraStream(
 			}
 			if (event === "updates") {
 				finalValues = false;
-				for (const update of Object.values(value) as any[]) {
-					for (const message of update?.messages ?? []) upsert(message, false);
+				for (const update of Object.values(value ?? {}) as any[]) {
+					const messages = update?.messages;
+					if (Array.isArray(messages)) {
+						for (const message of messages) upsert(message, false);
+					} else if (Array.isArray(messages?.value)) {
+						state = {
+							...state,
+							messages: messages.value.map(normalizeMessage),
+						};
+					}
 				}
 			}
 			if (event === "values" && Array.isArray(value.messages)) {

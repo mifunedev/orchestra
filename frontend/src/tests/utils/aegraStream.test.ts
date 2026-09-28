@@ -65,6 +65,84 @@ describe("native Aegra stream", () => {
 			states.some((s) => s.messages.some((m: any) => m.content === "Sunny ")),
 		).toBe(true);
 	});
+	it("replaces messages from native Overwrite updates and preserves subsequent tool events", async () => {
+		const human = { id: "user", type: "human", content: "Weather?" };
+		const call = {
+			id: "call-message",
+			type: "ai",
+			content: "",
+			tool_calls: [{ id: "call", name: "get_weather", args: {} }],
+		};
+		const tool = {
+			id: "tool",
+			type: "tool",
+			tool_call_id: "call",
+			content: "Sunny",
+		};
+		const reply = { id: "reply", type: "ai", content: "It is sunny." };
+		const states: any[] = [];
+		await consumeAegraStream(
+			response([
+				[
+					"values",
+					{ messages: [{ id: "stale", type: "human", content: "old" }] },
+				],
+				[
+					"updates",
+					{
+						"PatchToolCallsMiddleware.before_agent": {
+							messages: { value: [human] },
+						},
+					},
+				],
+				["updates", { agent: { messages: [call] } }],
+				["updates", { tools: { messages: [tool] } }],
+				["messages", [reply, {}]],
+				["end", {}],
+			]),
+			(state) => states.push(state),
+		);
+		expect(states[1].messages).toEqual([human]);
+		expect(states.at(-1)).toMatchObject({
+			messages: [human, call, tool, reply],
+			done: true,
+		});
+		expect(
+			formatMessages(states.at(-1).messages).map((m: any) => m.role),
+		).toEqual(["user", "tool_input", "tool", "assistant"]);
+	});
+	it.each([
+		null,
+		{},
+		{ value: null },
+		{ value: "not messages" },
+		"ignored",
+		42,
+	])(
+		"ignores non-message update payload %j without losing tool results",
+		async (messages) => {
+			const tool = {
+				id: "tool",
+				type: "tool",
+				tool_call_id: "call",
+				content: "Sunny",
+			};
+			let latest: any;
+			await consumeAegraStream(
+				response([
+					[
+						"updates",
+						{ middleware: { messages }, tools: { messages: [tool] } },
+					],
+					["end", {}],
+				]),
+				(state) => {
+					latest = state;
+				},
+			);
+			expect(latest).toMatchObject({ messages: [tool], done: true });
+		},
+	);
 	it("normalizes native chunk types and accumulates fragmented tool arguments", async () => {
 		let latest: any;
 		await consumeAegraStream(
