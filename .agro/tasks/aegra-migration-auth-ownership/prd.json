@@ -149,8 +149,8 @@
         "Keep PR #1015 draft and unmerged. If a new PR is authorized, base it on `development`; link the transcript, ownership map, risks, and the next decision without merging it."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor accepted the redacted manual transcript from worker fd0ca67f/8a7c5945, integrated as 58a139bf/542145b8. The worker's first fresh-venv command exited 2 before pytest because pytest was missing; after uv sync --group dev it reran ownership, runtime/restore, auth/two-user and 29 Orchestra auth tests in four SEPARATE processes, all exit 0. Advisor independently repeated those four on the integrated branch: ownership 1 passed/5 warnings (0.90s), runtime/restore 1 passed/5 warnings (4.01s), auth/two-user 1 passed/5 warnings (10.62s), regressions 29 passed/5 warnings (1.40s), all exit 0. STE, JSON, Ruff and diff checks passed. Docker Testcontainers-label query and owned aegra-auth tmux socket search returned no rows. The transcript distinguishes the initial uncommitted failed run metadata mutation from accepted fail-closed forged-owner rejection. No direct public Aegra access observed in exercised paths; untested routes, indexed Store, downgrade, full network stream, and production rollback/isolation remain unverified. No operator database, production wiring, data cutover, push or CI result. PR #1017 remains draft/unmerged.",
       "dependsOn": [
         "US-005",
         "US-006"
