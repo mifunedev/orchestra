@@ -4,8 +4,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA, VitePWAOptions } from "vite-plugin-pwa";
 
-const appVersion = process.env.VITE_APP_VERSION ||
-	JSON.parse(readFileSync(path.resolve(__dirname, "package.json"), "utf8")).version;
+const appVersion =
+	process.env.VITE_APP_VERSION ||
+	JSON.parse(readFileSync(path.resolve(__dirname, "package.json"), "utf8"))
+		.version;
 const proxyTarget = process.env.VITE_PROXY_TARGET || "http://localhost:8000";
 
 const MANIFEST: Partial<VitePWAOptions> = {
@@ -118,6 +120,10 @@ export default defineConfig({
 	server: {
 		allowedHosts: ["orchestra.mifune.dev", "frontend.mifune.dev"],
 		proxy: {
+			"/api/aegra": {
+				target: "http://127.0.0.1:2026",
+				changeOrigin: true,
+			},
 			"/api": {
 				target: proxyTarget,
 				changeOrigin: true,

@@ -7,6 +7,12 @@ import {
 } from "@/lib/utils/format";
 import { streamThread, initiateStream } from "@/lib/services";
 import apiClient from "@/lib/utils/apiClient";
+import {
+	createAegraThread,
+	streamAegraThread,
+	isAegraThread,
+} from "@/lib/services/threadService";
+import { consumeAegraStream } from "@/lib/utils/aegraStream";
 import { getAuthToken } from "@/lib/utils/auth";
 import { useAgentContext } from "@/context/AgentContext";
 import { StreamMessageHandler } from "@/lib/utils/message";
@@ -127,7 +133,7 @@ export default function useChat(): ChatContextType {
 		in_mem_messages = [...newMessages];
 		setMessagesState(newMessages);
 	};
-	const [metadata, setMetadata] = useState<any>(() => {
+	const [metadata, setMetadataState] = useState<any>(() => {
 		const storedProjectId = localStorage.getItem("current_project_id");
 		return {
 			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -143,6 +149,17 @@ export default function useChat(): ChatContextType {
 	// state into a ref so those callbacks read fresh values.
 	const metadataRef = useRef<any>(metadata);
 	metadataRef.current = metadata;
+	const setMetadata = useCallback((update: any) => {
+		const previous = metadataRef.current;
+		const next = {
+			...(typeof update === "function" ? update(previous) : update),
+		};
+		if (typeof update === "function" && next.thread_id !== previous.thread_id) {
+			delete next.stream_owner;
+		}
+		metadataRef.current = next;
+		setMetadataState(next);
+	}, []);
 
 	const [controller, setController] = useState<AbortController | null>(null);
 
@@ -203,7 +220,11 @@ export default function useChat(): ChatContextType {
 	const abortQuery = async () => {
 		// Send abort signal to backend for distributed mode (fire-and-forget for responsive UX)
 		const threadId = metadata?.thread_id;
-		if (threadId) {
+		if (
+			threadId &&
+			metadata?.stream_owner !== "aegra" &&
+			!isAegraThread(threadId)
+		) {
 			import("@/lib/services/threadService")
 				.then(({ abortThread }) => abortThread(threadId))
 				.then(() => console.log("Backend abort signal sent"))
@@ -212,6 +233,8 @@ export default function useChat(): ChatContextType {
 				);
 		}
 
+		aegraControllerRef.current?.abort();
+		aegraControllerRef.current = null;
 		// Immediately close local connection for responsive UX
 		if (controller) {
 			controller.abort();
@@ -611,7 +634,98 @@ export default function useChat(): ChatContextType {
 		return { controller, source };
 	};
 
+	const aegraControllerRef = useRef<AbortController | null>(null);
+
+	const handleAegraSubmit = async (content: string, images: File[]) => {
+		const abortController = new AbortController();
+		aegraControllerRef.current = abortController;
+		setController(abortController);
+		try {
+			const unsupported = [
+				[
+					"files",
+					images.length > 0 ||
+						Object.keys(getResolvedSubmissionFiles()).length > 0,
+				],
+				["public assistants", agent.public],
+				["MCP", Object.keys(agent.mcp ?? {}).length > 0],
+				["A2A", Object.keys(agent.a2a ?? {}).length > 0],
+				["subagents", (agent.subagents?.length ?? 0) > 0],
+				["custom system prompt", Boolean(agent.prompt?.trim())],
+				["checkpoint overrides", Boolean(metadata.checkpoint_id)],
+			]
+				.filter(([, enabled]) => enabled)
+				.map(([name]) => name);
+			if (unsupported.length)
+				throw new Error(`Aegra does not support: ${unsupported.join(", ")}`);
+			let threadId = metadataRef.current.thread_id;
+			if (!threadId) {
+				threadId = await createAegraThread(abortController.signal);
+				if (abortController.signal.aborted) return;
+			}
+			metadataRef.current = {
+				...metadataRef.current,
+				thread_id: threadId,
+				stream_owner: "aegra",
+			};
+			setMetadata(metadataRef.current);
+			const history = [
+				...messages,
+				{ id: `user-${Date.now()}`, type: "human", role: "user", content },
+			];
+			setMessages(history);
+			clearContent();
+			const response = await streamAegraThread(
+				threadId,
+				content,
+				agent.model,
+				agent.tools ?? [],
+				abortController.signal,
+			);
+			await consumeAegraStream(
+				response,
+				(state) => {
+					if (abortController.signal.aborted) return;
+					if (state.runId) {
+						metadataRef.current = {
+							...metadataRef.current,
+							run_id: state.runId,
+						};
+						setMetadata(metadataRef.current);
+					}
+					if (state.messages.length) {
+						const hasHistory = state.messages.some((m) =>
+							["human", "user"].includes(m.type),
+						);
+						setMessages(
+							formatMessages(
+								hasHistory ? state.messages : [...history, ...state.messages],
+							),
+						);
+					}
+				},
+				abortController.signal,
+			);
+			if (!abortController.signal.aborted) setQuery("");
+		} catch (error) {
+			if (!abortController.signal.aborted)
+				setRunError({
+					runId: metadataRef.current.run_id ?? "",
+					message: error instanceof Error ? error.message : String(error),
+					recoverable: false,
+				});
+		} finally {
+			if (aegraControllerRef.current === abortController) {
+				aegraControllerRef.current = null;
+				setController(null);
+				setLoading(false);
+				setLoadingMessage("");
+			}
+		}
+	};
+
 	const handleSubmit = async (argQuery?: string, images: File[] = []) => {
+		if (aegraControllerRef.current) return;
 		setLoadingMessage("Request submitted...");
 		setLoading(true);
 		// Clear any stale error surface from a previous failed run so it does
@@ -623,6 +737,15 @@ export default function useChat(): ChatContextType {
 		setSubmitStartTime(now);
 
 		const queryToSubmit = argQuery || query;
+
+		if (
+			!metadataRef.current.thread_id ||
+			metadataRef.current.stream_owner === "aegra" ||
+			isAegraThread(metadataRef.current.thread_id)
+		) {
+			await handleAegraSubmit(queryToSubmit, images);
+			return;
+		}
 
 		try {
 			// Try unified handler (supports both sync and distributed modes)
@@ -657,6 +780,7 @@ export default function useChat(): ChatContextType {
 	};
 
 	const resetMetadata = () => {
+		metadataRef.current = {};
 		setMetadata({});
 	};
 

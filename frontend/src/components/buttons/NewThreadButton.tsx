@@ -8,6 +8,8 @@ function NewThreadButton() {
 	const {
 		messages,
 		clearMessages,
+		setRunError,
+		setSubmissionFiles,
 		metadata,
 		abortQuery,
 		resetToDefault,
@@ -39,6 +41,8 @@ function NewThreadButton() {
 			// destination page also guards against stale state via the
 			// staleThreadId navigation state.
 			clearMessages();
+			setRunError?.(null);
+			setSubmissionFiles?.(null);
 			clearThreadScopedFiles?.();
 			clearBackendSyncFiles?.();
 			// Reset model to user's default for new conversations
