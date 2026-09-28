@@ -35,10 +35,11 @@
         "Verify in browser using agent-browser skill."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "7728dfc461862d6baf0eb723ea1fd13d40281834",
+      "notes": "Frontend regressions went red before repair. Advisor independently ran six focused test files: 67 passed, exit 0; frontend build exit 0. Browser review in the local authenticated UI created Aegra thread 5397299e-69bd-4a5a-9e5b-639511982204, displayed math_calculator call/result 7 * 8 = 56 and streamed reply, then returned 56 in a second run on the same thread while remaining on /chat. Existing persistent context files did not block text submission. Explicit attachments show an error and restore the prompt in focused tests. Legacy route and no-fallback cases are covered by focused tests. UI commits: 10c47930, 97d5b382, 26f78b9d, 7728dfc4. See evidence/manual-review.md.",
       "dependsOn": ["US-001"],
-      "files": ["frontend/src/components/buttons/NewThreadButton.tsx", "frontend/src/hooks/useChat.ts", "frontend/src/hooks/useChat.test.tsx", "frontend/src/lib/services/threadService.ts", "frontend/src/lib/utils/aegraStream.ts", "frontend/src/tests/utils/aegraStream.test.ts", "frontend/vite.config.ts"]
+      "files": ["frontend/src/components/buttons/NewThreadButton.tsx", "frontend/src/hooks/useChat.ts", "frontend/src/hooks/useChat.test.tsx", "frontend/src/hooks/useInitialThreadRedirect.ts", "frontend/src/hooks/useInitialThreadRedirect.test.tsx", "frontend/src/context/ChatContext.tsx", "frontend/src/context/ChatContext.test.tsx", "frontend/src/lib/services/threadService.ts", "frontend/src/lib/utils/aegraStream.ts", "frontend/src/tests/utils/aegraStream.test.ts", "frontend/vite.config.ts"]
     },
     {
       "id": "US-003",
@@ -51,8 +52,8 @@
         "Stop the review service and delete only resources created for this review. Use the evidence for the PR `## Manual review` section."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Operator approved only task-owned disposable database resources. Recorded redacted API responses, browser journey, annotated screenshots, second-identity access checks from focused backend integration test, and cleanup in evidence/manual-review.md. Live unauthenticated thread creation returned 401. Second identity denial is integration-fixture evidence, not a second interactive login to the pre-existing account database. Stopped only the task Aegra process in Herdr pane w4:pB, dropped only database aegra_ui_61727680cbad486a96a386d2e89e06df, verified count 0; pre-existing backend and frontend panes remained running. STE checker and git diff --check passed.",
       "dependsOn": ["US-001", "US-002"],
       "files": [".agro/tasks/aegra-stream-api/evidence/manual-review.md"]
     }
