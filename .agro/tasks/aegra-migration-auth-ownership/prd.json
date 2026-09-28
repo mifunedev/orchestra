@@ -38,8 +38,8 @@
         "Record that this is an upgrade-only, non-indexed pilot with a tested schema-scoped restore, not support for Aegra downgrades, indexed Store, production rollback, or universal absence of public access."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: standalone integrated opt-in pg17 runtime test exit 0 (1 passed, 5 warnings); precheck, asyncpg ORM, psycopg checkpoint/non-indexed Store reported database test and schemas ['pg_catalog', 'aegra']. 2 executed: startup migration disabled; aegra revision a3f7c1d9e2b4, public revision 0001 and snapshots unchanged. 3 executed: checkpoint/Store round trips passed; no Aegra downgrade or indexed Store called. 4 executed: inside disposable container pg_dump -n aegra -Fc, archive TOC preflight and verified internal-only pg_toast exemptions, Aegra-only revision/checkpoint/Store mutation, pg_restore --schema=aegra --clean --if-exists, exact revision and data recovery, public rows/relations/indexes/extensions/ACLs unchanged at each stage; dummy operator URL refused before migration (pytest exit 4), no testcontainers remain. 5 executed: evidence/manual-review.md and ownership.md record pilot limits and a concurrent Docker-container lifecycle change of unknown actor; no production rollback or all-paths guarantee. Targeted Ruff/compileall exit 0. Ownership probe passed separately; running both in one pytest process fails on duplicate aegra schema, so PRD requires separate processes. Evidence commit e14e0a60; runtime commit 614e15e7; restore commit 1a2ebe4a. Local only, not pushed or CI-verified.",
       "dependsOn": [
         "US-001"
       ],
