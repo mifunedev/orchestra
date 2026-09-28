@@ -22,6 +22,11 @@ from pydantic import PrivateAttr
 
 from src.integrations.aegra.app import create_app
 
+pytestmark = pytest.mark.skipif(
+    not os.environ.get("AEGRA_DATABASE_URL"),
+    reason="Requires the isolated database provisioned by backend/scripts/test-aegra-chat-stream.sh",
+)
+
 
 class ToolCallingModel(FakeMessagesListChatModel):
     _seen: list = PrivateAttr(default_factory=list)
