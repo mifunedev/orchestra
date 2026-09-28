@@ -45,7 +45,6 @@
       ],
       "files": [
         "backend/tests/integration/test_aegra_schema_runtime.py",
-        "backend/tests/integration/test_aegra_schema_rollback.py",
         "backend/src/integrations/aegra/schema_guard.py"
       ]
     },

@@ -130,8 +130,7 @@ Keep schema isolation unverified until the disposable upgrade, startup precheck,
 | Test File | Case(s) | Validates |
 |---|---|---|
 | `backend/tests/integration/test_aegra_schema_ownership.py` (new) | One database, two schemas, separate revisions, role search paths, and denied public DDL. | Migration ownership. |
-| `backend/tests/integration/test_aegra_schema_runtime.py` (new) | Aegra upgrade, startup precheck, ORM, checkpoint and non-indexed store round trips. | Exercised runtime schema isolation. |
-| `backend/tests/integration/test_aegra_schema_rollback.py` (new) | Aegra-only archive, preflight, restore, and unchanged public snapshots in one disposable database. | Pilot rollback boundary without Alembic downgrade. |
+| `backend/tests/integration/test_aegra_schema_runtime.py` (new) | Aegra upgrade, startup precheck, ORM, checkpoint/non-indexed store round trips, and an Aegra-only archive/restore with unchanged public snapshots. | Exercised runtime and pilot rollback boundary without Alembic downgrade. |
 | `backend/tests/unit/utils/test_identity_resolver.py` (new) | JWT, API token, expiry, deleted user, revocation, redaction, and short session. | Shared identity policy. |
 | `backend/tests/integration/test_api_tokens.py` | Create, use, revoke, and `last_used_at`. | Orchestra route parity. |
 | `backend/tests/unit/utils/test_auth_dependency_scope.py` | No session held across streaming. | Pool safety. |
@@ -140,7 +139,7 @@ Keep schema isolation unverified until the disposable upgrade, startup precheck,
 | `.agro/tasks/aegra-migration-auth-ownership/evidence/ownership.md` (new) | Current and candidate owners, mapping gaps, and retirement gates. | Replacement sequence. |
 | `.agro/tasks/aegra-migration-auth-ownership/evidence/manual-review.md` (new) | Live commands, failures, and cleanup. | Reproducible decision evidence. |
 
-Run `uv run pytest tests/unit/utils/test_identity_resolver.py tests/unit/utils/test_auth_dependency_scope.py tests/integration/test_api_tokens.py tests/integration/test_public_assistants.py` from `backend/`. Require `test_api_token_lifecycle` to execute without a skip. Run the opt-in Aegra tests with `AEGRA_OWNERSHIP_LIVE=1 uv run pytest tests/integration/test_aegra_schema_ownership.py tests/integration/test_aegra_schema_runtime.py tests/integration/test_aegra_schema_rollback.py tests/integration/test_aegra_auth_adapter.py` from `backend/` only after each prerequisite story passes. Run `uv run ruff check` from `backend/`. Do not run a live test with `TEST_POSTGRES_CONNECTION_STRING` set.
+Run `uv run pytest tests/unit/utils/test_identity_resolver.py tests/unit/utils/test_auth_dependency_scope.py tests/integration/test_api_tokens.py tests/integration/test_public_assistants.py` from `backend/`. Require `test_api_token_lifecycle` to execute without a skip. Run the opt-in Aegra tests with `AEGRA_OWNERSHIP_LIVE=1 uv run pytest tests/integration/test_aegra_schema_ownership.py tests/integration/test_aegra_schema_runtime.py tests/integration/test_aegra_auth_adapter.py` from `backend/` only after each prerequisite story passes. Run `uv run ruff check` from `backend/`. Do not run a live test with `TEST_POSTGRES_CONNECTION_STRING` set.
 
 ## Design Principles
 
