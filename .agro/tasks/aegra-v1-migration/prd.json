@@ -67,8 +67,9 @@
       ],
       "description": "As a returning user, I want server-owned thread routing so that reloads and other devices cannot send a thread to the wrong store.",
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "6fb1645f82acbcfd7851f659affbdd49b5069f8d",
+      "notes": "1 executed: worker first recorded 10 red tests for missing recovery; advisor reran integrated full frontend suite, 591 passed and 3 skipped, build exit 0. 2 and 3 executed: fresh browser origin with auth only and no aegra-thread local markers listed both task threads; direct reload recovered native calculator history from /api/v1 and legacy image history from /api. 4 executed: native search integration test asserts second user cannot list or read owner thread; independent integrated backend runner 3 passed, exit 0, unique test database dropped and independently confirmed absent. 5 executed: browser XHR trace after switching v0 to v1 showed zero legacy checkpoint-search calls for v1 id; native and legacy ownership probes returned 200 only on their own service. Extra owned files were authorized for useChat unknown-owner guard, backend search isolation test, useThread tests, and stale ChatContext tests. The first legacy lookup bug was reproduced in browser, replaced with authenticated legacy GET, and browser reloaded v0 successfully. Integration commits c490ecb0, 8648fc51, fe330147, 6fb1645f. Evidence: evidence/manual-review.md and us003 reload screenshots.",
       "dependsOn": [
         "US-002"
       ],
