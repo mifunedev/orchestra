@@ -1,7 +1,10 @@
 # Orchestra on Aegra
 
-This service exposes Aegra's native thread and run-stream API at `/api/aegra`.
-The service preserves legacy Orchestra routes. The service registers only the `orchestra` graph.
+This service exposes Aegra's native thread and run-stream API at `/api/v1`.
+It does not expose the former `/api/aegra` alias. The legacy Orchestra backend
+continues to serve `/api`, including `POST /api/llm/stream` and
+`/api/threads/search`, with unchanged payloads and behavior. The service
+registers only the `orchestra` graph.
 
 ## Configuration
 
@@ -33,8 +36,8 @@ Credentials remain in request-local execution context; they are not placed in ru
 configuration, user records, metadata, or checkpoints. In-process Aegra execution
 inherits that context. Distributed execution is intentionally unsupported.
 
-1. `POST /api/aegra/threads` with `{}`.
-2. `POST /api/aegra/threads/{thread_id}/runs/stream` with:
+1. `POST /api/v1/threads` with `{}`.
+2. `POST /api/v1/threads/{thread_id}/runs/stream` with:
 
 ```json
 {
@@ -48,8 +51,11 @@ inherits that context. Distributed execution is intentionally unsupported.
 Send only the next user message on subsequent turns. Aegra restores history from
 its checkpoints. Consume native SSE events, including metadata, message chunks,
 tool-bearing updates, final values, and errors; there is no server-side event mapper.
-`GET /api/aegra/threads/{thread_id}/state` reads persisted state.
-`GET /api/aegra/threads/{thread_id}/runs/{run_id}/stream` attaches to a native stream.
+`GET /api/v1/threads/{thread_id}/state` reads persisted state.
+`GET /api/v1/threads/{thread_id}/runs/{run_id}/stream` attaches to a native stream.
+Requests without valid credentials return `401`. A different authenticated user
+cannot read or run a thread they do not own. The development proxy directs
+`/api/v1` to Aegra on port 2026 and other `/api` requests to Orchestra.
 
 Requested tools must exist in the authenticated Orchestra `/api/tools` catalog.
 The real Orchestra graph executes tool proxies through the authenticated

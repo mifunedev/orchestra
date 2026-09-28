@@ -177,10 +177,11 @@ async def test_new_aegra_thread_two_turns_tool_stream_and_isolation(harness, mon
         ]
     )
     monkeypatch.setattr("langchain.chat_models.init_chat_model", lambda **kwargs: model)
-    response = await client.post("/api/aegra/threads", json={}, headers=owner)
+    response = await client.post("/api/v1/threads", json={}, headers=owner)
     assert response.status_code == 200, response.text
     thread_id = response.json()["thread_id"]
-    path = f"/api/aegra/threads/{thread_id}"
+    path = f"/api/v1/threads/{thread_id}"
+    assert (await client.post("/api/aegra/threads", json={}, headers=owner)).status_code == 404
     request = {
         "assistant_id": "orchestra",
         "input": {"messages": [{"role": "user", "content": "Check Oslo weather."}]},
@@ -217,7 +218,7 @@ async def test_new_aegra_thread_two_turns_tool_stream_and_isolation(harness, mon
     assert "What did we check earlier?" in json.dumps(state.json())
 
     for headers in ({}, {"Authorization": "Bearer invalid"}):
-        assert (await client.post("/api/aegra/threads", json={}, headers=headers)).status_code == 401
+        assert (await client.post("/api/v1/threads", json={}, headers=headers)).status_code == 401
         assert (await client.get(f"{path}/runs/{run_id}/stream", headers=headers)).status_code == 401
         assert (await client.post(f"{path}/runs/stream", json=request, headers=headers)).status_code == 401
     for suffix in ("", "/state", f"/runs/{run_id}", f"/runs/{run_id}/stream"):

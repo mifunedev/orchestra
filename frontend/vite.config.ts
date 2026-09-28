@@ -120,7 +120,7 @@ export default defineConfig({
 	server: {
 		allowedHosts: ["orchestra.mifune.dev", "frontend.mifune.dev"],
 		proxy: {
-			"/api/aegra": {
+			"/api/v1": {
 				target: "http://127.0.0.1:2026",
 				changeOrigin: true,
 			},

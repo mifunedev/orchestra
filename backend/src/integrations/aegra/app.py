@@ -69,5 +69,5 @@ def create_app():
             yield
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
-    app.mount("/api/aegra", RequestBoundary(native_app))
+    app.mount("/api/v1", RequestBoundary(native_app))
     return app
