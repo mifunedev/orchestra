@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import ChatProvider, { useChatContext } from "./ChatContext";
 import { toast } from "sonner";
 import { initiateStream, streamThread } from "@/lib/services";
+import apiClient from "@/lib/utils/apiClient";
 
 vi.mock("@/hooks/useConfigHook", () => ({ default: () => ({}) }));
 vi.mock("@/hooks/useImageHook", () => ({ default: () => ({}) }));
@@ -67,6 +68,7 @@ describe("Aegra submission file provenance", () => {
 	});
 	afterEach(() => {
 		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
 	});
 	it("allows a text chat with four passive account files without submitting them", async () => {
 		const fetchMock = vi
@@ -84,7 +86,7 @@ describe("Aegra submission file provenance", () => {
 			await result.current.handleSubmit("hello");
 		});
 		expect(fetchMock).toHaveBeenCalledTimes(2);
-		expect(fetchMock.mock.calls[0][0]).toBe("/api/aegra/threads");
+		expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads");
 		expect(JSON.parse(fetchMock.mock.calls[1][1].body).input).toEqual({
 			messages: [{ role: "user", content: "hello" }],
 		});
@@ -92,7 +94,14 @@ describe("Aegra submission file provenance", () => {
 		expect(initiateStream).not.toHaveBeenCalled();
 		expect(streamThread).not.toHaveBeenCalled();
 	});
-	it("visibly rejects an explicit file before any request and restores the cleared queued prompt", async () => {
+	it("routes an explicit attachment to v0 before creating v1 and keeps the queued prompt and file", async () => {
+		vi.mocked(initiateStream).mockResolvedValue({
+			onEvent() {},
+			onError() {},
+			onClose() {},
+			async start() {},
+			close() {},
+		} as any);
 		const fetchMock = vi.fn();
 		vi.stubGlobal("fetch", fetchMock);
 		const { result } = renderHook(() => useChatContext(), { wrapper });
@@ -106,12 +115,21 @@ describe("Aegra submission file provenance", () => {
 		await act(async () => {
 			await result.current.handleSubmit("keep this queued prompt");
 		});
-		expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/files/i));
-		expect(result.current.query).toBe("keep this queued prompt");
-		expect(result.current.messages).toHaveLength(0);
 		expect(fetchMock).not.toHaveBeenCalled();
-		expect(initiateStream).not.toHaveBeenCalled();
 		expect(streamThread).not.toHaveBeenCalled();
+		expect(initiateStream).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(initiateStream).mock.calls[0][0]).toMatchObject({
+			input: {
+				messages: [
+					{
+						role: "user",
+						content: [{ type: "text", text: "keep this queued prompt" }],
+					},
+				],
+				files: { "/attached.txt": { content: ["explicit attachment"] } },
+			},
+		});
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 	it("still submits all passive files to a legacy Orchestra thread", async () => {
 		vi.mocked(initiateStream).mockResolvedValue({
@@ -121,6 +139,13 @@ describe("Aegra submission file provenance", () => {
 			async start() {},
 			close() {},
 		} as any);
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(new Response(JSON.stringify([])));
+		vi.stubGlobal("fetch", fetchMock);
+		const legacySearch = vi.spyOn(apiClient, "post").mockResolvedValue({
+			data: { threads: [{ key: "legacy", value: { thread_id: "legacy" } }] },
+		});
 		const { result } = renderHook(() => useChatContext(), { wrapper });
 		await waitFor(() =>
 			expect(Object.keys(result.current.submissionFiles)).toHaveLength(4),
@@ -129,6 +154,20 @@ describe("Aegra submission file provenance", () => {
 		await act(async () => {
 			await result.current.handleSubmit("hello");
 		});
+		expect(fetchMock).toHaveBeenCalledOnce();
+		expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads/search");
+		expect(legacySearch).toHaveBeenCalledWith("/threads/search", {
+			limit: 1,
+			offset: 0,
+			filter: { thread_id: "legacy" },
+		});
+		expect(initiateStream).toHaveBeenCalledOnce();
+		expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(
+			legacySearch.mock.invocationCallOrder[0],
+		);
+		expect(legacySearch.mock.invocationCallOrder[0]).toBeLessThan(
+			vi.mocked(initiateStream).mock.invocationCallOrder[0],
+		);
 		expect(
 			Object.keys(vi.mocked(initiateStream).mock.calls[0][0].input.files ?? {}),
 		).toHaveLength(4);
