@@ -1,7 +1,7 @@
 # Orchestra on Aegra
 
 This service exposes Aegra's native thread and run-stream API at `/api/v1`.
-It does not expose the former `/api/aegra` alias. The legacy Orchestra backend
+The Aegra service does not expose the former `/api/aegra` alias. The legacy Orchestra backend
 continues to serve `/api`, including `POST /api/llm/stream` and
 `/api/threads/search`, with unchanged payloads and behavior. The service
 registers only the `orchestra` graph.
