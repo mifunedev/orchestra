@@ -61,8 +61,19 @@ Requested tools must exist in the authenticated Orchestra `/api/tools` catalog.
 The real Orchestra graph executes tool proxies through the authenticated
 `/api/tools/invoke` endpoint, retaining Orchestra's tool implementation and user
 scoping. The service rejects caller-supplied tool definitions and credentials in graph input.
-The service rejects files, MCP, subagents, caller-supplied state, checkpoint overrides,
-and context identity overrides before run creation.
+The service rejects caller-supplied files, external MCP tool servers, subagents,
+state, checkpoint overrides, and context identity overrides before run creation.
+
+Aegra reads the authenticated account's saved sandbox selection from Orchestra
+`GET /api/settings` for each graph. An unset, `auto`, or `state` selection uses StateBackend.
+An `mcp` selection uses the MCP Sandbox backend through Orchestra
+`/api/sandbox/mcp`. Orchestra keeps the saved sandbox URL and key. Aegra sends
+only the current account's credentials and MCP session header to the proxy.
+A saved `mcp` selection without a URL fails the run. An unavailable MCP Sandbox
+reports an error; Aegra does not switch to StateBackend. A saved `daytona`
+selection fails with an unsupported-backend error. Do not send a sandbox URL,
+key, or identity in the run configuration. External MCP tool servers remain
+unsupported.
 
 ## Vector-free verification
 

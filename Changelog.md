@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this project are documented here.
+This changelog documents all notable changes to this project.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions use [SemVer](https://semver.org/) (`MAJOR.MINOR.PATCH`), read from `backend/pyproject.toml`, mirrored in `frontend/package.json`, and ship as `v`-prefixed git tags.
 
@@ -18,6 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Fixed
 
+- Honor the account's MCP Sandbox selection in Aegra runs and report missing or unavailable sandboxes instead of silently using state storage ([#1021](https://github.com/mifunedev/orchestra/issues/1021)).
 - Show generated Aegra thread files in the Files panel during streaming and after reload without adding them to account files ([#1021](https://github.com/mifunedev/orchestra/issues/1021)).
 - Show chat on the left and files on the right in desktop split view ([#1010](https://github.com/mifunedev/orchestra/issues/1010)).
 - Link the documentation directory to its documentation heading ([#1006](https://github.com/mifunedev/orchestra/issues/1006)).
