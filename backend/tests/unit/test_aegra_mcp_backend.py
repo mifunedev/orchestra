@@ -91,6 +91,44 @@ async def test_requested_tools_keep_catalog_authorization(monkeypatch, owner):
         await build_graph(monkeypatch, "state", tools=["not-in-catalog"])
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("selected", [["bash_tool"], ["bash_tool", "search"]])
+async def test_mcp_bash_tool_is_not_proxied(monkeypatch, owner, selected):
+    definitions = {
+        "bash_tool": {"name": "bash_tool", "args_schema": {"type": "object", "properties": {}}},
+        "search": {"name": "search", "args_schema": {"type": "object", "properties": {}}},
+    }
+
+    async def catalog():
+        return definitions
+
+    monkeypatch.setattr(authority, "catalog", catalog)
+    graph, _, _ = await build_graph(monkeypatch, "mcp", url="http://private.test/mcp", tools=selected)
+    assert [tool.name for tool in graph["tools"]] == [name for name in selected if name != "bash_tool"]
+    assert isinstance(graph["backend"](object()).default, AuthenticatedMcpSandboxBackend)
+
+
+@pytest.mark.asyncio
+async def test_state_bash_tool_is_not_proxied(monkeypatch, owner):
+    async def catalog():
+        return {"bash_tool": {"name": "bash_tool"}}
+
+    monkeypatch.setattr(authority, "catalog", catalog)
+    graph, _, _ = await build_graph(monkeypatch, "state", tools=["bash_tool"])
+    assert graph["tools"] == []
+    assert isinstance(graph["backend"](object()).default, StateBackend)
+
+
+@pytest.mark.asyncio
+async def test_unknown_bash_tool_is_rejected_before_proxy_filter(monkeypatch, owner):
+    async def catalog():
+        return {"search": {"name": "search"}}
+
+    monkeypatch.setattr(authority, "catalog", catalog)
+    with pytest.raises(PermissionError, match="Unknown or unauthorized"):
+        await build_graph(monkeypatch, "mcp", url="http://private.test/mcp", tools=["bash_tool"])
+
+
 def test_authenticated_client_disables_environment_proxy_and_redirects(monkeypatch, owner):
     monkeypatch.setenv("HTTP_PROXY", "http://proxy.invalid:8080")
     monkeypatch.setenv("HTTPS_PROXY", "http://proxy.invalid:8080")

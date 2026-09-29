@@ -18,6 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Fixed
 
+- Run Aegra sandbox commands through native `execute` instead of the CLI-only `bash_tool` proxy ([#1021](https://github.com/mifunedev/orchestra/issues/1021)).
 - Honor the account's MCP Sandbox selection in Aegra runs and report missing or unavailable sandboxes instead of silently using state storage ([#1021](https://github.com/mifunedev/orchestra/issues/1021)).
 - Show generated Aegra thread files in the Files panel during streaming and after reload without adding them to account files ([#1021](https://github.com/mifunedev/orchestra/issues/1021)).
 - Show chat on the left and files on the right in desktop split view ([#1010](https://github.com/mifunedev/orchestra/issues/1010)).

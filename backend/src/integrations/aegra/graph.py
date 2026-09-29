@@ -46,7 +46,8 @@ async def graph(config: RunnableConfig):
     for name in options.tools:
         if name not in available:
             raise PermissionError("Unknown or unauthorized Orchestra tool")
-        tools.append(authority.tool_proxy(available[name]))
+        if name != "bash_tool":
+            tools.append(authority.tool_proxy(available[name]))
     return init_graph(
         model=options.model,
         tools=tools,

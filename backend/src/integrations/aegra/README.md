@@ -58,9 +58,13 @@ cannot read or run a thread they do not own. The development proxy directs
 `/api/v1` to Aegra on port 2026 and other `/api` requests to Orchestra.
 
 Requested tools must exist in the authenticated Orchestra `/api/tools` catalog.
-The real Orchestra graph executes tool proxies through the authenticated
+The real Orchestra graph executes selected Orchestra tools through the authenticated
 `/api/tools/invoke` endpoint, retaining Orchestra's tool implementation and user
-scoping. The service rejects caller-supplied tool definitions and credentials in graph input.
+scoping. The graph does not proxy the CLI-only `bash_tool`, even when selected.
+Use DeepAgents' native `execute` tool for sandbox commands. With an `mcp` selection,
+`execute` uses the authenticated MCP Sandbox backend. With a `state` selection,
+`execute` cannot run shell commands; Aegra does not switch backends.
+The service rejects caller-supplied tool definitions and credentials in graph input.
 The service rejects caller-supplied files, external MCP tool servers, subagents,
 state, checkpoint overrides, and context identity overrides before run creation.
 
