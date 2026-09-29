@@ -160,14 +160,7 @@ describe("Aegra submission file provenance", () => {
 		expect(patchDefaults).not.toHaveBeenCalled();
 	});
 
-	it("routes an explicit attachment to v0 before creating v1 and keeps the queued prompt and file", async () => {
-		vi.mocked(initiateStream).mockResolvedValue({
-			onEvent() {},
-			onError() {},
-			onClose() {},
-			async start() {},
-			close() {},
-		} as any);
+	it("rejects an explicit attachment before creation and retains the queued file", async () => {
 		const fetchMock = vi.fn();
 		vi.stubGlobal("fetch", fetchMock);
 		const { result } = renderHook(() => useChatContext(), { wrapper });
@@ -183,36 +176,20 @@ describe("Aegra submission file provenance", () => {
 		});
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(streamThread).not.toHaveBeenCalled();
-		expect(initiateStream).toHaveBeenCalledTimes(1);
-		expect(vi.mocked(initiateStream).mock.calls[0][0]).toMatchObject({
-			input: {
-				messages: [
-					{
-						role: "user",
-						content: [{ type: "text", text: "keep this queued prompt" }],
-					},
-				],
-				files: { "/attached.txt": { content: ["explicit attachment"] } },
-			},
+		expect(initiateStream).not.toHaveBeenCalled();
+		expect(result.current.runError?.message).toMatch(/files/i);
+		expect(result.current.query).toBe("keep this queued prompt");
+		expect(result.current.submissionFiles["/attached.txt"]).toMatchObject({
+			content: ["explicit attachment"],
 		});
-		expect(toast.error).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalled();
 	});
-	it("still submits all passive files to a legacy Orchestra thread", async () => {
-		vi.mocked(initiateStream).mockResolvedValue({
-			onEvent() {},
-			onError() {},
-			onClose() {},
-			async start() {},
-			close() {},
-		} as any);
+	it("does not submit passive files or contact legacy for an unavailable thread", async () => {
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValueOnce(new Response(JSON.stringify([])));
 		vi.stubGlobal("fetch", fetchMock);
-		const legacyLookup = vi.spyOn(apiClient, "get").mockResolvedValue({
-			status: 200,
-			data: { thread: { id: "legacy" } },
-		});
+		const legacyLookup = vi.spyOn(apiClient, "get");
 		const checkpointSearch = vi.spyOn(apiClient, "post");
 		const { result } = renderHook(() => useChatContext(), { wrapper });
 		await waitFor(() =>
@@ -224,18 +201,9 @@ describe("Aegra submission file provenance", () => {
 		});
 		expect(fetchMock).toHaveBeenCalledOnce();
 		expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/threads/search");
-		expect(legacyLookup).toHaveBeenCalledOnce();
-		expect(legacyLookup).toHaveBeenCalledWith("/threads/legacy");
+		expect(legacyLookup).not.toHaveBeenCalled();
 		expect(checkpointSearch).not.toHaveBeenCalled();
-		expect(initiateStream).toHaveBeenCalledOnce();
-		expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(
-			legacyLookup.mock.invocationCallOrder[0],
-		);
-		expect(legacyLookup.mock.invocationCallOrder[0]).toBeLessThan(
-			vi.mocked(initiateStream).mock.invocationCallOrder[0],
-		);
-		expect(
-			Object.keys(vi.mocked(initiateStream).mock.calls[0][0].input.files ?? {}),
-		).toHaveLength(4);
+		expect(initiateStream).not.toHaveBeenCalled();
+		expect(result.current.runError?.message).toMatch(/unavailable/i);
 	});
 });

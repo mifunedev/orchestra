@@ -22,14 +22,23 @@ function ChatSubmitButton({
 }: ChatSubmitButtonProps) {
 	// _handleSubmit is kept for backward compatibility but enqueue from context is used instead
 	void _handleSubmit;
-	const { controller, query, images, setQuery, setImages, enqueue } =
-		useChatContext();
+	const {
+		controller,
+		query,
+		images,
+		setQuery,
+		setImages,
+		enqueue,
+		preflightSubmit,
+	} = useChatContext();
 
 	// Helper to enqueue and clear input
 	const handleEnqueue = () => {
-		enqueue(query, images);
-		setQuery("");
-		setImages([]);
+		if (!preflightSubmit(images)) return;
+		if (enqueue(query, images)) {
+			setQuery("");
+			setImages([]);
+		}
 	};
 
 	const { startRecording, stopRecording, isRecordingInProgress, recordedBlob } =
