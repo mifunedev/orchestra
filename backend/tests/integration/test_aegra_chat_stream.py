@@ -64,6 +64,7 @@ async def harness(monkeypatch):
     from src.integrations.aegra import authority
     from src.routes.v0.api_tokens import router as token_router
     from src.routes.v0.auth import read_user_details
+    from src.routes.v0.settings import router as settings_router
     from src.routes.v0.tool import router as tool_router
     from src.schemas.models import User
     from src.utils import auth as orchestra_auth
@@ -111,6 +112,7 @@ async def harness(monkeypatch):
     orchestra.get("/api/auth/user")(read_user_details)
     orchestra.include_router(tool_router, prefix="/api")
     orchestra.include_router(token_router, prefix="/api")
+    orchestra.include_router(settings_router, prefix="/api")
     authority_calls = []
 
     @orchestra.middleware("http")
@@ -158,6 +160,9 @@ async def test_new_aegra_thread_two_turns_tool_stream_and_isolation(harness, mon
     from src.utils import stream
 
     client, owner, other = harness.client, harness.owner, harness.other
+    settings = await harness.orchestra.get("/api/settings", headers=owner)
+    assert settings.status_code == 200, settings.text
+    assert settings.json()["defaults"]["sandbox"] is None
     legacy_calls = []
 
     def forbidden(*args, **kwargs):
@@ -235,7 +240,8 @@ async def test_new_aegra_thread_two_turns_tool_stream_and_isolation(harness, mon
     request["config"]["configurable"] = {"user_id": str(uuid4())}
     assert (await client.post(f"{path}/runs/stream", json=request, headers=owner)).status_code == 422
     assert await ThreadRepo(harness.user_id, harness.store).get(thread_id) is None
-    assert await harness.store.asearch(()) == []
+    stored = await harness.store.asearch(())
+    assert [(item.namespace, item.key) for item in stored] == [((harness.user_id, "user_settings"), "default")]
     token = await harness.orchestra.post("/api/tokens", json={"name": "us001"}, headers=owner)
     assert token.status_code == 200, token.text
     key_headers = {"x-api-key": token.json()["token"]}
