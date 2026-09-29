@@ -36,12 +36,12 @@ describe("useInitialThreadRedirect", () => {
 	beforeEach(() => {
 		localStorage.clear();
 		mockNavigate.mockReset();
-		vi.mocked(resolveThreadOwner).mockReset().mockResolvedValue("legacy");
+		vi.mocked(resolveThreadOwner).mockReset().mockResolvedValue("aegra");
 		mockUseLocation.mockReset();
 		mockUseLocation.mockReturnValue({ state: null });
 	});
 
-	it("redirects a live v1 conversation to its own thread route after browser storage is cleared", () => {
+	it("redirects a live v1 conversation to its own thread route after browser storage is cleared", async () => {
 		mockUseLocation.mockReturnValue({ pathname: "/chat", state: null });
 		localStorage.clear();
 		const { rerender } = renderHook(
@@ -62,24 +62,27 @@ describe("useInitialThreadRedirect", () => {
 
 		rerender({ threadId: "aegra-123", hasMessages: true });
 		rerender({ threadId: "aegra-123", hasMessages: true });
-		expect(mockNavigate).toHaveBeenCalledWith("/thread/aegra-123", {
-			replace: true,
-		});
+		await waitFor(() =>
+			expect(mockNavigate).toHaveBeenCalledWith("/thread/aegra-123", {
+				replace: true,
+			}),
+		);
 
 		mockNavigate.mockClear();
 		rerender({ threadId: undefined, hasMessages: false });
 		rerender({ threadId: "orchestra-123", hasMessages: true });
-		expect(mockNavigate).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
 		expect(mockNavigate).toHaveBeenCalledWith("/thread/orchestra-123", {
 			replace: true,
 		});
 	});
 
-	it("hydrates native state and legacy checkpoints independently without local markers", async () => {
+	it("does not hydrate old threads through checkpoint fallback", async () => {
 		localStorage.clear();
-		vi.mocked(resolveThreadOwner).mockImplementation(async (id) =>
-			id === "native" ? "aegra" : "legacy",
-		);
+		vi.mocked(resolveThreadOwner).mockImplementation(async (id) => {
+			if (id === "native") return "aegra";
+			throw new Error("Thread unavailable in Aegra");
+		});
 		vi.mocked(getAegraState).mockResolvedValue({
 			values: {
 				messages: [{ id: "n", type: "human", content: "native text" }],
@@ -109,13 +112,12 @@ describe("useInitialThreadRedirect", () => {
 		await act(async () => {
 			legacy = await result.current.loadThread("legacy");
 		});
-		expect(legacy.messages[0].content).toBe("legacy text");
-		expect(searchThreads).toHaveBeenCalledWith("list_checkpoints", {
-			thread_id: "legacy",
-		});
+		expect(legacy).toBeNull();
+		expect(result.current.threadError).toBe("Thread unavailable in Aegra");
+		expect(searchThreads).not.toHaveBeenCalled();
 	});
 
-	it("discovers native and legacy sidebar rows from their respective stores", async () => {
+	it("discovers only native sidebar rows", async () => {
 		localStorage.clear();
 		vi.mocked(searchThreads).mockResolvedValue([
 			{
@@ -137,9 +139,10 @@ describe("useInitialThreadRedirect", () => {
 				"native",
 			),
 		);
-		expect(result.current.threads.map((thread) => thread.key)).toContain(
+		expect(result.current.threads.map((thread) => thread.key)).not.toContain(
 			"legacy",
 		);
+		expect(searchThreads).not.toHaveBeenCalled();
 	});
 
 	it("routes a newly created native thread even before the run yields messages", async () => {
@@ -165,7 +168,10 @@ describe("useInitialThreadRedirect", () => {
 		expect(mockNavigate).not.toHaveBeenCalled();
 	});
 
-	it("does not navigate when there are no messages", () => {
+	it("does not navigate an old-only thread without messages", async () => {
+		vi.mocked(resolveThreadOwner).mockRejectedValue(
+			new Error("Thread unavailable in Aegra"),
+		);
 		renderHook(() =>
 			useInitialThreadRedirect({
 				threadId: "thread-123",
@@ -173,10 +179,26 @@ describe("useInitialThreadRedirect", () => {
 			}),
 		);
 
+		await waitFor(() =>
+			expect(resolveThreadOwner).toHaveBeenCalledWith("thread-123"),
+		);
 		expect(mockNavigate).not.toHaveBeenCalled();
 	});
 
-	it("navigates once when threadId appears for an active conversation", () => {
+	it("does not redirect an old-only thread even if stale messages exist", async () => {
+		vi.mocked(resolveThreadOwner).mockRejectedValue(
+			new Error("Thread unavailable in Aegra"),
+		);
+		renderHook(() =>
+			useInitialThreadRedirect({ threadId: "old-only", hasMessages: true }),
+		);
+		await waitFor(() =>
+			expect(resolveThreadOwner).toHaveBeenCalledWith("old-only"),
+		);
+		expect(mockNavigate).not.toHaveBeenCalled();
+	});
+
+	it("navigates once when threadId appears for an active conversation", async () => {
 		const { rerender } = renderHook(
 			({
 				threadId,
@@ -196,13 +218,13 @@ describe("useInitialThreadRedirect", () => {
 		rerender({ threadId: "thread-123", hasMessages: true });
 		rerender({ threadId: "thread-123", hasMessages: true });
 
-		expect(mockNavigate).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
 		expect(mockNavigate).toHaveBeenCalledWith("/thread/thread-123", {
 			replace: true,
 		});
 	});
 
-	it("can redirect again after the conversation resets", () => {
+	it("can redirect again after the conversation resets", async () => {
 		const { rerender } = renderHook(
 			({
 				threadId,
@@ -219,7 +241,7 @@ describe("useInitialThreadRedirect", () => {
 			},
 		);
 
-		expect(mockNavigate).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
 		expect(mockNavigate).toHaveBeenLastCalledWith("/thread/thread-123", {
 			replace: true,
 		});
@@ -227,7 +249,7 @@ describe("useInitialThreadRedirect", () => {
 		rerender({ threadId: undefined, hasMessages: false });
 		rerender({ threadId: "thread-456", hasMessages: true });
 
-		expect(mockNavigate).toHaveBeenCalledTimes(2);
+		await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(2));
 		expect(mockNavigate).toHaveBeenLastCalledWith("/thread/thread-456", {
 			replace: true,
 		});
@@ -248,7 +270,7 @@ describe("useInitialThreadRedirect", () => {
 		expect(mockNavigate).not.toHaveBeenCalled();
 	});
 
-	it("redirects when threadId differs from staleThreadId", () => {
+	it("redirects when threadId differs from staleThreadId", async () => {
 		mockUseLocation.mockReturnValue({
 			state: { staleThreadId: "stale-thread" },
 		});
@@ -274,13 +296,13 @@ describe("useInitialThreadRedirect", () => {
 
 		// New thread arrives — different from staleThreadId, should redirect
 		rerender({ threadId: "new-thread", hasMessages: true });
-		expect(mockNavigate).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
 		expect(mockNavigate).toHaveBeenCalledWith("/thread/new-thread", {
 			replace: true,
 		});
 	});
 
-	it("re-enables redirects after the stale thread clears and a new thread arrives", () => {
+	it("re-enables redirects after the stale thread clears and a new thread arrives", async () => {
 		mockUseLocation.mockReturnValue({
 			state: { staleThreadId: "thread-123" },
 		});
@@ -306,7 +328,7 @@ describe("useInitialThreadRedirect", () => {
 		rerender({ threadId: undefined, hasMessages: false });
 		rerender({ threadId: "thread-456", hasMessages: true });
 
-		expect(mockNavigate).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
 		expect(mockNavigate).toHaveBeenCalledWith("/thread/thread-456", {
 			replace: true,
 		});

@@ -60,17 +60,7 @@ export async function resolveThreadOwner(
 		if (page.some((thread) => thread.thread_id === threadId)) return "aegra";
 		if (page.length < limit) break;
 	}
-	let response;
-	try {
-		response = await apiClient.get(`/threads/${encodeURIComponent(threadId)}`);
-	} catch (error: any) {
-		if (error.response?.status === 404)
-			throw new Error("Thread ownership could not be verified");
-		throw error;
-	}
-	if (response.status !== 200 || response.data?.thread?.id !== threadId)
-		throw new Error("Thread ownership could not be verified");
-	return "legacy";
+	throw new Error("Thread unavailable in Aegra");
 }
 
 export async function createAegraThread(signal: AbortSignal): Promise<string> {

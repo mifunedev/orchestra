@@ -21,7 +21,6 @@ import FileEditorPanel from "@/components/panels/FileEditorPanel";
 import useModel from "@/hooks/useModel";
 import { ArrowLeft } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import useActiveStreamRecovery from "@/hooks/useActiveStreamRecovery";
 
 export default function ThreadPage() {
 	const { threadId, projectId } = useParams<{
@@ -42,7 +41,6 @@ export default function ThreadPage() {
 		setFilesMap,
 		setCheckpoints,
 		useListThreadsEffect,
-		useListCheckpointsEffect,
 		useModelsEffect,
 		viewMode,
 		setTodos,
@@ -57,21 +55,15 @@ export default function ThreadPage() {
 		Boolean(threadId) &&
 		Boolean(metadata?.thread_id) &&
 		metadata.thread_id !== threadId;
-	const { isRecovering } = useActiveStreamRecovery(threadId);
 	const effectiveThreadLoading =
 		!hasLiveThreadState &&
 		!threadError &&
-		(threadLoading ||
-			isRecovering ||
-			messages.length === 0 ||
-			isRouteThreadMismatch);
-	const effectiveThreadError =
-		!hasLiveThreadState && !isRecovering ? threadError : null;
+		(threadLoading || messages.length === 0 || isRouteThreadMismatch);
+	const effectiveThreadError = !hasLiveThreadState ? threadError : null;
 
 	useModelsEffect();
 	useEffectGetAgents();
 	useListThreadsEffect(!loading);
-	useListCheckpointsEffect(!loading, metadata);
 
 	// Load thread data using modularized hook
 	useLoadThreadEffect(

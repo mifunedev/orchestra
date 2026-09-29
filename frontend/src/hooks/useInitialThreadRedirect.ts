@@ -24,36 +24,28 @@ export default function useInitialThreadRedirect({
 			return;
 		}
 
-		if (!hasMessages) {
-			let active = true;
-			resolveThreadOwner(threadId)
-				.then((owner) => {
-					if (
-						active &&
-						owner === "aegra" &&
-						threadId !== staleThreadId &&
-						lastNavigatedThreadIdRef.current !== threadId
-					) {
-						lastNavigatedThreadIdRef.current = threadId;
-						navigate(`/thread/${threadId}`, { replace: true });
-					}
-				})
-				.catch(() => {});
-			return () => {
-				active = false;
-			};
-		}
-
-		// Skip redirect when the threadId matches the stale one we just left
-		if (threadId === staleThreadId) {
+		if (
+			threadId === staleThreadId ||
+			lastNavigatedThreadIdRef.current === threadId
+		) {
 			return;
 		}
 
-		if (lastNavigatedThreadIdRef.current === threadId) {
-			return;
-		}
-
-		lastNavigatedThreadIdRef.current = threadId;
-		navigate(`/thread/${threadId}`, { replace: true });
+		let active = true;
+		resolveThreadOwner(threadId)
+			.then((owner) => {
+				if (
+					active &&
+					owner === "aegra" &&
+					lastNavigatedThreadIdRef.current !== threadId
+				) {
+					lastNavigatedThreadIdRef.current = threadId;
+					navigate(`/thread/${threadId}`, { replace: true });
+				}
+			})
+			.catch(() => {});
+		return () => {
+			active = false;
+		};
 	}, [hasMessages, navigate, staleThreadId, threadId]);
 }
