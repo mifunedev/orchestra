@@ -26,7 +26,7 @@ The operator replaced the dual-engine UI direction in `.agro/tasks/aegra-v1-migr
 
 - [ ] First add failing tests for an attachment, MCP, A2A, subagent, public assistant, custom prompt, and checkpoint override.
 - [ ] Supported text and authorized-tool chats create and stream through `/api/v1` only.
-- [ ] Unsupported chat input shows a clear error and retains the user's draft. It creates no v1 or legacy thread and sends no legacy run request.
+- [ ] Unsupported chat input shows a clear error and retains the user's text and image preview after click or Enter. It creates no thread or run.
 - [ ] An existing native thread keeps its owner after an unsupported request or v1 failure. No request retries through `/api/llm/stream`.
 - [ ] Verify the result in a browser with the agent-browser skill.
 
@@ -38,6 +38,7 @@ The operator replaced the dual-engine UI direction in `.agro/tasks/aegra-v1-migr
 
 - [ ] A sidebar, search, project, or assistant view does not list a legacy chat thread.
 - [ ] A native thread does not offer a delete, project move, share, replay, or legacy recovery action that would call an old chat API. If an equivalent Aegra operation is unavailable, the UI omits the action or states that it is unavailable.
+- [ ] The Files panel does not offer voice inference through `/api/llm/stream`. Ordinary transcription and file editing remain available.
 - [ ] Browser tests and focused UI tests detect an unexpected call to `/api/threads/search`, `/api/llm/stream`, or `/api/threads/{id}` from chat history, creation, or recovery.
 - [ ] Account login, settings, models, and tool catalog remain available through the Orchestra backend.
 - [ ] Verify the result in a browser with the agent-browser skill.
@@ -64,10 +65,11 @@ PR #1022 currently combines native Aegra threads with legacy chat history and us
 |---|---|---|
 | `frontend/src/lib/services/threadService.ts` | `searchAegraThreads`, `resolveThreadOwner` | Discover and verify native thread IDs without a legacy lookup. |
 | `frontend/src/hooks/useThread.ts` | `loadThread`, `fetchThreads`, `loadMoreThreads` | Load native state, native history, and native pagination. |
-| `frontend/src/hooks/useChat.ts` | `handleSubmit`, `handleAegraSubmit` | Reject unsupported input before native thread creation. |
+| `frontend/src/hooks/useChat.ts`, `frontend/src/components/inputs/ChatInput.tsx`, `frontend/src/components/buttons/ChatSubmitButton.tsx` | `handleSubmit`, `handleEnqueue` | Reject unsupported input without clearing the draft. |
 | `frontend/src/pages/threads/ThreadPage.tsx` | `useActiveStreamRecovery`, `useLoadThreadEffect` | Show unavailable old links without legacy recovery requests. |
 | `frontend/src/components/drawers/app-sidebar.tsx` | `ThreadItem`, `loadMoreThreads` | Show native rows and prevent legacy actions. |
 | `frontend/src/hooks/useThreadSearch.ts`, `frontend/src/components/lists/ListProjectThreads.tsx` | search and project history | Remove or replace independent legacy chat searches. |
+| `frontend/src/components/panels/FileEditorPanel.tsx` | voice inference | Stop direct legacy `/llm/stream` requests. |
 | `backend/src/integrations/aegra/authority.py` | `authenticate`, `catalog`, `tool_proxy` | Keep authorized backend identity and tool dependencies. |
 
 ## Interface Integration Points
@@ -92,7 +94,8 @@ The operator's decision changes the approved UI ownership contract. Hiding legac
 | Test File | Case(s) | Validates |
 |---|---|---|
 | `frontend/src/hooks/useThread.test.tsx` | Native-only history, pagination, state, old ID | No legacy thread lookup. |
-| `frontend/src/hooks/useChat.test.tsx` | Supported v1, unsupported input, failure | No legacy run or creation. |
+| `frontend/src/hooks/useChat.test.tsx`, input tests | Supported v1, unsupported input, retained draft, failure | No legacy run or creation. |
+| `frontend/src/tests/components/FileEditorPanel.test.tsx` | Ordinary transcription, no voice inference request | No direct legacy chat stream. |
 | `frontend/src/hooks/useInitialThreadRedirect.test.tsx` | Native navigation and old ID | No ownership fallback. |
 | `frontend/src/context/ChatContext.test.tsx` | Native file reload and passive files | File provenance stays native. |
 | `.agro/tasks/aegra-only-ui/evidence/manual-review.md` | Existing thread, old URL, unsupported input | Observed browser behavior. |
