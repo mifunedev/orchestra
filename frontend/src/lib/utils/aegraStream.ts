@@ -1,4 +1,22 @@
-export type AegraState = { messages: any[]; runId?: string; done: boolean };
+export const AEGRA_FILES_SOURCE = "__aegra_thread_files__";
+
+export type AegraFiles = Record<string, any>;
+export type AegraState = {
+	messages: any[];
+	files?: AegraFiles;
+	runId?: string;
+	done: boolean;
+};
+
+export function aegraFiles(value: unknown): AegraFiles | undefined {
+	const files =
+		value && typeof value === "object" && "value" in value
+			? value.value
+			: value;
+	return files && typeof files === "object" && !Array.isArray(files)
+		? (files as AegraFiles)
+		: undefined;
+}
 
 function normalizeMessage(message: any) {
 	const type = message.type ?? message.role;
@@ -83,6 +101,14 @@ export async function consumeAegraStream(
 			if (event === "updates") {
 				finalValues = false;
 				for (const update of Object.values(value ?? {}) as any[]) {
+					const files = aegraFiles(update?.files);
+					if (files) {
+						state = {
+							...state,
+							files:
+								"value" in update.files ? files : { ...state.files, ...files },
+						};
+					}
 					const messages = update?.messages;
 					if (Array.isArray(messages)) {
 						for (const message of messages) upsert(message, false);
@@ -94,9 +120,13 @@ export async function consumeAegraStream(
 					}
 				}
 			}
-			if (event === "values" && Array.isArray(value.messages)) {
-				state = { ...state, messages: value.messages.map(normalizeMessage) };
-				finalValues = true;
+			if (event === "values") {
+				const files = aegraFiles(value?.files);
+				if (files) state = { ...state, files };
+				if (Array.isArray(value?.messages)) {
+					state = { ...state, messages: value.messages.map(normalizeMessage) };
+					finalValues = true;
+				}
 			}
 		}
 		onState({ ...state });

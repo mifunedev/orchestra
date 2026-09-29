@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import useThread from "./useThread";
+import { AEGRA_FILES_SOURCE } from "@/lib/utils/aegraStream";
 
 const mockSearchThreads = vi.fn();
 const mockResolveThreadOwner = vi.fn();
@@ -237,6 +238,36 @@ describe("useThread", () => {
 			thread_id: "native-1",
 			stream_owner: "aegra",
 		});
+		expect(mockSearchThreads).not.toHaveBeenCalled();
+	});
+
+	it("hydrates native files with their metadata and original content formats", async () => {
+		mockResolveThreadOwner.mockResolvedValue("aegra");
+		const files = {
+			"/answer.txt": {
+				content: ["one", "two"],
+				created_at: "2024-01-01",
+				modified_at: "2024-01-02",
+			},
+			"/note.txt": {
+				content: "line one\nline two",
+				created_at: "2024-01-03",
+				modified_at: "2024-01-04",
+			},
+		};
+		mockGetAegraState.mockResolvedValue({
+			values: { messages: [], files },
+			metadata: {},
+		});
+		const { result } = renderHook(() => useThread());
+		let data: any;
+		await act(async () => {
+			data = await result.current.loadThread("native-1");
+		});
+		expect(data.filesMap).toEqual(new Map([[AEGRA_FILES_SOURCE, files]]));
+		expect(data.filesMap.get(AEGRA_FILES_SOURCE)["/note.txt"].content).toBe(
+			"line one\nline two",
+		);
 		expect(mockSearchThreads).not.toHaveBeenCalled();
 	});
 

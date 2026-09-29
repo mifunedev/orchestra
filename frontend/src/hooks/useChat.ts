@@ -12,7 +12,10 @@ import {
 	streamAegraThread,
 	resolveThreadOwner,
 } from "@/lib/services/threadService";
-import { consumeAegraStream } from "@/lib/utils/aegraStream";
+import {
+	AEGRA_FILES_SOURCE,
+	consumeAegraStream,
+} from "@/lib/utils/aegraStream";
 import { getAuthToken } from "@/lib/utils/auth";
 import { useAgentContext } from "@/context/AgentContext";
 import { StreamMessageHandler } from "@/lib/utils/message";
@@ -698,7 +701,21 @@ export default function useChat(): ChatContextType {
 			await consumeAegraStream(
 				response,
 				(state) => {
-					if (abortController.signal.aborted) return;
+					if (
+						abortController.signal.aborted ||
+						metadataRef.current.thread_id !== threadId
+					)
+						return;
+					const files = state.files;
+					if (files) {
+						setFilesMap((previous) => {
+							const next = new Map(previous);
+							if (Object.keys(files).length)
+								next.set(AEGRA_FILES_SOURCE, files);
+							else next.delete(AEGRA_FILES_SOURCE);
+							return next;
+						});
+					}
 					if (state.runId) {
 						metadataRef.current = {
 							...metadataRef.current,

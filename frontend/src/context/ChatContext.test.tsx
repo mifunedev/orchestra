@@ -5,6 +5,8 @@ import ChatProvider, { useChatContext } from "./ChatContext";
 import { toast } from "sonner";
 import { initiateStream, streamThread } from "@/lib/services";
 import apiClient from "@/lib/utils/apiClient";
+import { patchDefaults } from "@/lib/services/userSettingsService";
+import { AEGRA_FILES_SOURCE } from "@/lib/utils/aegraStream";
 
 vi.mock("@/hooks/useConfigHook", () => ({ default: () => ({}) }));
 vi.mock("@/hooks/useImageHook", () => ({ default: () => ({}) }));
@@ -94,6 +96,70 @@ describe("Aegra submission file provenance", () => {
 		expect(initiateStream).not.toHaveBeenCalled();
 		expect(streamThread).not.toHaveBeenCalled();
 	});
+	it("shows a native file while streaming and removes it on thread change without saving it to account settings", async () => {
+		const files = {
+			"/answer.txt": {
+				content: "first\nsecond",
+				created_at: "2024-01-01",
+				modified_at: "2024-01-02",
+			},
+		};
+		let streamController: ReadableStreamDefaultController<Uint8Array>;
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				streamController = controller;
+			},
+		});
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ thread_id: "native" })),
+			)
+			.mockResolvedValueOnce(new Response(stream));
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChatContext(), { wrapper });
+		await waitFor(() => expect(result.current.fileSystem.size).toBe(4));
+		let submit: Promise<void>;
+		act(() => {
+			submit = result.current.handleSubmit("write a file");
+		});
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		act(() => {
+			streamController.enqueue(
+				new TextEncoder().encode(
+					`event: values\ndata: ${JSON.stringify({ messages: [], files })}\n\n`,
+				),
+			);
+		});
+		await waitFor(() => {
+			expect(result.current.controller).not.toBeNull();
+			expect(result.current.filesMap.get(AEGRA_FILES_SOURCE)).toEqual(files);
+			expect(result.current.fileSystem.get("/answer.txt")).toMatchObject({
+				content: ["first", "second"],
+				created_at: "2024-01-01",
+				modified_at: "2024-01-02",
+				source: AEGRA_FILES_SOURCE,
+			});
+		});
+		expect(patchDefaults).not.toHaveBeenCalled();
+		await act(async () => {
+			streamController.enqueue(
+				new TextEncoder().encode("event: end\ndata: {}\n\n"),
+			);
+			streamController.close();
+			await submit!;
+		});
+		act(() => {
+			result.current.setMetadata({ thread_id: "other", stream_owner: "aegra" });
+			result.current.setFilesMap(new Map());
+		});
+		await waitFor(() =>
+			expect(result.current.fileSystem.has("/answer.txt")).toBe(false),
+		);
+		await new Promise((resolve) => setTimeout(resolve, 600));
+		expect(patchDefaults).not.toHaveBeenCalled();
+	});
+
 	it("routes an explicit attachment to v0 before creating v1 and keeps the queued prompt and file", async () => {
 		vi.mocked(initiateStream).mockResolvedValue({
 			onEvent() {},

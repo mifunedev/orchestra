@@ -7,6 +7,7 @@ import {
 } from "@/lib/services/threadService";
 import { formatMessages } from "@/lib/utils/format";
 import { latestHumanMessage } from "@/lib/utils/message";
+import { AEGRA_FILES_SOURCE, aegraFiles } from "@/lib/utils/aegraStream";
 import type { Todo } from "@/components/lists/TodoList";
 
 const LIMIT = 20;
@@ -80,6 +81,7 @@ export default function useThread(): ThreadContextType {
 				if ((await resolveThreadOwner(threadId)) === "aegra") {
 					const state = await getAegraState(threadId);
 					const messages = formatMessages(state.values?.messages ?? []);
+					const files = aegraFiles(state.values?.files);
 					return {
 						checkpoints: [],
 						messages,
@@ -89,7 +91,10 @@ export default function useThread(): ThreadContextType {
 							stream_owner: "aegra",
 						},
 						todos: [],
-						filesMap: new Map(),
+						filesMap:
+							files && Object.keys(files).length
+								? new Map([[AEGRA_FILES_SOURCE, files]])
+								: new Map(),
 						model: latestHumanMessage(messages)?.model,
 					};
 				}

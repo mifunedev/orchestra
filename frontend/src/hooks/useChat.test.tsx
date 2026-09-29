@@ -9,6 +9,7 @@ vi.mock("@/lib/services/userSettingsService", () => ({
 	getSettings: async () => ({ defaults: {} }),
 }));
 import useChat, { STREAM_RECOVERY_TOAST_ID } from "./useChat";
+import { AEGRA_FILES_SOURCE } from "@/lib/utils/aegraStream";
 
 const mockSetLoading = vi.fn();
 const mockSetLoadingMessage = vi.fn();
@@ -256,6 +257,38 @@ describe("useChat Aegra routing", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(3);
 		vi.unstubAllGlobals();
 	});
+	it("shows native generated files from SSE without making a legacy request", async () => {
+		const files = {
+			"/answer.txt": {
+				content: "answer",
+				created_at: "2024-01-01",
+				modified_at: "2024-01-02",
+			},
+		};
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ thread_id: "native" })),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					`event: updates\ndata: ${JSON.stringify({ tools: { files } })}\n\nevent: end\ndata: {}\n\n`,
+				),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+		const legacyLookup = vi.spyOn(apiClient, "get");
+		const { result } = renderHook(() => useChat());
+		await act(async () => {
+			await result.current.handleSubmit("write a file");
+		});
+		expect(result.current.filesMap.get(AEGRA_FILES_SOURCE)).toEqual(files);
+		expect(result.current.controller).toBeNull();
+		expect(legacyLookup).not.toHaveBeenCalled();
+		expect(mockInitiateStream).not.toHaveBeenCalled();
+		legacyLookup.mockRestore();
+		vi.unstubAllGlobals();
+	});
+
 	it("recovers v1 ownership after clearing browser storage before submitting", async () => {
 		const fetchMock = vi
 			.fn()
