@@ -1,7 +1,7 @@
 import React from "react";
 import "@testing-library/jest-dom";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AppSidebar } from "@/components/drawers/app-sidebar";
 import ListProjectThreads from "@/components/lists/ListProjectThreads";
@@ -21,7 +21,16 @@ vi.mock("@/context/ChatContext", () => ({
 		threads: [
 			{
 				key: "native-1",
-				value: { thread_id: "native-1", messages: [], files: {} },
+				value: { thread_id: "native-1", title: "Native thread" },
+			},
+			{
+				key: "known-1",
+				value: {
+					thread_id: "known-1",
+					title: "Known thread",
+					files: { "answer.txt": {}, "report.txt": {} },
+					messages: [{ type: "human", model: "provider:gpt-4", content: "Hi" }],
+				},
 			},
 		],
 		clearMessages: vi.fn(),
@@ -100,7 +109,7 @@ describe("Aegra-only history affordances", () => {
 	it("does not offer sidebar search, project move, or delete for a native thread", () => {
 		renderWithRouter(<AppSidebar />);
 		expect(
-			screen.getByRole("button", { name: /Empty thread/ }),
+			screen.getByRole("button", { name: /Native thread/ }),
 		).toBeInTheDocument();
 		expect(screen.queryByText("Search threads")).not.toBeInTheDocument();
 		expect(screen.queryByText("Delete")).not.toBeInTheDocument();
@@ -108,6 +117,22 @@ describe("Aegra-only history affordances", () => {
 		expect(legacy.deleteThread).not.toHaveBeenCalled();
 		expect(legacy.updateThreadProject).not.toHaveBeenCalled();
 		expect(legacy.searchThreadsSemantic).not.toHaveBeenCalled();
+	});
+
+	it("omits unknown file and model metadata from a native search row", () => {
+		renderWithRouter(<AppSidebar />);
+		const row = screen.getByRole("button", { name: /Native thread/ });
+		expect(within(row).queryByText(/files?/)).not.toBeInTheDocument();
+		expect(within(row).queryByText("N/A")).not.toBeInTheDocument();
+		expect(row).not.toHaveTextContent("•");
+	});
+
+	it("shows an explicitly known file count and model", () => {
+		renderWithRouter(<AppSidebar />);
+		const row = screen.getByRole("button", { name: /Known thread/ });
+		expect(within(row).getByText("2")).toBeInTheDocument();
+		expect(within(row).getByText("files")).toBeInTheDocument();
+		expect(row).toHaveTextContent("gpt-4");
 	});
 
 	it("does not fetch or delete old project chat history", () => {

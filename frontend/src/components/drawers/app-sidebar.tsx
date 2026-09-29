@@ -51,7 +51,9 @@ function ThreadItem({ thread }: ThreadItemProps) {
 	const navigate = useNavigate();
 	const { pathname } = useLocation();
 	const messages = thread.value?.messages || [];
-	const fileCount = Object.keys(thread.value?.files || {}).length;
+	const fileCount = thread.value?.files
+		? Object.keys(thread.value.files).length
+		: null;
 	const lastMessage = messages
 		.filter((msg: any) => msg.type === "human")
 		.slice(-1)[0];
@@ -87,8 +89,7 @@ function ThreadItem({ thread }: ThreadItemProps) {
 	};
 
 	const threadTitle = getThreadTitle();
-	const model =
-		lastMessage?.model?.split(":")[1] || lastMessage?.model || "N/A";
+	const model = lastMessage?.model?.split(":")[1] || lastMessage?.model;
 	const relativeTime = thread.updated_at
 		? formatDistanceToNow(new Date(thread.updated_at), { addSuffix: true })
 		: "";
@@ -125,16 +126,24 @@ function ThreadItem({ thread }: ThreadItemProps) {
 								</span>
 							)}
 						</div>
-						<div className="flex items-center gap-2.5 text-[11px] text-sidebar-foreground/50">
-							<div className="flex items-center gap-1">
-								<span className="font-medium">{fileCount}</span>
-								<span>file{fileCount !== 1 ? "s" : ""}</span>
+						{(fileCount !== null || model) && (
+							<div className="flex items-center gap-2.5 text-[11px] text-sidebar-foreground/50">
+								{fileCount !== null && (
+									<div className="flex items-center gap-1">
+										<span className="font-medium">{fileCount}</span>
+										<span>file{fileCount !== 1 ? "s" : ""}</span>
+									</div>
+								)}
+								{fileCount !== null && model && (
+									<span className="text-sidebar-foreground/30">&bull;</span>
+								)}
+								{model && (
+									<div className="flex items-center gap-1 truncate">
+										<span className="truncate">{model}</span>
+									</div>
+								)}
 							</div>
-							<span className="text-sidebar-foreground/30">&bull;</span>
-							<div className="flex items-center gap-1 truncate">
-								<span className="truncate">{model}</span>
-							</div>
-						</div>
+						)}
 					</div>
 				</button>
 			</SidebarMenuButton>
