@@ -1,12 +1,6 @@
 import * as React from "react";
 import { useState, useCallback } from "react";
-import {
-	MoreHorizontal,
-	Trash2,
-	FolderKanban,
-	Plus,
-	FileText,
-} from "lucide-react";
+import { MoreHorizontal, Trash2, Plus, FileText } from "lucide-react";
 import {
 	Sidebar,
 	SidebarContent,
@@ -22,11 +16,6 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
-	DropdownMenuSub,
-	DropdownMenuSubTrigger,
-	DropdownMenuSubContent,
-	DropdownMenuPortal,
-	DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useChatContext } from "@/context/ChatContext";
@@ -36,12 +25,9 @@ import { useProjectContext } from "@/context/ProjectContext";
 import { Project } from "@/lib/entities/project";
 import { CreateProjectModal } from "@/components/modals/CreateProjectModal";
 import { AddSourceModal } from "@/components/modals/AddSourceModal";
-import { ThreadSearchModal } from "@/components/modals/ThreadSearchModal";
 import { formatDistanceToNow } from "date-fns";
-import { deleteThread, updateThreadProject } from "@/lib/services";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import useLinkClick from "@/hooks/useLinkClick";
-import { AxiosResponse } from "axios";
 import { SettingsPopover } from "@/components/popovers/SettingsPopover";
 import { ActivityBar, type PanelId } from "@/components/sidebar/ActivityBar";
 import { SidePanel } from "@/components/sidebar/SidePanel";
@@ -56,11 +42,10 @@ const ROUTE_PANELS: Partial<Record<PanelId, string>> = {
 
 interface ThreadItemProps {
 	thread: any;
-	projects: Project[];
 }
 
-function ThreadItem({ thread, projects }: ThreadItemProps) {
-	const { metadata, threads, setThreads, clearMessages } = useChatContext();
+function ThreadItem({ thread }: ThreadItemProps) {
+	const { metadata } = useChatContext();
 	const { agent } = useAgentContext();
 	const { isMobile, setOpenMobile } = useSidebar();
 	const navigate = useNavigate();
@@ -71,7 +56,6 @@ function ThreadItem({ thread, projects }: ThreadItemProps) {
 		.filter((msg: any) => msg.type === "human")
 		.slice(-1)[0];
 	const isSelected = metadata?.thread_id === thread.value?.thread_id;
-	const currentProjectId = thread.value?.project_id;
 
 	const getThreadTitle = () => {
 		if (thread.value?.title) return thread.value?.title;
@@ -99,41 +83,6 @@ function ThreadItem({ thread, projects }: ThreadItemProps) {
 
 		if (isMobile) {
 			setOpenMobile(false);
-		}
-	};
-
-	const handleDeleteClick = async () => {
-		if (window.confirm("Are you sure you want to delete this thread?")) {
-			try {
-				let deleted: boolean | AxiosResponse<any, any> = false;
-				if (agent.id) {
-					deleted = await deleteThread(thread.key, agent.id);
-				} else {
-					deleted = await deleteThread(thread.key);
-				}
-				if (deleted) {
-					setThreads(threads.filter((t: any) => t.key !== thread.key));
-				}
-				if (isSelected) {
-					clearMessages();
-				}
-			} catch (_error) {
-				alert("Failed to delete thread");
-			}
-		}
-	};
-
-	const handleAddToProject = async (projectId: string | null) => {
-		try {
-			await updateThreadProject(thread.key, projectId);
-			const updatedThreads = threads.map((t: any) =>
-				t.key === thread.key
-					? { ...t, value: { ...t.value, project_id: projectId } }
-					: t,
-			);
-			setThreads(updatedThreads);
-		} catch (_error) {
-			alert("Failed to add thread to project");
 		}
 	};
 
@@ -189,73 +138,6 @@ function ThreadItem({ thread, projects }: ThreadItemProps) {
 					</div>
 				</button>
 			</SidebarMenuButton>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="absolute right-2 bottom-2 opacity-0 group-hover/thread:opacity-100 transition-opacity h-6 w-6"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<MoreHorizontal className="h-3.5 w-3.5 text-sidebar-foreground/60" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="w-48">
-					<DropdownMenuSub>
-						<DropdownMenuSubTrigger className="cursor-pointer">
-							<FolderKanban className="mr-2 h-4 w-4" />
-							{currentProjectId ? "Move to Project" : "Add to Project"}
-						</DropdownMenuSubTrigger>
-						<DropdownMenuPortal>
-							<DropdownMenuSubContent className="w-48">
-								{currentProjectId && (
-									<>
-										<DropdownMenuItem
-											onClick={() => handleAddToProject(null)}
-											className="cursor-pointer"
-										>
-											<span className="text-muted-foreground">
-												Remove from project
-											</span>
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-									</>
-								)}
-								{projects.length > 0 ? (
-									projects.map((project) => (
-										<DropdownMenuItem
-											key={project.id}
-											onClick={() => handleAddToProject(project.id!)}
-											className={`cursor-pointer ${
-												currentProjectId === project.id ? "bg-accent" : ""
-											}`}
-										>
-											{project.name}
-											{currentProjectId === project.id && (
-												<span className="ml-auto text-xs text-muted-foreground">
-													Current
-												</span>
-											)}
-										</DropdownMenuItem>
-									))
-								) : (
-									<DropdownMenuItem disabled>
-										No projects available
-									</DropdownMenuItem>
-								)}
-							</DropdownMenuSubContent>
-						</DropdownMenuPortal>
-					</DropdownMenuSub>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						onClick={handleDeleteClick}
-						className="text-red-300 focus:text-red-400 hover:text-red-300 cursor-pointer"
-					>
-						<Trash2 className="mr-2 h-4 w-4" />
-						Delete
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
 		</SidebarMenuItem>
 	);
 }
@@ -404,7 +286,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
 	const [selectedProjectForSource, setSelectedProjectForSource] =
 		useState<Project | null>(null);
-	const [isThreadSearchOpen, setIsThreadSearchOpen] = useState(false);
 
 	// Activity bar panel state
 	const [activePanel, setActivePanel] = useState<PanelId | null>("threads");
@@ -447,9 +328,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	}, [pathname]);
 
 	const renderThreadItem = useCallback(
-		(thread: any, projectsList: Project[]) => (
-			<ThreadItem thread={thread} projects={projectsList} />
-		),
+		(thread: any) => <ThreadItem thread={thread} />,
 		[],
 	);
 
@@ -497,7 +376,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 						loadMoreThreads={loadMoreThreads}
 						hasMoreThreads={hasMoreThreads}
 						isLoadingMoreThreads={isLoadingMoreThreads}
-						onSearchClick={() => setIsThreadSearchOpen(true)}
 						renderThreadItem={renderThreadItem}
 						onCreateProject={() => setIsCreateProjectModalOpen(true)}
 						renderProjectItem={renderProjectItem}
@@ -523,11 +401,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					setSelectedProjectForSource(null);
 				}}
 				project={selectedProjectForSource}
-			/>
-
-			<ThreadSearchModal
-				isOpen={isThreadSearchOpen}
-				onClose={() => setIsThreadSearchOpen(false)}
 			/>
 		</>
 	);

@@ -1,15 +1,20 @@
 import React from "react";
 import "@testing-library/jest-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+	fireEvent,
+	render,
+	screen,
+	within,
+	waitFor,
+} from "@testing-library/react";
+import apiClient from "@/lib/utils/apiClient";
 import FileEditorPanel from "@/components/panels/FileEditorPanel";
 
 const fixture = vi.hoisted(() => ({
 	mobile: false,
-	inferenceMode: false,
-	isGenerating: false,
+	recordedBlob: null as Blob | null,
 	isRecording: false,
-	toggleInferenceMode: vi.fn(),
 	startRecording: vi.fn(),
 	stopRecording: vi.fn(),
 	writeText: vi.fn(),
@@ -35,21 +40,13 @@ const context = vi.hoisted(() => ({
 
 vi.mock("@/context/ChatContext", () => ({ useChatContext: () => context }));
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => fixture.mobile }));
-vi.mock("@/hooks/useInferenceDictation", () => ({
-	default: () => ({
-		inferenceMode: fixture.inferenceMode,
-		toggleInferenceMode: fixture.toggleInferenceMode,
-		isGenerating: fixture.isGenerating,
-		setIsGenerating: vi.fn(),
-	}),
-}));
 vi.mock("@/lib/utils/apiClient", () => ({ default: { post: vi.fn() } }));
 vi.mock("react-voice-visualizer", () => ({
 	useVoiceVisualizer: () => ({
 		isRecordingInProgress: fixture.isRecording,
 		startRecording: fixture.startRecording,
 		stopRecording: fixture.stopRecording,
-		recordedBlob: null,
+		recordedBlob: fixture.recordedBlob,
 	}),
 	VoiceVisualizer: () => null,
 }));
@@ -86,8 +83,6 @@ vi.mock("lucide-react", () => {
 		Mic: Icon,
 		Square: Icon,
 		PanelLeft: Icon,
-		Sparkles: Icon,
-		Loader2: Icon,
 		MoreHorizontal: Icon,
 	};
 });
@@ -172,8 +167,7 @@ describe("FileEditorPanel layout", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fixture.mobile = false;
-		fixture.inferenceMode = false;
-		fixture.isGenerating = false;
+		fixture.recordedBlob = null;
 		fixture.isRecording = false;
 		fixture.generateZip.mockResolvedValue(new Blob());
 		Object.defineProperty(navigator, "clipboard", {
@@ -334,7 +328,6 @@ describe("FileEditorPanel layout", () => {
 		expect(
 			screen.getAllByRole("menuitem").map((item) => item.textContent),
 		).toEqual([
-			"Inference mode: Off",
 			"Start dictation",
 			"Copy current file",
 			"Download current file",
@@ -342,7 +335,7 @@ describe("FileEditorPanel layout", () => {
 		]);
 	});
 
-	it("runs inference, dictation, copy, single-file download, and ZIP actions", async () => {
+	it("runs dictation, copy, single-file download, and ZIP actions", async () => {
 		const createObjectURL = vi.fn().mockReturnValue("blob:fixture");
 		const revokeObjectURL = vi.fn();
 		Object.defineProperty(URL, "createObjectURL", {
@@ -365,8 +358,6 @@ describe("FileEditorPanel layout", () => {
 				);
 				fireEvent.click(screen.getByRole("menuitem", { name }));
 			};
-			select("Inference mode: Off");
-			expect(fixture.toggleInferenceMode).toHaveBeenCalledOnce();
 			select("Start dictation");
 			expect(fixture.startRecording).toHaveBeenCalledOnce();
 			select("Copy current file");
@@ -385,40 +376,36 @@ describe("FileEditorPanel layout", () => {
 		}
 	});
 
-	it("shows stop dictation and active inference, and disables mode changes during recording", () => {
+	it("stops dictation during recording without offering inference", () => {
 		fixture.isRecording = true;
-		fixture.inferenceMode = true;
 		render(<FileEditorPanel />);
 		fireEvent.pointerDown(
 			screen.getByRole("button", { name: "File actions" }),
 			{ button: 0, ctrlKey: false, pointerType: "mouse" },
 		);
-		expect(
-			screen.getByRole("menuitem", { name: "Inference mode: On" }),
-		).toHaveAttribute("data-disabled");
-		fireEvent.click(
-			screen.getByRole("menuitem", { name: "Inference mode: On" }),
-		);
-		expect(fixture.toggleInferenceMode).not.toHaveBeenCalled();
+		expect(screen.queryByText(/Inference mode/)).not.toBeInTheDocument();
 		fireEvent.click(screen.getByRole("menuitem", { name: "Stop dictation" }));
 		expect(fixture.stopRecording).toHaveBeenCalledOnce();
 	});
 
-	it("disables dictation and inference while generating", () => {
-		fixture.isGenerating = true;
+	it("transcribes into the file without streaming a legacy chat", async () => {
+		fixture.recordedBlob = new Blob(["voice"]);
+		vi.mocked(apiClient.post).mockResolvedValue({
+			data: { transcript: { text: "spoken text" } },
+		} as never);
 		render(<FileEditorPanel />);
-		fireEvent.pointerDown(
-			screen.getByRole("button", { name: "File actions" }),
-			{ button: 0, ctrlKey: false, pointerType: "mouse" },
+		await waitFor(() =>
+			expect(context.updateFile).toHaveBeenCalledWith(
+				"/one.txt",
+				"one\nspoken text",
+			),
 		);
-		expect(
-			screen.getByRole("menuitem", { name: "Inference mode: Off" }),
-		).toHaveAttribute("data-disabled");
-		expect(
-			screen.getByRole("menuitem", { name: "Start dictation" }),
-		).toHaveAttribute("data-disabled");
-		fireEvent.click(screen.getByRole("menuitem", { name: "Start dictation" }));
-		expect(fixture.startRecording).not.toHaveBeenCalled();
+		expect(apiClient.post).toHaveBeenCalledTimes(1);
+		expect(apiClient.post).toHaveBeenCalledWith(
+			"/llm/transcribe",
+			expect.any(FormData),
+			expect.any(Object),
+		);
 	});
 
 	it("opens the menu with a keyboard, selects an action, and dismisses with Escape", () => {
@@ -427,17 +414,17 @@ describe("FileEditorPanel layout", () => {
 		trigger.focus();
 		fireEvent.keyDown(trigger, { key: "ArrowDown" });
 		expect(
-			screen.getByRole("menuitem", { name: "Inference mode: Off" }),
+			screen.getByRole("menuitem", { name: "Start dictation" }),
 		).toBeInTheDocument();
 		fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
 		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 		trigger.focus();
 		fireEvent.keyDown(trigger, { key: "Enter" });
 		fireEvent.keyDown(
-			screen.getByRole("menuitem", { name: "Inference mode: Off" }),
+			screen.getByRole("menuitem", { name: "Start dictation" }),
 			{ key: "Enter" },
 		);
-		expect(fixture.toggleInferenceMode).toHaveBeenCalledOnce();
+		expect(fixture.startRecording).toHaveBeenCalledOnce();
 	});
 
 	it("disables the action menu without a selected file or a ZIP to download", () => {

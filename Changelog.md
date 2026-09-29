@@ -12,7 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Changed
 
-- Route supported new text/authorized-tool chats to Aegra v1 by default, use legacy v0 for unsupported interactions before creation, and restore each owner from server history on reload ([#1021](https://github.com/mifunedev/orchestra/issues/1021)).
+- Use Aegra-only chat in the experiment: reject unsupported input before creation, omit old chat history, and keep account and tool authority on the Orchestra backend ([#1021](https://github.com/mifunedev/orchestra/issues/1021)).
 - Place the file explorer to the right of the editor in the Files panel, open Markdown files in preview by default, and consolidate file actions into a three-dot menu ([#1012](https://github.com/mifunedev/orchestra/issues/1012)).
 - Default new chats to GPT-6 Luna when an OpenAI key is available, while leaving automatic reasoning effort and saved preferences unchanged ([#1008](https://github.com/mifunedev/orchestra/issues/1008)).
 

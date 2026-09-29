@@ -19,8 +19,6 @@ import {
 	Mic,
 	Square,
 	PanelLeft,
-	Sparkles,
-	Loader2,
 } from "lucide-react";
 import { useVoiceVisualizer, VoiceVisualizer } from "react-voice-visualizer";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -60,7 +58,6 @@ import {
 	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { FileTreeSidebar } from "./FileTree";
-import useInferenceDictation from "@/hooks/useInferenceDictation";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BreadcrumbSegment {
@@ -181,13 +178,6 @@ export default function FileEditorPanel() {
 		[fileSystem],
 	);
 
-	// Inference dictation hook
-	const { inferenceMode, toggleInferenceMode, isGenerating, setIsGenerating } =
-		useInferenceDictation({
-			activeFile: activeFile || undefined,
-			fileContent: activeFile ? getFileContent(activeFile) : undefined,
-		});
-
 	// Memoized Monaco options to prevent re-initialization
 	const monacoOptions = useMemo(
 		() => ({
@@ -251,7 +241,6 @@ export default function FileEditorPanel() {
 	// Use isRecordingInProgress directly instead of syncing to local state
 	const isRecording = isRecordingInProgress;
 
-	// Handle recorded blob - transcribe and optionally send to LLM for inference
 	useEffect(() => {
 		// Skip if no blob, no file, or if we've already processed this blob
 		if (!recordedBlob || !selectedFile) return;
@@ -273,139 +262,22 @@ export default function FileEditorPanel() {
 					"Content-Type": "multipart/form-data",
 				},
 			})
-			.then(async (response) => {
+			.then((response) => {
 				const transcribedText = response.data.transcript.text;
 				if (!transcribedText || !selectedFile) return;
 
-				if (inferenceMode) {
-					// Inference mode: send to LLM for file generation
-					setIsGenerating(true);
-					try {
-						// Get current file content for context (fresh at inference time)
-						const currentFileContent = getFileContent(selectedFile);
-
-						// Build files map with current file for LLM access
-						const filesMap: Record<string, string> = {};
-						if (currentFileContent) {
-							filesMap[selectedFile] = currentFileContent;
-						}
-
-						// Build payload with file_system in input for LLM agent access
-						const payload = {
-							input: {
-								messages: [{ role: "user", content: transcribedText }],
-								files: Object.keys(filesMap).length > 0 ? filesMap : undefined,
-							},
-							generate_files: true,
-							target_file: selectedFile,
-							file_context: currentFileContent || undefined,
-						};
-
-						const streamResponse = await apiClient.post(
-							"/llm/stream",
-							payload,
-							{
-								responseType: "text",
-								headers: {
-									Accept: "text/event-stream",
-								},
-							},
-						);
-
-						// Parse SSE response for file content
-						// Response format: data: ["stream_type", {payload}]
-						const lines = streamResponse.data.split("\n");
-						let generatedContent = "";
-
-						for (const line of lines) {
-							if (line.startsWith("data:")) {
-								try {
-									const data = JSON.parse(line.slice(5).trim());
-
-									// Stream response is a tuple: [type, payload]
-									if (Array.isArray(data) && data.length === 2) {
-										const [streamType, payload] = data;
-
-										// Handle "values" events which contain files
-										if (streamType === "values" && payload?.files) {
-											Object.entries(payload.files).forEach(
-												([filePath, content]) => {
-													if (typeof content === "string") {
-														if (fileSystem.has(filePath)) {
-															updateFile(filePath, content);
-														} else {
-															createFile(filePath, content);
-														}
-													}
-												},
-											);
-										}
-
-										// Handle "values" events to get AI response content
-										if (streamType === "values" && payload?.messages) {
-											// Get the last AI message content as generated content
-											for (const msg of payload.messages) {
-												if (msg.type === "ai" || msg.role === "assistant") {
-													if (typeof msg.content === "string") {
-														generatedContent = msg.content;
-													}
-												}
-											}
-										}
-
-										// Handle "messages" events for streaming content
-										if (streamType === "messages") {
-											const [msgData] = Array.isArray(payload)
-												? payload
-												: [payload];
-											if (
-												msgData?.type === "ai" ||
-												msgData?.role === "assistant"
-											) {
-												if (typeof msgData.content === "string") {
-													generatedContent += msgData.content;
-												}
-											}
-										}
-									}
-								} catch {
-									// Ignore non-JSON lines
-								}
-							}
-						}
-
-						// If we have generated content and a target file, write it
-						if (generatedContent && selectedFile) {
-							// Extract code blocks if present, otherwise use raw content
-							const codeBlockMatch = generatedContent.match(
-								/```(?:\w+)?\n([\s\S]*?)```/,
-							);
-							const contentToWrite = codeBlockMatch
-								? codeBlockMatch[1].trim()
-								: generatedContent;
-
-							updateFile(selectedFile, contentToWrite);
-						}
-					} catch (error) {
-						console.error("Error generating content:", error);
-					} finally {
-						setIsGenerating(false);
-					}
-				} else {
-					// Normal mode: insert transcribed text into editor
-					const currentContent = getFileContent(selectedFile);
-					const newContent = currentContent
-						? `${currentContent}\n${transcribedText}`
-						: transcribedText;
-					updateFile(selectedFile, newContent);
-				}
+				const currentContent = getFileContent(selectedFile);
+				const newContent = currentContent
+					? `${currentContent}\n${transcribedText}`
+					: transcribedText;
+				updateFile(selectedFile, newContent);
 			})
 			.catch((error) => {
 				console.error("Error transcribing audio:", error);
 			});
 		// Note: fileSystem is intentionally excluded from deps to prevent re-triggering
 		// The processedBlobRef prevents duplicate processing of the same blob
-	}, [recordedBlob, selectedFile, inferenceMode]);
+	}, [recordedBlob, selectedFile]);
 
 	const handleFileSelect = useCallback(
 		(filename: string) => {
@@ -1043,19 +915,11 @@ export default function FileEditorPanel() {
 										{selectedFile && (
 											<>
 												<DropdownMenuItem
-													onSelect={toggleInferenceMode}
-													disabled={isRecording || isGenerating}
-												>
-													<Sparkles />
-													Inference mode: {inferenceMode ? "On" : "Off"}
-												</DropdownMenuItem>
-												<DropdownMenuItem
 													onSelect={
 														isRecording
 															? handleStopRecording
 															: handleStartRecording
 													}
-													disabled={isGenerating}
 												>
 													{isRecording ? <Square /> : <Mic />}
 													{isRecording ? "Stop dictation" : "Start dictation"}
@@ -1112,16 +976,6 @@ export default function FileEditorPanel() {
 									speed={1}
 									barWidth={2}
 								/>
-							</div>
-						)}
-
-						{/* Generating Indicator - only show when generating */}
-						{isGenerating && (
-							<div className="px-4 py-3 bg-primary/5 border-b border-border flex items-center gap-3">
-								<Loader2 className="h-4 w-4 animate-spin text-primary" />
-								<span className="text-sm text-muted-foreground">
-									Generating content from voice prompt...
-								</span>
 							</div>
 						)}
 

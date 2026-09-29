@@ -1,6 +1,5 @@
 import { ColorModeButton } from "@/components/buttons/ColorModeButton";
 import NewThreadButton from "../buttons/NewThreadButton";
-import ShareButton from "../buttons/thread-share-button";
 import { HelpButton } from "@/components/buttons/HelpButton";
 import { SaveAsAssistantDialog } from "@/components/dialogs/SaveAsAssistantDialog";
 import { Save } from "lucide-react";
@@ -55,7 +54,6 @@ export function ChatNav({
 						>
 							<Save className="h-4 w-4" />
 						</Button>
-						<ShareButton />
 						<NewThreadButton />
 						<HelpButton />
 						<div className="w-9">
