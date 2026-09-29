@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import ThreadPage from "./ThreadPage";
 
@@ -142,6 +142,8 @@ describe("ThreadPage", () => {
 		setViewMode: vi.fn(),
 		setMetadata: vi.fn(),
 		setFilesMap: vi.fn(),
+		clearThreadScopedFiles: vi.fn(),
+		clearMessages: vi.fn(),
 		setCheckpoints: vi.fn(),
 		useListThreadsEffect: vi.fn(),
 		useListCheckpointsEffect: vi.fn(),
@@ -229,7 +231,7 @@ describe("ThreadPage", () => {
 	it("clears stale in-memory thread state when the route thread differs", () => {
 		const setMessages = vi.fn();
 		const setCheckpoints = vi.fn();
-		const setFilesMap = vi.fn();
+		const clearThreadScopedFiles = vi.fn();
 		const setTodos = vi.fn();
 		const setViewMode = vi.fn();
 		const setMetadata = vi.fn();
@@ -240,7 +242,7 @@ describe("ThreadPage", () => {
 			metadata: { thread_id: "other-thread" },
 			setMessages,
 			setCheckpoints,
-			setFilesMap,
+			clearThreadScopedFiles,
 			setTodos,
 			setViewMode,
 			setMetadata,
@@ -250,10 +252,58 @@ describe("ThreadPage", () => {
 
 		expect(setMessages).toHaveBeenCalledWith([]);
 		expect(setCheckpoints).toHaveBeenCalledWith([]);
-		expect(setFilesMap).not.toHaveBeenCalled();
+		expect(clearThreadScopedFiles).toHaveBeenCalledOnce();
 		expect(setTodos).toHaveBeenCalledWith([]);
 		expect(setViewMode).toHaveBeenCalledWith("chat");
 		expect(setMetadata).toHaveBeenCalledWith(expect.any(Function));
+	});
+
+	it("clears native files on an unavailable old route before returning to chat", () => {
+		const files = new Map([
+			["account.txt", "persistent"],
+			["/answer.txt", "native"],
+		]);
+		const clearThreadScopedFiles = vi.fn(() => files.delete("/answer.txt"));
+		const clearMessages = vi.fn();
+		const clearFileSystem = vi.fn();
+		const ChatFiles = () => <div>Files {files.size}</div>;
+		const ThreadJourney = () => {
+			const navigate = useNavigate();
+			return (
+				<>
+					<button onClick={() => navigate("/thread/old")}>Open old</button>
+					<ThreadPage />
+				</>
+			);
+		};
+		mockUseChatContext.mockReturnValue({
+			...baseChatContext,
+			metadata: { thread_id: "native" },
+			messages: [{ id: "native-message" }],
+			threadError: "Thread unavailable in Aegra",
+			clearThreadScopedFiles,
+			clearMessages,
+			clearFileSystem,
+		});
+
+		render(
+			<MemoryRouter initialEntries={["/thread/native"]}>
+				<Routes>
+					<Route path="/thread/:threadId" element={<ThreadJourney />} />
+					<Route path="/chat" element={<ChatFiles />} />
+				</Routes>
+			</MemoryRouter>,
+		);
+
+		expect(files.size).toBe(2);
+		expect(clearThreadScopedFiles).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByText("Open old"));
+		expect(screen.getByText("Thread unavailable in Aegra")).toBeInTheDocument();
+		expect(clearThreadScopedFiles).toHaveBeenCalledOnce();
+		fireEvent.click(screen.getByText("Go to Chat"));
+		expect(screen.getByText("Files 1")).toBeInTheDocument();
+		expect(clearMessages).toHaveBeenCalledOnce();
+		expect(clearFileSystem).not.toHaveBeenCalled();
 	});
 
 	it("does not render a stale thread error when reusing live in-memory state", () => {

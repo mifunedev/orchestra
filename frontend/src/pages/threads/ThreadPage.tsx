@@ -39,6 +39,8 @@ export default function ThreadPage() {
 		setViewMode,
 		setMetadata,
 		setFilesMap,
+		clearThreadScopedFiles,
+		clearMessages,
 		setCheckpoints,
 		useListThreadsEffect,
 		useModelsEffect,
@@ -65,7 +67,31 @@ export default function ThreadPage() {
 	useEffectGetAgents();
 	useListThreadsEffect(!loading);
 
-	// Load thread data using modularized hook
+	useEffect(() => {
+		if (!threadId || metadata?.thread_id === threadId) {
+			return;
+		}
+
+		setMessages([]);
+		clearThreadScopedFiles();
+		setCheckpoints([]);
+		setTodos([]);
+		setViewMode("chat");
+		setMetadata((prev: any) => ({
+			...prev,
+			thread_id: threadId,
+		}));
+	}, [
+		threadId,
+		metadata?.thread_id,
+		setMessages,
+		clearThreadScopedFiles,
+		setCheckpoints,
+		setTodos,
+		setViewMode,
+		setMetadata,
+	]);
+
 	useLoadThreadEffect(
 		threadId,
 		{
@@ -80,29 +106,6 @@ export default function ThreadPage() {
 			enabled: !hasLiveThreadState,
 		},
 	);
-
-	useEffect(() => {
-		if (!threadId || metadata?.thread_id === threadId) {
-			return;
-		}
-
-		setMessages([]);
-		setCheckpoints([]);
-		setTodos([]);
-		setViewMode("chat");
-		setMetadata((prev: any) => ({
-			...prev,
-			thread_id: threadId,
-		}));
-	}, [
-		threadId,
-		metadata?.thread_id,
-		setMessages,
-		setCheckpoints,
-		setTodos,
-		setViewMode,
-		setMetadata,
-	]);
 
 	// Handle project context if on /p/:projectId/t/:threadId
 	useEffect(() => {
@@ -138,7 +141,11 @@ export default function ThreadPage() {
 				<div className="flex h-full flex-col items-center justify-center gap-4">
 					<p className="text-muted-foreground">{effectiveThreadError}</p>
 					<button
-						onClick={() => navigate("/chat")}
+						onClick={() => {
+							clearMessages();
+							clearThreadScopedFiles();
+							navigate("/chat");
+						}}
 						className="text-primary hover:underline"
 					>
 						Go to Chat

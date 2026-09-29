@@ -201,7 +201,38 @@ describe("useChat native-only submission", () => {
 		assertNoLegacyChat(fetchMock);
 	});
 
-	it("fails closed on an existing thread without verified native ownership", async () => {
+	it("verifies an unknown-owner native thread through paginated v1 search", async () => {
+		const firstPage = Array.from({ length: 100 }, (_, index) => ({
+			thread_id: `native-${index}`,
+		}));
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(new Response(JSON.stringify(firstPage)))
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify([{ thread_id: "target" }])),
+			)
+			.mockResolvedValueOnce(new Response("event: end\ndata: {}\n\n"));
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChat());
+		act(() => result.current.setMetadata({ thread_id: "target" }));
+		await act(async () => result.current.handleSubmit("hello"));
+		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+			"/api/v1/threads/search",
+			"/api/v1/threads/search",
+			"/api/v1/threads/target/runs/stream",
+		]);
+		expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toMatchObject({
+			limit: 100,
+			offset: 100,
+		});
+		expect(result.current.metadata).toMatchObject({
+			thread_id: "target",
+			stream_owner: "aegra",
+		});
+		assertNoLegacyChat(fetchMock);
+	});
+
+	it("fails closed on an old thread without verified native ownership", async () => {
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValue(new Response(JSON.stringify([])));
@@ -213,10 +244,26 @@ describe("useChat native-only submission", () => {
 		});
 		await act(async () => result.current.handleSubmit());
 		expect(result.current.query).toBe("draft");
-		expect(result.current.runError).not.toBeNull();
+		expect(result.current.runError?.message).toMatch(/unavailable in Aegra/i);
+		expect(result.current.metadata.stream_owner).toBeUndefined();
 		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
 			"/api/v1/threads/search",
 		]);
+		assertNoLegacyChat(fetchMock);
+	});
+
+	it("rejects explicit legacy ownership before any request", async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+		const { result } = renderHook(() => useChat());
+		act(() => {
+			result.current.setMetadata({ thread_id: "old", stream_owner: "legacy" });
+			result.current.setQuery("draft");
+		});
+		await act(async () => result.current.handleSubmit());
+		expect(result.current.query).toBe("draft");
+		expect(result.current.runError?.message).toMatch(/unavailable in Aegra/i);
+		expect(fetchMock).not.toHaveBeenCalled();
 		assertNoLegacyChat(fetchMock);
 	});
 

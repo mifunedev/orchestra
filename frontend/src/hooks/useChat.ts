@@ -4,7 +4,7 @@ import { formatMessages } from "@/lib/utils/format";
 import {
 	createAegraThread,
 	streamAegraThread,
-	searchAegraThreads,
+	resolveThreadOwner,
 } from "@/lib/services/threadService";
 import {
 	AEGRA_FILES_SOURCE,
@@ -75,12 +75,6 @@ export type ChatContextType = {
 	removeFile: (path: string) => void;
 	renameFile: (oldPath: string, newPath: string) => void;
 	getFilesForSubmission: () => Record<string, any>;
-	attachToDistributedStream: (options: {
-		threadId: string;
-		runId: string;
-		lastEventId?: string | null;
-		route?: string;
-	}) => Promise<void>;
 	runError: RunError | null;
 	setRunError: (error: RunError | null) => void;
 	replayRun: (runId: string) => Promise<void>;
@@ -223,13 +217,7 @@ export default function useChat(): ChatContextType {
 			try {
 				if (metadataRef.current.stream_owner === "legacy")
 					throw new Error("Thread is unavailable in Aegra");
-				let found = false;
-				for (let offset = 0; !found; offset += 100) {
-					const page = await searchAegraThreads(100, offset);
-					found = page.some((thread) => thread.thread_id === existingThreadId);
-					if (!found && page.length < 100)
-						throw new Error("Thread is unavailable in Aegra");
-				}
+				await resolveThreadOwner(existingThreadId);
 				setMetadata({ ...metadataRef.current, stream_owner: "aegra" });
 			} catch (error) {
 				rejectSubmission(
@@ -344,14 +332,6 @@ export default function useChat(): ChatContextType {
 	const replayRun = async (_runId: string) => {
 		toast.error("Run replay is unavailable for Aegra threads.");
 	};
-	const attachToDistributedStream = async (_options: {
-		threadId: string;
-		runId: string;
-		lastEventId?: string | null;
-		route?: string;
-	}) => {
-		throw new Error("Legacy stream recovery is unavailable for Aegra threads");
-	};
 	const sseHandler = (
 		_payload: any,
 		_messages: any[],
@@ -461,7 +441,6 @@ export default function useChat(): ChatContextType {
 		removeFile,
 		renameFile,
 		getFilesForSubmission,
-		attachToDistributedStream,
 		runError,
 		setRunError,
 		replayRun,
