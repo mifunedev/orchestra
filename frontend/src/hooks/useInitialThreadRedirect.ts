@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { isAegraThread } from "@/lib/services/threadService";
+import { resolveThreadOwner } from "@/lib/services/threadService";
 
 type UseInitialThreadRedirectOptions = {
 	threadId?: string;
@@ -24,20 +24,34 @@ export default function useInitialThreadRedirect({
 			return;
 		}
 
-		if (!hasMessages || isAegraThread(threadId)) {
+		if (
+			threadId === staleThreadId ||
+			lastNavigatedThreadIdRef.current === threadId
+		) {
 			return;
 		}
 
-		// Skip redirect when the threadId matches the stale one we just left
-		if (threadId === staleThreadId) {
+		if (hasMessages) {
+			lastNavigatedThreadIdRef.current = threadId;
+			navigate(`/thread/${threadId}`, { replace: true });
 			return;
 		}
 
-		if (lastNavigatedThreadIdRef.current === threadId) {
-			return;
-		}
-
-		lastNavigatedThreadIdRef.current = threadId;
-		navigate(`/thread/${threadId}`, { replace: true });
+		let active = true;
+		resolveThreadOwner(threadId)
+			.then((owner) => {
+				if (
+					active &&
+					owner === "aegra" &&
+					lastNavigatedThreadIdRef.current !== threadId
+				) {
+					lastNavigatedThreadIdRef.current = threadId;
+					navigate(`/thread/${threadId}`, { replace: true });
+				}
+			})
+			.catch(() => {});
+		return () => {
+			active = false;
+		};
 	}, [hasMessages, navigate, staleThreadId, threadId]);
 }

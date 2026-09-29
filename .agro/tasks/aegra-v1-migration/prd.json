@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "project": "mifunedev/orchestra",
+  "branchName": "feat/1021-aegra-v1-migration",
+  "description": "Expose Aegra as v1 for supported new chats while preserving legacy v0 for unsupported interactions and existing threads on experiment/aegra.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Expose the Aegra v1 agent API",
+      "acceptanceCriteria": [
+        "First add failing route tests for Aegra thread creation and run streaming under `/api/v1`.",
+        "An authorized client creates a thread with `POST /api/v1/threads` and streams a run with `POST /api/v1/threads/{thread_id}/runs/stream` using Aegra-native payloads and events.",
+        "An unauthenticated request to each v1 route returns `401`; a second user cannot read or run the first user's thread.",
+        "Legacy `POST /api/llm/stream` and `/api/threads/search` retain their existing payloads and behavior.",
+        "The frontend proxy directs `/api/v1` to the Aegra service and legacy `/api` to the Orchestra backend.",
+        "The experiment exposes no permanent duplicate Aegra contract under `/api/aegra` after v1 clients move."
+      ],
+      "description": "As an API client, I want Aegra threads and runs under `/api/v1` so that I can distinguish them from legacy `/api` operations.",
+      "priority": 1,
+      "passes": true,
+      "commit": "d7c8c5cbf48934cbd8cad1a6ba61abb3c429ac5c",
+      "notes": "1 executed: worker red route test exit 1 before implementation. 2 executed: advisor independently ran bash backend/scripts/test-aegra-chat-stream.sh on the integrated task branch, exit 0, 3 passed; task-created database dropped and absence verified. 3 executed: focused test asserts unauthenticated 401 and second-user read/run denial. 4 reasoned: git diff against experiment/aegra changes no legacy route or payload files; full backend CI will verify before PR ready. 5 reasoned: reviewed Vite proxy ordering: /api/v1 targets port 2026 before /api targets Orchestra; browser route review remains in US-002 and US-004. 6 executed: focused test asserts old /api/aegra route returns 404. README STE check and git diff --check passed. Implementation commit d7c8c5cb; documentation fix f39157a1.",
+      "dependsOn": [],
+      "files": [
+        "backend/src/integrations/aegra/app.py",
+        "backend/src/integrations/aegra/README.md",
+        "backend/tests/integration/test_aegra_chat_stream.py",
+        "frontend/vite.config.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Select an engine before new-thread creation",
+      "acceptanceCriteria": [
+        "First add failing UI tests for a new text chat with an authorized tool and for new chats with files, MCP, A2A, subagents, public assistants, or a custom system prompt.",
+        "Before any thread creation request, the UI selects v1 for a supported text interaction with authorized Orchestra tools.",
+        "Before any thread creation request, the UI selects legacy v0 when the interaction requests a feature that v1 does not support; the legacy request keeps that feature's input.",
+        "Each thread keeps one engine for later turns; a failed or interrupted v1 run never retries through `/api/llm/stream`.",
+        "Existing legacy threads stay on their existing routes. No request dual-writes thread, run, or checkpoint state.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "description": "As a chat user, I want supported interactions on v1 and unsupported ones on v0 so that legacy features remain available.",
+      "priority": 2,
+      "passes": true,
+      "commit": "f53fc2a46d70e9f7e7c59cafcf43a4f4b5e6cbcf",
+      "notes": "1 executed: worker reported 13 red tests before implementation; advisor independently reran integrated UI suite, 4 files and 47 tests passed, with frontend build exit 0. 2 and 3 executed: isolated browser on 5174 used v1 service 2027 for authorized math_calculator (9 * 9 = 81) and legacy 8000 for an attached valid PNG (reply Red); upload preview and legacy reply verified input. 4 and 5 executed: browser second turns stayed on their engine, v1 and v0 ownership probes returned 200 on owning route and 404 on opposite route; focused tests cover failed/interrupted v1 without v0 retry. 6 executed: agent-browser 0.8.5 preflight and two browser journey screenshots in evidence/manual-review.md. Existing operator services untouched. No generated tracked changes after build. Known v1 discovery gap remains US-003.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "frontend/src/hooks/useChat.ts",
+        "frontend/src/hooks/useChat.test.tsx",
+        "frontend/src/lib/services/threadService.ts",
+        "frontend/src/components/buttons/NewThreadButton.tsx"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Recover engine ownership after reload",
+      "acceptanceCriteria": [
+        "First add failing tests that clear `localStorage` before opening one v1 thread and one legacy thread.",
+        "The UI discovers authorized v1 threads through Aegra thread search or an equivalent server-owned record; it does not use `localStorage` as the authority for engine ownership.",
+        "After a reload without local markers, opening a v1 thread reads its Aegra state and opening a legacy thread reads its existing Orchestra state.",
+        "A second user cannot discover or read the first user's v1 thread through the new lookup path.",
+        "The UI does not send a v1 thread identifier to legacy checkpoint search or write a legacy thread row for it.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "description": "As a returning user, I want server-owned thread routing so that reloads and other devices cannot send a thread to the wrong store.",
+      "priority": 3,
+      "passes": true,
+      "commit": "6fb1645f82acbcfd7851f659affbdd49b5069f8d",
+      "notes": "1 executed: worker first recorded 10 red tests for missing recovery; advisor reran integrated full frontend suite, 591 passed and 3 skipped, build exit 0. 2 and 3 executed: fresh browser origin with auth only and no aegra-thread local markers listed both task threads; direct reload recovered native calculator history from /api/v1 and legacy image history from /api. 4 executed: native search integration test asserts second user cannot list or read owner thread; independent integrated backend runner 3 passed, exit 0, unique test database dropped and independently confirmed absent. 5 executed: browser XHR trace after switching v0 to v1 showed zero legacy checkpoint-search calls for v1 id; native and legacy ownership probes returned 200 only on their own service. Extra owned files were authorized for useChat unknown-owner guard, backend search isolation test, useThread tests, and stale ChatContext tests. The first legacy lookup bug was reproduced in browser, replaced with authenticated legacy GET, and browser reloaded v0 successfully. Integration commits c490ecb0, 8648fc51, fe330147, 6fb1645f. Evidence: evidence/manual-review.md and us003 reload screenshots.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "frontend/src/lib/services/threadService.ts",
+        "frontend/src/hooks/useThread.ts",
+        "frontend/src/hooks/useInitialThreadRedirect.ts",
+        "frontend/src/hooks/useInitialThreadRedirect.test.tsx",
+        "frontend/src/hooks/useChat.test.tsx"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Review both paths and clean up",
+      "acceptanceCriteria": [
+        "After operator approval for disposable resources, record redacted commands, HTTP statuses, and annotated screenshots in `.agro/tasks/aegra-v1-migration/evidence/manual-review.md`.",
+        "In agent-browser, create a v1 thread, invoke an Orchestra tool, see its result and streamed reply, and send a second turn.",
+        "In agent-browser, create a new thread with one unsupported feature and observe the legacy v0 path retain that input.",
+        "Reload with browser-local ownership flags cleared; confirm both threads open under their original engines.",
+        "Stop only review processes and delete only task-created disposable databases; verify their absence."
+      ],
+      "description": "As an operator, I want observed v0 and v1 journeys so that I can decide whether the experiment is ready for further parity work.",
+      "priority": 4,
+      "passes": true,
+      "commit": "f81102a9444acd726cc60ff6f05e08e28b560fe8",
+      "notes": "1 executed: under approved disposable database scope, evidence/manual-review.md records redacted commands, observed HTTP statuses, and two annotated browser screenshots; STE check and git diff --check exit 0. 2 executed: v1 browser created thread, invoked math_calculator 9 * 9 = 81, displayed tool result and streamed reply, and answered a second turn on the same engine. 3 executed: new chat with uploaded valid red PNG routed to v0 and answered Red; controlled blue image retry confirmed one human and one assistant for one click. 4 executed: fresh browser with auth only and no aegra-thread keys reloaded both task-owned thread IDs from their original server; browser v1 route XHR trace showed zero legacy checkpoint-search calls. 5 executed: stopped only named review tmux sessions (ports 5174 and 2027 now closed), deleted only three task-created legacy review threads (204 then 404), dropped only aegra_v1_review_5160189ff5fc8c8e3c678b35499fdc97 and independently verified database absence. Existing 5173, 8000, and 2026 services remain online.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/aegra-v1-migration/evidence/"
+      ]
+    }
+  ]
+}

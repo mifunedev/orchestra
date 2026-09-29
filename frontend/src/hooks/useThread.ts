@@ -1,10 +1,23 @@
 import { useEffect, useState, useCallback } from "react";
-import { searchThreads } from "@/lib/services/threadService";
+import {
+	searchAegraThreads,
+	resolveThreadOwner,
+	getAegraState,
+} from "@/lib/services/threadService";
 import { formatMessages } from "@/lib/utils/format";
 import { latestHumanMessage } from "@/lib/utils/message";
+import { AEGRA_FILES_SOURCE, aegraFiles } from "@/lib/utils/aegraStream";
 import type { Todo } from "@/components/lists/TodoList";
 
 const LIMIT = 20;
+
+const toThreadRow = (
+	thread: Awaited<ReturnType<typeof searchAegraThreads>>[number],
+) => ({
+	key: thread.thread_id,
+	updated_at: thread.updated_at,
+	value: { thread_id: thread.thread_id, title: thread.metadata?.thread_name },
+});
 
 export type ThreadData = {
 	checkpoints: any[];
@@ -57,7 +70,7 @@ export default function useThread(): ThreadContextType {
 	const [threads, setThreads] = useState<any[]>([]);
 	const [checkpoints, setCheckpoints] = useState<any[]>([]);
 	const [checkpoint, setCheckpoint] = useState<any>(null);
-	const [cursor, setCursor] = useState<string | null>(null);
+	const [offset, setOffset] = useState(0);
 	const [hasMoreThreads, setHasMoreThreads] = useState<boolean>(true);
 	const [isLoadingMoreThreads, setIsLoadingMoreThreads] =
 		useState<boolean>(false);
@@ -72,53 +85,32 @@ export default function useThread(): ThreadContextType {
 			setThreadError(null);
 
 			try {
-				// Load checkpoints directly for this specific thread
-				// Backend returns checkpoints when thread_id is passed
-				const checkpointsData = await searchThreads("list_checkpoints", {
-					thread_id: threadId,
-				});
-
-				if (!checkpointsData || checkpointsData.length === 0) {
-					setThreadError("No checkpoints found for thread");
-					return null;
-				}
-
-				// Get thread data from the first checkpoint
-				const latestCheckpoint = checkpointsData[0];
-				const threadData = latestCheckpoint.metadata || {};
-
-				// Extract todos (backend sends as array)
-				const todos: Todo[] = Array.isArray(threadData.todos)
-					? threadData.todos
-					: [];
-
-				// Restore thread-scoped files from the backend checkpoint metadata
-				const filesMap = new Map<string, any>();
-				if (
-					threadData.files &&
-					typeof threadData.files === "object" &&
-					Object.keys(threadData.files).length > 0
-				) {
-					filesMap.set("thread", threadData.files);
-				}
-
-				// Format messages
-				const messages = formatMessages(checkpointsData[0].values.messages);
-
-				// Build metadata including thread_id
-				const metadata = { ...threadData, thread_id: threadId };
-
+				await resolveThreadOwner(threadId);
+				const state = await getAegraState(threadId);
+				const messages = formatMessages(state.values?.messages ?? []);
+				const files = aegraFiles(state.values?.files);
 				return {
-					checkpoints: checkpointsData,
+					checkpoints: [],
 					messages,
-					metadata,
-					todos,
-					filesMap,
+					metadata: {
+						...state.metadata,
+						thread_id: threadId,
+						stream_owner: "aegra",
+					},
+					todos: [],
+					filesMap:
+						files && Object.keys(files).length
+							? new Map([[AEGRA_FILES_SOURCE, files]])
+							: new Map(),
 					model: latestHumanMessage(messages)?.model,
 				};
 			} catch (err) {
 				console.error("Failed to load thread:", err);
-				setThreadError("Failed to load thread");
+				setThreadError(
+					err instanceof Error && err.message === "Thread unavailable in Aegra"
+						? err.message
+						: "Failed to load thread",
+				);
 				return null;
 			} finally {
 				setThreadLoading(false);
@@ -192,22 +184,17 @@ export default function useThread(): ThreadContextType {
 			metadata?: { assistant_id?: string; project_id?: string };
 		} = {},
 	) => {
-		// Always pass limit and offset (defaults: 20, 0) to searchThreads
-		const data = await searchThreads(action, filter, LIMIT, 0);
-
 		if (action === "list_threads") {
-			setThreads(data);
-			// Extract cursor from last thread for pagination
-			if (data.length > 0) {
-				const lastThread = data[data.length - 1];
-				setCursor(lastThread.updated_at);
-			}
-			// Set hasMore based on whether we got a full page
-			setHasMoreThreads(data.length === LIMIT);
+			const native = Object.keys(filter).length
+				? []
+				: await searchAegraThreads(LIMIT, 0);
+			setThreads(native.map(toThreadRow));
+			setOffset(native.length);
+			setHasMoreThreads(native.length === LIMIT);
 		} else if (action === "list_checkpoints") {
-			setCheckpoints(data);
+			setCheckpoints([]);
 		} else if (action === "get_checkpoint") {
-			setCheckpoint(data);
+			setCheckpoint(null);
 		}
 	};
 
@@ -219,30 +206,12 @@ export default function useThread(): ThreadContextType {
 		try {
 			setIsLoadingMoreThreads(true);
 
-			// Build filter with cursor for pagination
-			const paginationFilter = { ...filter };
-			if (cursor) {
-				// Use cursor-based pagination: fetch threads older than cursor
-				paginationFilter.updated_at = { $lt: cursor };
-			}
-
-			// Fetch threads with limit (offset=0 since we use cursor-based pagination)
-			const newThreads = await searchThreads(
-				"list_threads",
-				paginationFilter,
-				LIMIT,
-				0,
-			);
-
-			setThreads((prev) => [...prev, ...newThreads]);
-
-			// Extract cursor from last thread for next page
-			if (newThreads.length > 0) {
-				const lastThread = newThreads[newThreads.length - 1];
-				setCursor(lastThread.updated_at);
-			}
-
-			setHasMoreThreads(newThreads.length === LIMIT);
+			const native = Object.keys(filter).length
+				? []
+				: await searchAegraThreads(LIMIT, offset);
+			setThreads((prev) => [...prev, ...native.map(toThreadRow)]);
+			setOffset((previous) => previous + native.length);
+			setHasMoreThreads(native.length === LIMIT);
 		} catch (error) {
 			console.error("Error loading more threads:", error);
 		} finally {
@@ -256,7 +225,7 @@ export default function useThread(): ThreadContextType {
 	) => {
 		useEffect(() => {
 			// Reset pagination state for fresh load
-			setCursor(null);
+			setOffset(0);
 			setHasMoreThreads(true);
 			// Don't clear threads immediately - let fetchThreads replace them
 			// This prevents breaking checkpoint fetching that may run concurrently
@@ -280,7 +249,7 @@ export default function useThread(): ThreadContextType {
 		setCheckpoints,
 		checkpoint,
 		setCheckpoint,
-		searchThreads,
+		searchThreads: fetchThreads,
 		useListThreadsEffect,
 		useListCheckpointsEffect,
 		loadMoreThreads,

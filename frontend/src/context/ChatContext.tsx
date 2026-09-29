@@ -22,6 +22,7 @@ import {
 	type PersistedContextFile,
 } from "@/lib/services/userSettingsService";
 import { getAuthToken } from "@/lib/utils/auth";
+import { AEGRA_FILES_SOURCE } from "@/lib/utils/aegraStream";
 import { toast } from "sonner";
 
 export type {
@@ -615,7 +616,7 @@ export default function ChatProvider({
 							modified_at?: string;
 						};
 						const normalizedFile = normalizeFileData(fileData, messageId);
-						if (isStreamingRef.current) {
+						if (isStreamingRef.current && messageId !== AEGRA_FILES_SOURCE) {
 							nextDurableFiles.set(path, promoteToUserFile(normalizedFile));
 							return;
 						}

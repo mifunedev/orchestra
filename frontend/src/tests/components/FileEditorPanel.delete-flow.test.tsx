@@ -24,15 +24,6 @@ vi.mock("@/context/ChatContext", () => ({
 	useChatContext: () => mockUseChatContext(),
 }));
 
-vi.mock("@/hooks/useInferenceDictation", () => ({
-	default: () => ({
-		inferenceMode: false,
-		toggleInferenceMode: vi.fn(),
-		isGenerating: false,
-		setIsGenerating: vi.fn(),
-	}),
-}));
-
 vi.mock("@/hooks/use-mobile", () => ({
 	useIsMobile: () => false,
 }));

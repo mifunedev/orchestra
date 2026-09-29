@@ -1,7 +1,10 @@
 # Orchestra on Aegra
 
-This service exposes Aegra's native thread and run-stream API at `/api/aegra`.
-The service preserves legacy Orchestra routes. The service registers only the `orchestra` graph.
+This service exposes Aegra's native thread and run-stream API at `/api/v1`.
+The Aegra service does not expose the former `/api/aegra` alias. The legacy Orchestra backend
+continues to serve `/api`, including `POST /api/llm/stream` and
+`/api/threads/search`, with unchanged payloads and behavior. The service
+registers only the `orchestra` graph.
 
 ## Configuration
 
@@ -33,8 +36,8 @@ Credentials remain in request-local execution context; they are not placed in ru
 configuration, user records, metadata, or checkpoints. In-process Aegra execution
 inherits that context. Distributed execution is intentionally unsupported.
 
-1. `POST /api/aegra/threads` with `{}`.
-2. `POST /api/aegra/threads/{thread_id}/runs/stream` with:
+1. `POST /api/v1/threads` with `{}`.
+2. `POST /api/v1/threads/{thread_id}/runs/stream` with:
 
 ```json
 {
@@ -48,15 +51,33 @@ inherits that context. Distributed execution is intentionally unsupported.
 Send only the next user message on subsequent turns. Aegra restores history from
 its checkpoints. Consume native SSE events, including metadata, message chunks,
 tool-bearing updates, final values, and errors; there is no server-side event mapper.
-`GET /api/aegra/threads/{thread_id}/state` reads persisted state.
-`GET /api/aegra/threads/{thread_id}/runs/{run_id}/stream` attaches to a native stream.
+`GET /api/v1/threads/{thread_id}/state` reads persisted state.
+`GET /api/v1/threads/{thread_id}/runs/{run_id}/stream` attaches to a native stream.
+Requests without valid credentials return `401`. A different authenticated user
+cannot read or run a thread they do not own. The development proxy directs
+`/api/v1` to Aegra on port 2026 and other `/api` requests to Orchestra.
 
 Requested tools must exist in the authenticated Orchestra `/api/tools` catalog.
-The real Orchestra graph executes tool proxies through the authenticated
+The real Orchestra graph executes selected Orchestra tools through the authenticated
 `/api/tools/invoke` endpoint, retaining Orchestra's tool implementation and user
-scoping. The service rejects caller-supplied tool definitions and credentials in graph input.
-The service rejects files, MCP, subagents, caller-supplied state, checkpoint overrides,
-and context identity overrides before run creation.
+scoping. The graph does not proxy the CLI-only `bash_tool`, even when selected.
+Use DeepAgents' native `execute` tool for sandbox commands. With an `mcp` selection,
+`execute` uses the authenticated MCP Sandbox backend. With a `state` selection,
+`execute` cannot run shell commands; Aegra does not switch backends.
+The service rejects caller-supplied tool definitions and credentials in graph input.
+The service rejects caller-supplied files, external MCP tool servers, subagents,
+state, checkpoint overrides, and context identity overrides before run creation.
+
+Aegra reads the authenticated account's saved sandbox selection from Orchestra
+`GET /api/settings` for each graph. An unset, `auto`, or `state` selection uses StateBackend.
+An `mcp` selection uses the MCP Sandbox backend through Orchestra
+`/api/sandbox/mcp`. Orchestra keeps the saved sandbox URL and key. Aegra sends
+only the current account's credentials and MCP session header to the proxy.
+A saved `mcp` selection without a URL fails the run. An unavailable MCP Sandbox
+reports an error; Aegra does not switch to StateBackend. A saved `daytona`
+selection fails with an unsupported-backend error. Do not send a sandbox URL,
+key, or identity in the run configuration. External MCP tool servers remain
+unsupported.
 
 ## Vector-free verification
 

@@ -190,6 +190,42 @@ describe("native Aegra stream", () => {
 			input: { location: "Oslo" },
 		});
 	});
+	it("extracts file updates and replaces them with native values snapshots", async () => {
+		const updated = {
+			"/answer.txt": {
+				content: ["draft"],
+				created_at: "2024-01-01",
+				modified_at: "2024-01-02",
+			},
+		};
+		const final = {
+			"/answer.txt": { ...updated["/answer.txt"], content: "final\nanswer" },
+		};
+		const states: any[] = [];
+		await consumeAegraStream(
+			response([
+				["updates", { tools: { files: updated } }],
+				[
+					"updates",
+					{
+						tools: {
+							files: { value: { "/draft.txt": updated["/answer.txt"] } },
+						},
+					},
+				],
+				["values", { messages: [], files: final }],
+				["end", {}],
+			]),
+			(state) => states.push(state),
+		);
+		expect(states[0].files).toEqual(updated);
+		expect(states[1].files).toEqual({
+			"/draft.txt": updated["/answer.txt"],
+		});
+		expect(states[2].files).toEqual(final);
+		expect(states.at(-1).files).toEqual(final);
+	});
+
 	it("accepts native EOF after final values", async () => {
 		let latest: any;
 		await consumeAegraStream(

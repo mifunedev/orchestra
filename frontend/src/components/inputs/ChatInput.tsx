@@ -41,6 +41,7 @@ export default function ChatInput({
 		setMetadata,
 		inputRef,
 		enqueue,
+		preflightSubmit,
 		displayModel,
 		models,
 		setModel,
@@ -52,9 +53,11 @@ export default function ChatInput({
 
 	// Helper to enqueue and clear input
 	const handleEnqueue = (q: string, imgs: File[]) => {
-		enqueue(q, imgs);
-		setQuery("");
-		setImages([]);
+		if (!preflightSubmit(imgs)) return;
+		if (enqueue(q, imgs)) {
+			setQuery("");
+			setImages([]);
+		}
 	};
 
 	const handleResetProject = () => {

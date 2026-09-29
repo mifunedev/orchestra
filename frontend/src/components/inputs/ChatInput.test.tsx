@@ -82,6 +82,7 @@ function contextValue(overrides: Record<string, unknown> = {}) {
 		setMetadata: vi.fn(),
 		inputRef: { current: null },
 		enqueue,
+		preflightSubmit: vi.fn(() => true),
 		displayModel: HEALTHY_MODELS.default,
 		models: HEALTHY_MODELS,
 		setModel: vi.fn(),
@@ -282,6 +283,31 @@ describe("ChatInput model states", () => {
 		await waitFor(() =>
 			expect(enqueue).toHaveBeenCalledWith("hello there", []),
 		);
+	});
+
+	it("retains draft and image on unsupported Enter without queueing", () => {
+		const file = new File(["image"], "image.png");
+		const setQuery = vi.fn();
+		const setImages = vi.fn();
+		const preflightSubmit = vi.fn(() => false);
+		mockContext.mockReturnValue(
+			contextValue({
+				query: "draft",
+				images: [file],
+				setQuery,
+				setImages,
+				preflightSubmit,
+			}),
+		);
+		renderInput();
+		fireEvent.keyDown(screen.getByRole("textbox"), {
+			key: "Enter",
+			shiftKey: false,
+		});
+		expect(preflightSubmit).toHaveBeenCalledWith([file]);
+		expect(enqueue).not.toHaveBeenCalled();
+		expect(setQuery).not.toHaveBeenCalled();
+		expect(setImages).not.toHaveBeenCalled();
 	});
 
 	it("announces the outage in a polite live region", () => {
