@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ### Added
 
-- Route new UI chats through Aegra to stream Orchestra tool calls, results, and follow-up replies while existing threads keep their current stream path ([#1019](https://github.com/mifunedev/orchestra/issues/1019)).
+- Route new UI chats through Aegra for Orchestra tool calls, results, and follow-up replies ([#1019](https://github.com/mifunedev/orchestra/issues/1019)).
 
 ### Changed
 
