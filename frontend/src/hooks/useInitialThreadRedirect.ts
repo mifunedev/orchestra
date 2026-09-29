@@ -31,6 +31,12 @@ export default function useInitialThreadRedirect({
 			return;
 		}
 
+		if (hasMessages) {
+			lastNavigatedThreadIdRef.current = threadId;
+			navigate(`/thread/${threadId}`, { replace: true });
+			return;
+		}
+
 		let active = true;
 		resolveThreadOwner(threadId)
 			.then((owner) => {

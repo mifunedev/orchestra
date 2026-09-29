@@ -183,19 +183,33 @@ describe("useInitialThreadRedirect", () => {
 			expect(resolveThreadOwner).toHaveBeenCalledWith("thread-123"),
 		);
 		expect(mockNavigate).not.toHaveBeenCalled();
+		expect(searchThreads).not.toHaveBeenCalled();
 	});
 
-	it("does not redirect an old-only thread even if stale messages exist", async () => {
-		vi.mocked(resolveThreadOwner).mockRejectedValue(
-			new Error("Thread unavailable in Aegra"),
+	it("redirects a live conversation immediately when native search is delayed", () => {
+		vi.mocked(resolveThreadOwner).mockImplementation(
+			() => new Promise(() => {}),
 		);
 		renderHook(() =>
-			useInitialThreadRedirect({ threadId: "old-only", hasMessages: true }),
+			useInitialThreadRedirect({ threadId: "new-native", hasMessages: true }),
 		);
-		await waitFor(() =>
-			expect(resolveThreadOwner).toHaveBeenCalledWith("old-only"),
+		expect(mockNavigate).toHaveBeenCalledWith("/thread/new-native", {
+			replace: true,
+		});
+		expect(resolveThreadOwner).not.toHaveBeenCalled();
+	});
+
+	it("redirects a live conversation even when native search rejects", () => {
+		vi.mocked(resolveThreadOwner).mockRejectedValue(
+			new Error("Search unavailable"),
 		);
-		expect(mockNavigate).not.toHaveBeenCalled();
+		renderHook(() =>
+			useInitialThreadRedirect({ threadId: "new-native", hasMessages: true }),
+		);
+		expect(mockNavigate).toHaveBeenCalledWith("/thread/new-native", {
+			replace: true,
+		});
+		expect(resolveThreadOwner).not.toHaveBeenCalled();
 	});
 
 	it("navigates once when threadId appears for an active conversation", async () => {
