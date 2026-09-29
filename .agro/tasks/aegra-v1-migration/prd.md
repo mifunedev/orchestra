@@ -1,8 +1,10 @@
 # PRD: Aegra v1 agent API and eligibility routing
 
-Status: DRAFT
+Status: SUPERSEDED for the experimental chat UI. US-001 remains in scope.
 
-The operator approved this plan. PR #1020 merged into `experiment/aegra` before implementation.
+The operator replaced US-002 through US-004 with `.agro/tasks/aegra-only-ui/prd.md`. The original dual-engine UI plan below records the earlier decision. Do not use its v0 routing criteria for the current PR #1022.
+
+The operator approved the original plan. PR #1020 merged into `experiment/aegra` before implementation.
 
 ## User Stories
 
