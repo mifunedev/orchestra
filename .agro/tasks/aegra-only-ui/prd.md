@@ -15,7 +15,7 @@ The operator replaced the dual-engine UI direction in `.agro/tasks/aegra-v1-migr
 - [ ] First add failing tests for Aegra-only thread listing, pagination, native state reload, and a legacy-only thread ID.
 - [ ] Sidebar and direct thread navigation use Aegra search and state. Neither operation calls the legacy thread or checkpoint API.
 - [ ] A legacy-only thread URL displays an unavailable-thread message. It does not load or modify its old record.
-- [ ] Aegra file state still appears in the Files panel after reload.
+- [ ] Aegra file state still appears in the Files panel after reload. Switching to an unavailable URL and then a new chat clears those thread files.
 - [ ] Verify the result in a browser with the agent-browser skill.
 
 ### US-002: Reject unsupported chat input before creation
@@ -97,7 +97,7 @@ The operator's decision changes the approved UI ownership contract. Hiding legac
 | `frontend/src/hooks/useChat.test.tsx`, input tests | Supported v1, unsupported input, retained draft, failure | No legacy run or creation. |
 | `frontend/src/tests/components/FileEditorPanel.test.tsx` | Ordinary transcription, no voice inference request | No direct legacy chat stream. |
 | `frontend/src/hooks/useInitialThreadRedirect.test.tsx` | Native navigation and old ID | No ownership fallback. |
-| `frontend/src/context/ChatContext.test.tsx` | Native file reload and passive files | File provenance stays native. |
+| `frontend/src/context/ChatContext.test.tsx`, thread-page tests | Native file reload, unavailable URL, new chat | Native files do not leak into the next chat. |
 | `.agro/tasks/aegra-only-ui/evidence/manual-review.md` | Existing thread, old URL, unsupported input | Observed browser behavior. |
 
 Run `npm test`, `npm run build`, scoped ESLint, and scoped Prettier in `frontend/`. Check the PR's backend and frontend CI jobs after pushing.
