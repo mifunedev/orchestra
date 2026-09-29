@@ -91,6 +91,32 @@ async def test_requested_tools_keep_catalog_authorization(monkeypatch, owner):
         await build_graph(monkeypatch, "state", tools=["not-in-catalog"])
 
 
+def test_authenticated_client_disables_environment_proxy_and_redirects(monkeypatch, owner):
+    monkeypatch.setenv("HTTP_PROXY", "http://proxy.invalid:8080")
+    monkeypatch.setenv("HTTPS_PROXY", "http://proxy.invalid:8080")
+    original_client = httpx.Client
+    clients = []
+    configurations = []
+
+    def record_client(*args, **kwargs):
+        configurations.append(kwargs)
+        client = original_client(*args, **kwargs)
+        clients.append(client)
+        return client
+
+    monkeypatch.setattr(httpx, "Client", record_client)
+    backend = AuthenticatedMcpSandboxBackend()
+    try:
+        assert len(clients) == 2
+        assert clients[0].is_closed
+        assert backend._client is clients[1]
+        assert configurations[1]["trust_env"] is False
+        assert configurations[1]["follow_redirects"] is False
+        assert configurations[1]["timeout"].read == 120.0
+    finally:
+        backend._client.close()
+
+
 def test_identity_cannot_reuse_first_users_backend(monkeypatch, owner):
     backend = AuthenticatedMcpSandboxBackend()
     first = backend._build_headers()
