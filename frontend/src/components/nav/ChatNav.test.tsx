@@ -21,9 +21,6 @@ vi.mock("@/components/buttons/ColorModeButton", () => ({
 vi.mock("../buttons/NewThreadButton", () => ({
 	default: () => <button data-testid="new-thread-button" />,
 }));
-vi.mock("../buttons/thread-share-button", () => ({
-	default: () => <button data-testid="share-button" />,
-}));
 vi.mock("@/components/buttons/HelpButton", () => ({
 	HelpButton: () => <button data-testid="help-button" />,
 }));
@@ -73,6 +70,11 @@ describe("ChatNav", () => {
 		render(<ChatNav />);
 		expect(screen.getByTestId("color-mode-button")).toBeInTheDocument();
 		expect(screen.getByTestId("new-thread-button")).toBeInTheDocument();
-		expect(screen.getByTestId("share-button")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Save as Assistant" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /share/i }),
+		).not.toBeInTheDocument();
 	});
 });
